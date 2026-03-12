@@ -12,19 +12,22 @@ const dataFile = join(dataDir, "state.json");
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl }) : null;
 const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "Voyage365!";
+const mainAccessCode = process.env.MAIN_ACCESS_CODE || "VoyageKundu365";
 
 const seedUsers = [
-  { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management" },
-  { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management" },
-  { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations" },
-  { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations" },
-  { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice" },
-  { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping" },
-  { username: "emir.animasyonmdr", role: "departmentManager", titleKey: "entertainmentManager", displayName: "Emir", department: "entertainment", scopeDepartment: "entertainment" },
-  { username: "emre.teknikmdr", role: "departmentManager", titleKey: "chiefEngineer", displayName: "Emre", department: "technical", scopeDepartment: "technical" },
-  { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb" },
-  { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations" },
-  { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security" },
+  { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management", requirePasswordChange: true },
+  { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management", requirePasswordChange: true },
+  { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management", requirePasswordChange: true },
+  { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations", requirePasswordChange: true },
+  { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations", requirePasswordChange: true },
+  { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice", requirePasswordChange: true },
+  { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping", requirePasswordChange: true },
+  { username: "emir.animasyonmdr", role: "departmentManager", titleKey: "entertainmentManager", displayName: "Emir", department: "entertainment", scopeDepartment: "entertainment", requirePasswordChange: true },
+  { username: "emre.teknikmdr", role: "departmentManager", titleKey: "chiefEngineer", displayName: "Emre", department: "technical", scopeDepartment: "technical", requirePasswordChange: true },
+  { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb", requirePasswordChange: true },
+  { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations", requirePasswordChange: true },
+  { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security", requirePasswordChange: true },
+  { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa", requirePasswordChange: true },
 ];
 
 const initialState = {
@@ -35,11 +38,12 @@ const initialState = {
   users: seedUsers,
   sessions: [],
   permissions: {
-    manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
-    deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
-    chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
-    assistant: { tabs: ["dashboard", "complaints"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
-    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+    admin: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
+    manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
+    deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+    chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+    assistant: { tabs: ["dashboard", "complaints", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
   },
   tasks: [
     { id: 1, titleKey: "vipArrivalPreparation", type: "daily", department: "guestRelations", owner: "Denizcan", dueDate: "2026-03-10", priority: "High", status: "In Progress", progress: 60, notesKey: "vipArrivalPreparation" },
@@ -144,10 +148,26 @@ const initialState = {
     { id: "slot-1", venueId: "vista-italian", date: "2026-03-12", time: "19:00", maxCovers: 24, bookedCovers: 12, waitlistCount: 0 },
     { id: "slot-2", venueId: "asia-flame", date: "2026-03-12", time: "20:00", maxCovers: 20, bookedCovers: 18, waitlistCount: 1 },
   ],
+  assistantMeetings: [
+    { id: "meet-1", customerName: "Ayse Demir", date: "2026-03-12", time: "10:30", contact: "0555 123 45 67", topic: "Oda memnuniyeti gorusmesi", tagCode: "FTF", result: "Takip gerekli", notes: "Kahvalti alaniyla ilgili geri bildirim verdi. Yarin tekrar aranacak.", followUpDate: "2026-03-12", owner: "Merve", assignedAssistant: "Merve", isFTF: true, createdAt: "2026-03-12T10:30:00.000Z" },
+    { id: "meet-2", customerName: "Murat Kaya", date: "2026-03-12", time: "15:00", contact: "", topic: "Erken cikis talebi", tagCode: "", result: "Olumlu", notes: "Talep onaylandi, tesekkur etti.", followUpDate: "", owner: "Seda", assignedAssistant: "Seda", isFTF: false, createdAt: "2026-03-12T15:00:00.000Z" },
+  ],
+  assistantReviews: [
+    { id: "review-1", platform: "Google", rating: 2, author: "Cem Y.", date: "2026-03-12", branch: "Voyage Kundu", content: "Personel ilgiliydi ama giris islemi uzun surdu.", status: "In Review", owner: "Merve", createdAt: "2026-03-12T11:10:00.000Z" },
+    { id: "review-2", platform: "Tripadvisor", rating: 5, author: "Elif K.", date: "2026-03-12", branch: "Voyage Kundu", content: "Konum ve ekip cok iyiydi, tekrar gelirim.", status: "Open", owner: "Seda", createdAt: "2026-03-12T16:20:00.000Z" },
+  ],
+  notifications: [],
   activityLogs: [],
 };
 
 const roleCapabilities = {
+  admin: {
+    canEditTasks: true,
+    canEditComplaints: true,
+    canEditAlaCarte: true,
+    canEditAgenda: true,
+    canEditPermissions: true,
+  },
   manager: {
     canEditTasks: true,
     canEditComplaints: true,
@@ -206,6 +226,7 @@ function sanitizeUser(user) {
     displayName: user.displayName,
     department: user.department,
     scopeDepartment: user.scopeDepartment ?? null,
+    requirePasswordChange: Boolean(user.requirePasswordChange),
   };
 }
 
@@ -214,7 +235,11 @@ function getScopeDepartment(user) {
 }
 
 function isGlobalManager(user) {
-  return ["manager", "deputy", "chief"].includes(user.role);
+  return ["admin", "manager", "deputy", "chief"].includes(user.role);
+}
+
+function isAdminUser(user) {
+  return ["admin", "manager"].includes(user.role);
 }
 
 function canAccessAlaCarte(user) {
@@ -236,14 +261,29 @@ function mergeScopedCollection(currentItems, incomingItems, predicate) {
   ];
 }
 
+function notificationsForUser(notifications, user) {
+  if (isAdminUser(user)) return notifications;
+  return notifications.filter((item) => item.recipientUsername === user.username);
+}
+
 function ensureAuthShape(state) {
   const nextState = { ...state };
-  nextState.users = (state.users?.length ? state.users : seedUsers).map((user) => {
+  const currentUsers = state.users?.length ? state.users : [];
+  const mergedUsers = [
+    ...currentUsers,
+    ...seedUsers.filter((seedUser) => !currentUsers.some((user) => user.username === seedUser.username)),
+  ];
+  nextState.users = mergedUsers.map((user) => {
     if (user.passwordHash && user.salt) return user;
     const auth = hashPassword(defaultPassword);
     return { ...user, ...auth };
   });
   nextState.sessions = Array.isArray(state.sessions) ? state.sessions : [];
+  nextState.permissions = {
+    ...initialState.permissions,
+    ...(state.permissions ?? {}),
+  };
+  nextState.notifications = Array.isArray(state.notifications) ? state.notifications : [];
   return nextState;
 }
 
@@ -253,16 +293,19 @@ function sanitizeStateForUser(state, user) {
 
   return {
     ...state,
-    users: user.role === "manager" ? state.users.map(sanitizeUser) : [sanitizeUser(user)],
+    users: isAdminUser(user) ? state.users.map(sanitizeUser) : [sanitizeUser(user)],
     tasks: scopedTasks,
     complaints: scopedComplaints,
-    agendaItems: user.role === "manager" ? state.agendaItems ?? [] : [],
+    agendaItems: isAdminUser(user) ? state.agendaItems ?? [] : [],
     alaCarteVenues: canAccessAlaCarte(user) ? state.alaCarteVenues ?? [] : [],
     alaCarteReservations: canAccessAlaCarte(user) ? state.alaCarteReservations ?? [] : [],
     alaCarteWaitlist: canAccessAlaCarte(user) ? state.alaCarteWaitlist ?? [] : [],
     alaCarteServiceSlots: canAccessAlaCarte(user) ? state.alaCarteServiceSlots ?? [] : [],
+    assistantMeetings: state.assistantMeetings ?? [],
+    assistantReviews: state.assistantReviews ?? [],
+    notifications: notificationsForUser(state.notifications ?? [], user),
     sessions: undefined,
-    activityLogs: user.role === "manager" ? state.activityLogs ?? [] : [],
+    activityLogs: isAdminUser(user) ? state.activityLogs ?? [] : [],
   };
 }
 
@@ -311,6 +354,9 @@ function mergeStateForRole(state, body, authUser) {
     alaCarteReservations: capabilities.canEditAlaCarte ? body.alaCarteReservations ?? state.alaCarteReservations : state.alaCarteReservations,
     alaCarteWaitlist: capabilities.canEditAlaCarte ? body.alaCarteWaitlist ?? state.alaCarteWaitlist : state.alaCarteWaitlist,
     alaCarteServiceSlots: capabilities.canEditAlaCarte ? body.alaCarteServiceSlots ?? state.alaCarteServiceSlots : state.alaCarteServiceSlots,
+    assistantMeetings: body.assistantMeetings ?? state.assistantMeetings,
+    assistantReviews: body.assistantReviews ?? state.assistantReviews,
+    notifications: state.notifications,
     agendaItems: capabilities.canEditAgenda ? body.agendaItems ?? state.agendaItems : state.agendaItems,
     activityLogs: state.activityLogs,
   });
@@ -396,6 +442,10 @@ function unauthorized(response) {
   sendJson(response, 401, { error: "Unauthorized" });
 }
 
+function forbidden(response) {
+  sendJson(response, 403, { error: "Forbidden" });
+}
+
 function readBody(request) {
   return new Promise((resolve, reject) => {
     let raw = "";
@@ -435,7 +485,12 @@ const server = createServer(async (request, response) => {
       const body = await readBody(request);
       const state = await readState();
       const user = state.users.find((item) => item.username === body.username);
-      if (!user || !body.password || !verifyPassword(body.password, user.salt, user.passwordHash)) {
+      if (
+        body.accessCode !== mainAccessCode ||
+        !user ||
+        !body.password ||
+        !verifyPassword(body.password, user.salt, user.passwordHash)
+      ) {
         sendJson(response, 401, { error: "Invalid username or password" });
         return;
       }
@@ -447,6 +502,12 @@ const server = createServer(async (request, response) => {
       ];
       await writeState(state);
       sendJson(response, 200, { token, user: sanitizeUser(user) });
+      return;
+    }
+
+    if (url.pathname === "/api/auth/catalog" && request.method === "GET") {
+      const state = await readState();
+      sendJson(response, 200, { users: state.users.map(sanitizeUser) });
       return;
     }
 
@@ -516,6 +577,145 @@ const server = createServer(async (request, response) => {
       state.activityLogs = [nextLog, ...(state.activityLogs || [])].slice(0, 500);
       const saved = await writeState(state);
       sendJson(response, 201, { log: nextLog, count: saved.activityLogs.length });
+      return;
+    }
+
+    if (url.pathname === "/api/users" && request.method === "PUT") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+      if (!isAdminUser(authUser)) {
+        forbidden(response);
+        return;
+      }
+
+      const body = await readBody(request);
+      const username = typeof body.username === "string" ? body.username : "";
+      const displayName = typeof body.displayName === "string" ? body.displayName.trim() : "";
+      const password = typeof body.password === "string" ? body.password.trim() : "";
+      const targetIndex = state.users.findIndex((item) => item.username === username);
+
+      if (targetIndex === -1) {
+        sendJson(response, 404, { error: "User not found" });
+        return;
+      }
+
+      const authShape = password ? hashPassword(password) : null;
+      const updatedUser = {
+        ...state.users[targetIndex],
+        displayName: displayName || state.users[targetIndex].displayName,
+        requirePasswordChange: password ? true : state.users[targetIndex].requirePasswordChange,
+        ...(authShape ?? {}),
+      };
+
+      state.users = state.users.map((item, index) => (index === targetIndex ? updatedUser : item));
+      const saved = await writeState(state);
+      const currentSessionUser = saved.users.find((item) => item.username === authUser.username) ?? authUser;
+
+      sendJson(response, 200, {
+        users: saved.users.map(sanitizeUser),
+        currentUser: sanitizeUser(currentSessionUser),
+        updatedUser: sanitizeUser(updatedUser),
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/notifications" && request.method === "GET") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+      sendJson(response, 200, { notifications: notificationsForUser(state.notifications ?? [], authUser) });
+      return;
+    }
+
+    if (url.pathname === "/api/notifications" && request.method === "POST") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+
+      const body = await readBody(request);
+      const department = typeof body.department === "string" ? body.department.trim() : "";
+      const title = typeof body.title === "string" ? body.title.trim() : "Department notification";
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+
+      if (!department || !message) {
+        sendJson(response, 400, { error: "Department and message are required" });
+        return;
+      }
+
+      const recipients = state.users.filter(
+        (item) => item.role === "departmentManager" && getScopeDepartment(item) === department,
+      );
+
+      const createdAt = new Date().toISOString();
+      const nextNotifications = recipients.map((recipient) => ({
+        id: randomUUID(),
+        recipientUsername: recipient.username,
+        department,
+        title,
+        message,
+        createdAt,
+        createdBy: authUser.username,
+        readAt: null,
+      }));
+
+      state.notifications = [...nextNotifications, ...(state.notifications ?? [])].slice(0, 500);
+      await writeState(state);
+      sendJson(response, 201, { notifications: nextNotifications });
+      return;
+    }
+
+    if (url.pathname === "/api/notifications/read" && request.method === "PUT") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+
+      const body = await readBody(request);
+      const id = typeof body.id === "string" ? body.id : "";
+      const now = new Date().toISOString();
+
+      state.notifications = (state.notifications ?? []).map((item) =>
+        item.id === id && (isAdminUser(authUser) || item.recipientUsername === authUser.username)
+          ? { ...item, readAt: item.readAt ?? now }
+          : item,
+      );
+      await writeState(state);
+      sendJson(response, 200, { notifications: notificationsForUser(state.notifications ?? [], authUser) });
+      return;
+    }
+
+    if (url.pathname === "/api/users/self-password" && request.method === "PUT") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+
+      const body = await readBody(request);
+      const password = typeof body.password === "string" ? body.password.trim() : "";
+
+      if (password.length < 8) {
+        sendJson(response, 400, { error: "Password must be at least 8 characters" });
+        return;
+      }
+
+      const targetIndex = state.users.findIndex((item) => item.username === authUser.username);
+      const authShape = hashPassword(password);
+      const updatedUser = {
+        ...state.users[targetIndex],
+        ...authShape,
+        requirePasswordChange: false,
+      };
+
+      state.users = state.users.map((item, index) => (index === targetIndex ? updatedUser : item));
+      const saved = await writeState(state);
+
+      sendJson(response, 200, {
+        user: sanitizeUser(saved.users.find((item) => item.username === authUser.username) ?? updatedUser),
+      });
       return;
     }
 

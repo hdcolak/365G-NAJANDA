@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -34,6 +34,7 @@ import "./App.css";
 const languages = ["tr", "en", "de", "ru"];
 
 const users = [
+  { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management" },
   { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management" },
   { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management" },
   { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations" },
@@ -45,46 +46,56 @@ const users = [
   { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb" },
   { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations" },
   { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security" },
+  { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa" },
 ];
 
 const defaultRoleAccess = {
+  admin: {
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
+    modules: ["guest", "settings", "assistant", "assistantTracker"],
+    showAudit: true,
+  },
   manager: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: true,
   },
   deputy: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: false,
   },
   chief: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: false,
   },
   assistant: {
-    tabs: ["dashboard", "complaints"],
+    tabs: ["dashboard", "complaints", "assistantTracker"],
     modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
   departmentManager: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
     modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
 };
 
-const editableRoles = ["deputy", "chief", "assistant"];
-const permissionTabs = ["dashboard", "tasks", "complaints", "alacarte", "analysis"];
+const editableRoles = ["manager", "deputy", "chief", "assistant", "departmentManager"];
+const permissionTabs = ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"];
 const managerTabs = ["managerAgenda", "permissions", "managerOps"];
 
 const internalModules = [
   { id: "guest", icon: Building2 },
   { id: "settings", icon: CheckSquare },
   { id: "assistant", icon: MessageSquareWarning },
-  { id: "assistantTracker", icon: ClipboardList, href: "/assistant-tracker/" },
+  { id: "assistantTracker", icon: ClipboardList },
 ];
+
+const controllableModules = internalModules.filter(
+  (module) => !["assistant", "assistantTracker"].includes(module.id),
+);
 
 const initialAlaCarteVenues = [
   {
@@ -230,6 +241,68 @@ const initialAlaCarteServiceSlots = [
   { id: "slot-2", venueId: "vista-italian", date: "2026-03-12", time: "20:30", maxCovers: 18, bookedCovers: 8, waitlistCount: 0 },
   { id: "slot-3", venueId: "asia-flame", date: "2026-03-12", time: "20:00", maxCovers: 20, bookedCovers: 18, waitlistCount: 1 },
   { id: "slot-4", venueId: "asia-flame", date: "2026-03-13", time: "19:30", maxCovers: 16, bookedCovers: 6, waitlistCount: 0 },
+];
+
+const initialAssistantMeetings = [
+  {
+    id: "meet-1",
+    customerName: "Ayse Demir",
+    date: "2026-03-12",
+    time: "10:30",
+    contact: "0555 123 45 67",
+    topic: "Oda memnuniyeti gorusmesi",
+    tagCode: "FTF",
+    result: "Takip gerekli",
+    notes: "Kahvalti alaniyla ilgili geri bildirim verdi. Yarin tekrar aranacak.",
+    followUpDate: "2026-03-12",
+    owner: "Merve",
+    assignedAssistant: "Merve",
+    isFTF: true,
+    createdAt: "2026-03-12T10:30:00.000Z",
+  },
+  {
+    id: "meet-2",
+    customerName: "Murat Kaya",
+    date: "2026-03-12",
+    time: "15:00",
+    contact: "",
+    topic: "Erken cikis talebi",
+    tagCode: "",
+    result: "Olumlu",
+    notes: "Talep onaylandi, tesekkur etti.",
+    followUpDate: "",
+    owner: "Seda",
+    assignedAssistant: "Seda",
+    isFTF: false,
+    createdAt: "2026-03-12T15:00:00.000Z",
+  },
+];
+
+const initialAssistantReviews = [
+  {
+    id: "review-1",
+    platform: "Google",
+    rating: 2,
+    author: "Cem Y.",
+    date: "2026-03-12",
+    branch: "Voyage Kundu",
+    content: "Personel ilgiliydi ama giris islemi uzun surdu.",
+    status: "In Review",
+    owner: "Merve",
+    createdAt: "2026-03-12T11:10:00.000Z",
+  },
+  {
+    id: "review-2",
+    platform: "Tripadvisor",
+    rating: 5,
+    author: "Elif K.",
+    date: "2026-03-12",
+    branch: "Voyage Kundu",
+    content: "Konum ve ekip cok iyiydi, tekrar gelirim.",
+    status: "Open",
+    owner: "Seda",
+    createdAt: "2026-03-12T16:20:00.000Z",
+  },
 ];
 
 const alaCarteLabels = {
@@ -386,10 +459,26 @@ const alaCarteLabels = {
 const reservationStatusOrder = ["Booked", "Confirmed", "Arrived", "Seated", "Completed", "Cancelled", "No Show"];
 
 const authCopy = {
-  tr: { selectRole: "Rol seç", passwordStrategyTitle: "Şifre çözümü", passwordStrategyText: "Mail doğrulama yerine yönetici tarafından verilen geçici şifre kullanılabilir." },
-  en: { selectRole: "Select role", passwordStrategyTitle: "Password method", passwordStrategyText: "Use manager-issued temporary passwords instead of email verification." },
-  de: { selectRole: "Rolle wählen", passwordStrategyTitle: "Passwortmethode", passwordStrategyText: "Anstelle einer E-Mail-Bestätigung kann ein temporäres Passwort vom Manager vergeben werden." },
-  ru: { selectRole: "Выберите роль", passwordStrategyTitle: "Способ пароля", passwordStrategyText: "Вместо подтверждения по e-mail можно использовать временный пароль от менеджера." },
+  tr: {
+    selectRole: "Rol seç",
+    passwordStrategyTitle: "Giriş yöntemi",
+    passwordStrategyText: "Ortak giriş şifresiyle içeri girin. Yönetici, kullanıcıya geçici şifre verebilir; ilk girişte yeni şifre belirlenir.",
+  },
+  en: {
+    selectRole: "Select role",
+    passwordStrategyTitle: "Sign-in method",
+    passwordStrategyText: "Use the shared access code to enter. The manager can assign a temporary password, and the user sets a new one at first sign-in.",
+  },
+  de: {
+    selectRole: "Rolle wählen",
+    passwordStrategyTitle: "Anmeldemethode",
+    passwordStrategyText: "Der Zugang erfolgt über den gemeinsamen Zugangscode. Der Manager kann ein temporäres Passwort vergeben; beim ersten Login wird ein neues Passwort festgelegt.",
+  },
+  ru: {
+    selectRole: "Выберите роль",
+    passwordStrategyTitle: "Способ входа",
+    passwordStrategyText: "Вход выполняется по общему коду доступа. Менеджер может выдать временный пароль, а при первом входе пользователь задает новый пароль.",
+  },
 };
 
 const titleLabels = {
@@ -401,6 +490,7 @@ const titleLabels = {
     foodBeverageManager: "Yiyecek ve İçecek Müdürü",
     guestRelationsManager: "Misafir İlişkileri Müdürü",
     securityManager: "Güvenlik Müdürü",
+    spaManager: "SPA Müdürü",
   },
   en: {
     frontOfficeManager: "Front Office Manager",
@@ -410,6 +500,7 @@ const titleLabels = {
     foodBeverageManager: "Food and Beverage Manager",
     guestRelationsManager: "Guest Relations Manager",
     securityManager: "Security Manager",
+    spaManager: "SPA Manager",
   },
   de: {
     frontOfficeManager: "Front-Office-Manager",
@@ -419,6 +510,7 @@ const titleLabels = {
     foodBeverageManager: "F&B-Manager",
     guestRelationsManager: "Leitung Gästebetreuung",
     securityManager: "Sicherheitsleiter",
+    spaManager: "SPA-Manager",
   },
   ru: {
     frontOfficeManager: "Менеджер ресепшен",
@@ -428,6 +520,7 @@ const titleLabels = {
     foodBeverageManager: "Менеджер F&B",
     guestRelationsManager: "Менеджер по работе с гостями",
     securityManager: "Менеджер службы безопасности",
+    spaManager: "SPA-менеджер",
   },
 };
 
@@ -455,6 +548,7 @@ const translations = {
     complaintsTab: "Şikayetler",
     analysis: "Analiz",
     alacarteTab: "A'la Carte",
+    assistantTrackerTab: "FTF ve Hall of Fame",
     managerAgendaTab: "365 Gün Ajanda",
     permissionsTab: "Yetki Yönetimi",
     managerOpsTab: "Müdür İşlemleri",
@@ -517,9 +611,10 @@ const translations = {
       guest: { title: "Misafir paneli", text: "Misafir akışları, programlar ve rezervasyon kural motoru için iç sistem alanı." },
       settings: { title: "Ayarlar paneli", text: "İçerik, ekip, eşleştirme ve operasyon kuralları için iç yönetim modülü." },
       assistant: { title: "Asistan paneli", text: "Oda seçimi, görev yönlendirme ve misafir chat akışı için iç servis alanı." },
-      assistantTracker: { title: "Asistan takip modülü", text: "Yüz yüze görüşmeler, manuel platform yorumları, FTF takibi ve Hall of Fame ekranı." },
+      assistantTracker: { title: "Asistan takip modülü", text: "Yüz yüze görüşmeler, manuel platform yorumları, FTF takibi ve Hall of Fame artık uygulama içinde çalışır." },
     },
     roles: {
+      admin: "Admin",
       manager: "Müdür",
       deputy: "Müdür Yardımcısı",
       chief: "Şef",
@@ -528,12 +623,14 @@ const translations = {
     },
     loginTitle: "Admin giriş paneli",
     loginText:
-      "Yönetici girişinde sadece title gösterilir. Karışıklığı önlemek için isimler yalnızca asistan hesaplarında görünür.",
+      "Ortak giriş şifresi ve kullanıcı şifresiyle oturum açın. Yönetici girişinde yalnızca title görünür; isimler sadece asistan hesaplarında listelenir.",
     selectUser: "Giriş hesabı",
+    accessCodeLabel: "Ana giriş şifresi",
+    accessCodePlaceholder: "Ortak giriş şifresini girin",
     passwordLabel: "Şifre",
     passwordPlaceholder: "Şifrenizi girin",
     signIn: "Giriş yap",
-    authFailed: "Kullanıcı adı veya şifre hatalı.",
+    authFailed: "Ana giriş şifresi veya kullanıcı şifresi hatalı.",
     signedInAs: "Giriş yapan",
     signOut: "Çıkış yap",
     limitedAccess: "Sınırlı erişim",
@@ -614,8 +711,61 @@ const translations = {
     no: "Hayır",
     permissionTitle: "Yetki yönetimi",
     permissionText:
-      "Müdür yardımcısı, şef ve asistan rollerinin sekme ve modül erişimini buradan düzenleyin.",
-    permissionScopeNote: "Rol bazlı sekme ve panel yetkileri sadece müdür tarafından güncellenir.",
+      "Asistan sistemi dışındaki tüm sekme ve panel erişimleri yalnızca admin tarafından açılıp kapatılır.",
+    permissionScopeNote: "Asistan ve FTF sistemi sabit kalır; diğer tüm erişim yetkilerini yalnızca admin günceller.",
+    userAdminTitle: "Admin kullanıcı yönetimi",
+    userAdminText: "Admin, tüm kullanıcıların görünen adını güncelleyebilir ve yeni şifre atayabilir. Admin panel içinde ek doğrulama gerekmez.",
+    accountTitle: "Hesap",
+    displayNameLabel: "Görünen ad",
+    newPasswordLabel: "Yeni şifre",
+    newPasswordPlaceholder: "Boş bırakırsanız değişmez",
+    saveUserSettings: "Kullanıcıyı güncelle",
+    userUpdateSuccess: "Kullanıcı bilgileri güncellendi.",
+    userUpdateError: "Kullanıcı bilgileri güncellenemedi.",
+    notificationsTitle: "Departman bildirimleri",
+    notificationsText: "Yalnızca size atanan departman bildirimleri burada görünür. İzin verirseniz telefonunuzda anlık web bildirimi de alırsınız.",
+    noNotifications: "Şu anda size atanmış bildirim yok.",
+    unreadNotifications: "Okunmamış bildirim",
+    allowNotifications: "Bildirim izni ver",
+    markAsRead: "Okundu yap",
+    notificationComplaintTitle: "Yeni departman yorumu",
+    ftfStatsTitle: "Asistan takip ozeti",
+    ftfLeaderboardTitle: "Hall of Fame",
+    ftfMeetingsTitle: "FTF takip listesi",
+    ftfReviewsTitle: "Yorum listesi",
+    addMeetingTitle: "Yuz yuze gorusme ekle",
+    addReviewTitle: "Yorum ekle",
+    followUpWaiting: "Takip bekleyen",
+    lowReviewCount: "Dusuk puanli yorum",
+    ftfCountLabel: "FTF kaydi",
+    leaderAssistant: "Lider asistan",
+    todayMeetingCount: "Bugunku gorusme",
+    reviewOpenCount: "Acik yorum",
+    customerNameLabel: "Musteri adi",
+    contactLabel: "Telefon",
+    topicLabel: "Gorusme konusu",
+    tagCodeLabel: "Kod / etiket",
+    resultLabel: "Sonuc",
+    followUpDateLabel: "Takip tarihi",
+    assignedAssistantLabel: "Ilgili asistan",
+    saveMeeting: "Gorusmeyi kaydet",
+    platformLabel: "Platform",
+    ratingLabel: "Puan",
+    authorLabel: "Yorum sahibi",
+    branchLabel: "Sube veya isletme",
+    contentLabel: "Yorum metni",
+    saveReview: "Yorumu kaydet",
+    searchMeeting: "Musteri ya da konu ara",
+    searchReview: "Platform, sube veya kisi ara",
+    passwordChangeTitle: "Yeni şifre belirleyin",
+    passwordChangeText: "İlk girişte güvenlik için kişisel şifrenizi güncellemeniz gerekir.",
+    newPasswordRequiredLabel: "Yeni şifre",
+    confirmPasswordLabel: "Yeni şifre tekrar",
+    saveNewPassword: "Şifreyi kaydet",
+    passwordChangeMismatch: "Yeni şifre alanları aynı olmalıdır.",
+    passwordChangeLength: "Yeni şifre en az 8 karakter olmalıdır.",
+    passwordChangeError: "Şifre güncellenemedi.",
+    passwordChangeSuccess: "Şifreniz güncellendi.",
     accessNoteAssistant:
       "Asistan hesabı yalnızca panel özeti, şikayetler ve izin verilen dış modüllere erişebilir.",
     accessNoteDepartmentManager:
@@ -642,6 +792,7 @@ const translations = {
       security: "Güvenlik",
       entertainment: "Animasyon",
       frontOffice: "Ön Büro",
+      spa: "SPA",
       management: "Yönetim",
     },
     channels: {
@@ -698,6 +849,7 @@ const translations = {
     complaintsTab: "Complaints",
     analysis: "Analysis",
     alacarteTab: "Ala Carte",
+    assistantTrackerTab: "FTF and Hall of Fame",
     managerAgendaTab: "365 Day Agenda",
     permissionsTab: "Permissions",
     managerOpsTab: "Manager Activity",
@@ -760,17 +912,19 @@ const translations = {
       guest: { title: "Guest panel", text: "Internal system area for guest flows, schedules and reservation rules." },
       settings: { title: "Settings panel", text: "Internal admin module for content, teams, mappings and operation rules." },
       assistant: { title: "Assistant panel", text: "Internal service area for room selection, routing and guest chat flow." },
-      assistantTracker: { title: "Assistant tracker module", text: "Standalone screen for face-to-face meetings, manual platform reviews, FTF follow-up and hall of fame." },
+      assistantTracker: { title: "Assistant tracker module", text: "Face-to-face meetings, manual platform reviews, FTF follow-up and hall of fame now run inside the app." },
     },
-    roles: { manager: "Manager", deputy: "Deputy Manager", chief: "Chief", assistant: "Assistant", departmentManager: "Department Manager" },
+    roles: { admin: "Admin", manager: "Manager", deputy: "Deputy Manager", chief: "Chief", assistant: "Assistant", departmentManager: "Department Manager" },
     loginTitle: "Single-link sign-in panel",
     loginText:
-      "Sign in by username. The manager sees all activity logs, while other roles use only their authorized areas.",
+      "Sign in with the shared access code and the user password. For admin accounts, only the title is shown; names remain visible only for assistants.",
     selectUser: "Select user",
+    accessCodeLabel: "Main access code",
+    accessCodePlaceholder: "Enter the shared access code",
     passwordLabel: "Password",
     passwordPlaceholder: "Enter your password",
     signIn: "Sign in",
-    authFailed: "Invalid username or password.",
+    authFailed: "Invalid access code or user password.",
     signedInAs: "Signed in as",
     signOut: "Sign out",
     limitedAccess: "Limited access",
@@ -851,8 +1005,61 @@ const translations = {
     no: "No",
     permissionTitle: "Permission management",
     permissionText:
-      "Adjust tab and module access for deputy manager, chief and assistant roles here.",
-    permissionScopeNote: "Role-based tab and panel permissions can only be updated by the manager.",
+      "All tab and panel access outside the assistant system can only be opened or closed by the admin here.",
+    permissionScopeNote: "Assistant and FTF system access stays fixed; the admin controls every other permission.",
+    userAdminTitle: "Admin user management",
+    userAdminText: "The admin can update each account's display name and assign a new password. No extra password is required inside the admin panel.",
+    accountTitle: "Account",
+    displayNameLabel: "Display name",
+    newPasswordLabel: "New password",
+    newPasswordPlaceholder: "Leave blank to keep current password",
+    saveUserSettings: "Update user",
+    userUpdateSuccess: "User details updated.",
+    userUpdateError: "User details could not be updated.",
+    notificationsTitle: "Department notifications",
+    notificationsText: "Only notifications assigned to your department appear here. If you allow it, you will also receive instant web notifications on your phone.",
+    noNotifications: "There are no notifications assigned to you right now.",
+    unreadNotifications: "Unread notifications",
+    allowNotifications: "Allow notifications",
+    markAsRead: "Mark as read",
+    notificationComplaintTitle: "New department feedback",
+    ftfStatsTitle: "Assistant tracking overview",
+    ftfLeaderboardTitle: "Hall of Fame",
+    ftfMeetingsTitle: "FTF follow-up list",
+    ftfReviewsTitle: "Review list",
+    addMeetingTitle: "Add face-to-face meeting",
+    addReviewTitle: "Add review",
+    followUpWaiting: "Waiting follow-ups",
+    lowReviewCount: "Low-rated reviews",
+    ftfCountLabel: "FTF records",
+    leaderAssistant: "Top assistant",
+    todayMeetingCount: "Today's meetings",
+    reviewOpenCount: "Open reviews",
+    customerNameLabel: "Customer name",
+    contactLabel: "Phone",
+    topicLabel: "Meeting topic",
+    tagCodeLabel: "Code / tag",
+    resultLabel: "Result",
+    followUpDateLabel: "Follow-up date",
+    assignedAssistantLabel: "Assigned assistant",
+    saveMeeting: "Save meeting",
+    platformLabel: "Platform",
+    ratingLabel: "Rating",
+    authorLabel: "Review author",
+    branchLabel: "Branch or venue",
+    contentLabel: "Review content",
+    saveReview: "Save review",
+    searchMeeting: "Search customer or topic",
+    searchReview: "Search platform, branch or person",
+    passwordChangeTitle: "Set a new password",
+    passwordChangeText: "For security, you must update your personal password at first sign-in.",
+    newPasswordRequiredLabel: "New password",
+    confirmPasswordLabel: "Confirm new password",
+    saveNewPassword: "Save password",
+    passwordChangeMismatch: "The new password fields must match.",
+    passwordChangeLength: "The new password must be at least 8 characters.",
+    passwordChangeError: "The password could not be updated.",
+    passwordChangeSuccess: "Your password has been updated.",
     accessNoteAssistant:
       "Assistant accounts can access only the dashboard summary, complaints and allowed external modules.",
     accessNoteDepartmentManager:
@@ -878,6 +1085,7 @@ const translations = {
       security: "Security",
       entertainment: "Entertainment",
       frontOffice: "Front Office",
+      spa: "SPA",
       management: "Management",
     },
     channels: {
@@ -933,6 +1141,7 @@ const translations = {
     complaintsTab: "Beschwerden",
     analysis: "Analyse",
     alacarteTab: "Ala Carte",
+    assistantTrackerTab: "FTF und Hall of Fame",
     managerAgendaTab: "365-Tage-Agenda",
     permissionsTab: "Rechte",
     managerOpsTab: "Manager-Aktionen",
@@ -995,17 +1204,19 @@ const translations = {
       guest: { title: "Gasterlebnis", text: "Interner Systembereich für Gastabläufe, Zeitpläne und Reservierungsregeln." },
       settings: { title: "Management-Einstellungen", text: "Internes Admin-Modul für Inhalte, Teams, Zuordnungen und Regeln." },
       assistant: { title: "Assistentenbetrieb", text: "Interner Servicebereich für Zimmerauswahl, Routing und Gast-Chat." },
-      assistantTracker: { title: "Assistenten-Tracking", text: "Eigenständiger Bildschirm für Face-to-Face-Gespräche, manuelle Plattformbewertungen, FTF-Nachverfolgung und Hall of Fame." },
+      assistantTracker: { title: "Assistenten-Tracking", text: "Face-to-Face-Gespräche, manuelle Bewertungen, FTF-Nachverfolgung und Hall of Fame laufen jetzt direkt in der App." },
     },
-    roles: { manager: "Manager", deputy: "Stellv. Manager", chief: "Chef", assistant: "Assistent", departmentManager: "Abteilungsleiter" },
+    roles: { admin: "Admin", manager: "Manager", deputy: "Stellv. Manager", chief: "Chef", assistant: "Assistent", departmentManager: "Abteilungsleiter" },
     loginTitle: "Einzel-Link-Anmeldung",
     loginText:
-      "Anmeldung per Benutzername. Nur der Manager sieht alle Aktivitätsprotokolle, andere Rollen nur ihre freigegebenen Bereiche.",
+      "Melden Sie sich mit dem gemeinsamen Zugangscode und dem Benutzerpasswort an. Bei Admin-Zugängen wird nur der Titel angezeigt; Namen bleiben nur bei Assistenten sichtbar.",
     selectUser: "Benutzer wählen",
+    accessCodeLabel: "Hauptzugangscode",
+    accessCodePlaceholder: "Gemeinsamen Zugangscode eingeben",
     passwordLabel: "Passwort",
     passwordPlaceholder: "Passwort eingeben",
     signIn: "Anmelden",
-    authFailed: "Benutzername oder Passwort ist ungültig.",
+    authFailed: "Zugangscode oder Benutzerpasswort ist ungültig.",
     signedInAs: "Angemeldet als",
     signOut: "Abmelden",
     limitedAccess: "Eingeschränkter Zugriff",
@@ -1086,8 +1297,61 @@ const translations = {
     no: "Nein",
     permissionTitle: "Rechteverwaltung",
     permissionText:
-      "Register- und Modulzugriff für stellv. Manager, Chef und Assistent hier anpassen.",
-    permissionScopeNote: "Rollenbasierte Register- und Panelrechte können nur vom Manager geändert werden.",
+      "Alle Register- und Panelzugriffe außerhalb des Assistentensystems können hier nur vom Admin geöffnet oder geschlossen werden.",
+    permissionScopeNote: "Assistenten- und FTF-System bleiben fest; alle übrigen Rechte steuert nur der Admin.",
+    userAdminTitle: "Admin-Benutzerverwaltung",
+    userAdminText: "Der Admin kann den sichtbaren Namen aller Benutzer aktualisieren und neue Passwörter vergeben. Im Admin-Bereich ist keine zusätzliche Bestätigung nötig.",
+    accountTitle: "Konto",
+    displayNameLabel: "Anzeigename",
+    newPasswordLabel: "Neues Passwort",
+    newPasswordPlaceholder: "Leer lassen, um das aktuelle Passwort zu behalten",
+    saveUserSettings: "Benutzer aktualisieren",
+    userUpdateSuccess: "Benutzerdaten wurden aktualisiert.",
+    userUpdateError: "Benutzerdaten konnten nicht aktualisiert werden.",
+    notificationsTitle: "Abteilungsbenachrichtigungen",
+    notificationsText: "Hier erscheinen nur Benachrichtigungen für Ihre Abteilung. Wenn Sie es erlauben, erhalten Sie auch sofortige Web-Benachrichtigungen auf Ihrem Telefon.",
+    noNotifications: "Derzeit sind Ihnen keine Benachrichtigungen zugewiesen.",
+    unreadNotifications: "Ungelesene Benachrichtigungen",
+    allowNotifications: "Benachrichtigungen erlauben",
+    markAsRead: "Als gelesen markieren",
+    notificationComplaintTitle: "Neues Abteilungsfeedback",
+    ftfStatsTitle: "Assistenten-Tracking-Ubersicht",
+    ftfLeaderboardTitle: "Hall of Fame",
+    ftfMeetingsTitle: "FTF-Nachverfolgung",
+    ftfReviewsTitle: "Bewertungsliste",
+    addMeetingTitle: "Face-to-Face-Gesprach hinzufugen",
+    addReviewTitle: "Bewertung hinzufugen",
+    followUpWaiting: "Offene Nachverfolgung",
+    lowReviewCount: "Schwach bewertete Rezensionen",
+    ftfCountLabel: "FTF-Eintrage",
+    leaderAssistant: "Top-Assistent",
+    todayMeetingCount: "Heutige Gesprache",
+    reviewOpenCount: "Offene Bewertungen",
+    customerNameLabel: "Kundenname",
+    contactLabel: "Telefon",
+    topicLabel: "Gesprachesthema",
+    tagCodeLabel: "Code / Tag",
+    resultLabel: "Ergebnis",
+    followUpDateLabel: "Nachverfolgungsdatum",
+    assignedAssistantLabel: "Zugewiesener Assistent",
+    saveMeeting: "Gesprach speichern",
+    platformLabel: "Plattform",
+    ratingLabel: "Bewertung",
+    authorLabel: "Verfasser",
+    branchLabel: "Standort oder Betrieb",
+    contentLabel: "Bewertungstext",
+    saveReview: "Bewertung speichern",
+    searchMeeting: "Kunde oder Thema suchen",
+    searchReview: "Plattform, Standort oder Person suchen",
+    passwordChangeTitle: "Neues Passwort festlegen",
+    passwordChangeText: "Aus Sicherheitsgründen müssen Sie Ihr persönliches Passwort beim ersten Login aktualisieren.",
+    newPasswordRequiredLabel: "Neues Passwort",
+    confirmPasswordLabel: "Neues Passwort bestätigen",
+    saveNewPassword: "Passwort speichern",
+    passwordChangeMismatch: "Die neuen Passwortfelder müssen übereinstimmen.",
+    passwordChangeLength: "Das neue Passwort muss mindestens 8 Zeichen lang sein.",
+    passwordChangeError: "Das Passwort konnte nicht aktualisiert werden.",
+    passwordChangeSuccess: "Ihr Passwort wurde aktualisiert.",
     accessNoteAssistant:
       "Assistentenkonten können nur auf Dashboard, Beschwerden und erlaubte externe Module zugreifen.",
     accessNoteDepartmentManager:
@@ -1113,6 +1377,7 @@ const translations = {
       security: "Sicherheit",
       entertainment: "Entertainment",
       frontOffice: "Rezeption",
+      spa: "SPA",
       management: "Management",
     },
     channels: {
@@ -1171,6 +1436,7 @@ const translations = {
     complaintsTab: "Жалобы",
     analysis: "Аналитика",
     alacarteTab: "Ala Carte",
+    assistantTrackerTab: "FTF и Hall of Fame",
     managerAgendaTab: "365-дневная повестка",
     permissionsTab: "Права",
     managerOpsTab: "Действия менеджера",
@@ -1233,17 +1499,19 @@ const translations = {
       guest: { title: "Гостевой опыт", text: "Внутренний системный блок для потоков гостя, расписаний и правил бронирования." },
       settings: { title: "Управленческие настройки", text: "Внутренний админ-модуль для контента, команд, связок и операционных правил." },
       assistant: { title: "Операции ассистента", text: "Внутренний сервисный блок для выбора номера, маршрутизации и гостевого чата." },
-      assistantTracker: { title: "Модуль трекинга ассистентов", text: "Отдельный экран для очных встреч, ручных отзывов с платформ, FTF-отслеживания и Hall of Fame." },
+      assistantTracker: { title: "Модуль трекинга ассистентов", text: "Очные встречи, ручные отзывы, FTF-отслеживание и Hall of Fame теперь работают внутри приложения." },
     },
-    roles: { manager: "Менеджер", deputy: "Зам. менеджера", chief: "Шеф", assistant: "Ассистент", departmentManager: "Руководитель отдела" },
+    roles: { admin: "Админ", manager: "Менеджер", deputy: "Зам. менеджера", chief: "Шеф", assistant: "Ассистент", departmentManager: "Руководитель отдела" },
     loginTitle: "Единая панель входа",
     loginText:
-      "Вход по имени пользователя. Только менеджер видит все журналы действий, остальные роли работают в своих разрешенных зонах.",
+      "Вход выполняется по общему коду доступа и паролю пользователя. Для админ-доступа отображается только должность; имена остаются видимыми только у ассистентов.",
     selectUser: "Выберите пользователя",
+    accessCodeLabel: "Главный код входа",
+    accessCodePlaceholder: "Введите общий код входа",
     passwordLabel: "Пароль",
     passwordPlaceholder: "Введите пароль",
     signIn: "Войти",
-    authFailed: "Неверное имя пользователя или пароль.",
+    authFailed: "Неверный код входа или пароль пользователя.",
     signedInAs: "Вошел как",
     signOut: "Выйти",
     limitedAccess: "Ограниченный доступ",
@@ -1324,8 +1592,61 @@ const translations = {
     no: "Нет",
     permissionTitle: "Управление правами",
     permissionText:
-      "Настраивайте доступ к вкладкам и модулям для заместителя, шефа и ассистента.",
-    permissionScopeNote: "Ролевые права на вкладки и панели может менять только менеджер.",
+      "Все доступы к вкладкам и панелям вне системы ассистента здесь может открывать или закрывать только администратор.",
+    permissionScopeNote: "Система ассистента и FTF остаются фиксированными; все остальные права управляются только администратором.",
+    userAdminTitle: "Управление пользователями администратора",
+    userAdminText: "Администратор может менять отображаемое имя любого пользователя и назначать новый пароль. Внутри админ-панели дополнительный пароль не требуется.",
+    accountTitle: "Аккаунт",
+    displayNameLabel: "Отображаемое имя",
+    newPasswordLabel: "Новый пароль",
+    newPasswordPlaceholder: "Оставьте пустым, чтобы не менять пароль",
+    saveUserSettings: "Обновить пользователя",
+    userUpdateSuccess: "Данные пользователя обновлены.",
+    userUpdateError: "Не удалось обновить данные пользователя.",
+    notificationsTitle: "Уведомления отдела",
+    notificationsText: "Здесь отображаются только уведомления, назначенные вашему отделу. Если разрешить доступ, вы также будете получать мгновенные веб-уведомления на телефоне.",
+    noNotifications: "Сейчас для вас нет назначенных уведомлений.",
+    unreadNotifications: "Непрочитанные уведомления",
+    allowNotifications: "Разрешить уведомления",
+    markAsRead: "Отметить как прочитанное",
+    notificationComplaintTitle: "Новый отзыв для отдела",
+    ftfStatsTitle: "Сводка трекинга ассистентов",
+    ftfLeaderboardTitle: "Hall of Fame",
+    ftfMeetingsTitle: "Список FTF",
+    ftfReviewsTitle: "Список отзывов",
+    addMeetingTitle: "Добавить очную встречу",
+    addReviewTitle: "Добавить отзыв",
+    followUpWaiting: "Ожидают сопровождения",
+    lowReviewCount: "Низкие оценки",
+    ftfCountLabel: "FTF записи",
+    leaderAssistant: "Лидер среди ассистентов",
+    todayMeetingCount: "Встречи сегодня",
+    reviewOpenCount: "Открытые отзывы",
+    customerNameLabel: "Имя клиента",
+    contactLabel: "Телефон",
+    topicLabel: "Тема встречи",
+    tagCodeLabel: "Код / тег",
+    resultLabel: "Результат",
+    followUpDateLabel: "Дата сопровождения",
+    assignedAssistantLabel: "Назначенный ассистент",
+    saveMeeting: "Сохранить встречу",
+    platformLabel: "Платформа",
+    ratingLabel: "Оценка",
+    authorLabel: "Автор отзыва",
+    branchLabel: "Филиал или площадка",
+    contentLabel: "Текст отзыва",
+    saveReview: "Сохранить отзыв",
+    searchMeeting: "Поиск по клиенту или теме",
+    searchReview: "Поиск по платформе, филиалу или человеку",
+    passwordChangeTitle: "Задайте новый пароль",
+    passwordChangeText: "Для безопасности при первом входе нужно обновить личный пароль.",
+    newPasswordRequiredLabel: "Новый пароль",
+    confirmPasswordLabel: "Повторите новый пароль",
+    saveNewPassword: "Сохранить пароль",
+    passwordChangeMismatch: "Поля нового пароля должны совпадать.",
+    passwordChangeLength: "Новый пароль должен содержать не менее 8 символов.",
+    passwordChangeError: "Не удалось обновить пароль.",
+    passwordChangeSuccess: "Пароль обновлен.",
     accessNoteAssistant:
       "Аккаунт ассистента может работать только с панелью, жалобами и разрешенными внешними модулями.",
     accessNoteDepartmentManager:
@@ -1351,6 +1672,7 @@ const translations = {
       security: "Безопасность",
       entertainment: "Анимация",
       frontOffice: "Ресепшен",
+      spa: "SPA",
       management: "Менеджмент",
     },
     channels: {
@@ -1468,15 +1790,21 @@ function ProgressBar({ value }) {
 }
 
 function App() {
+  const [userDirectory, setUserDirectory] = useState(users);
   const [language, setLanguage] = useState(getInitialLanguage);
   const [activeTab, setActiveTab] = useState(() => {
     const view = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("view") : null;
-    return ["dashboard", "tasks", "complaints", "alacarte", "analysis", "managerAgenda", "permissions", "managerOps"].includes(view) ? view : "dashboard";
+    return ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker", "managerAgenda", "permissions", "managerOps"].includes(view) ? view : "dashboard";
   });
   const loginRoleKey = (user) => user.titleKey ?? user.role;
   const [selectedLoginRole, setSelectedLoginRole] = useState(loginRoleKey(users[0]));
   const [selectedUsername, setSelectedUsername] = useState(users[0].username);
+  const [accessCode, setAccessCode] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordChangeError, setPasswordChangeError] = useState("");
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState("");
   const [sessionToken, setSessionToken] = useState(() =>
     (typeof window !== "undefined" ? window.localStorage.getItem("session-token") : "") || "",
   );
@@ -1493,8 +1821,13 @@ function App() {
   const [alaCarteReservations, setAlaCarteReservations] = useState(initialAlaCarteReservations);
   const [alaCarteWaitlist, setAlaCarteWaitlist] = useState(initialAlaCarteWaitlist);
   const [alaCarteServiceSlots, setAlaCarteServiceSlots] = useState(initialAlaCarteServiceSlots);
+  const [assistantMeetings, setAssistantMeetings] = useState(initialAssistantMeetings);
+  const [assistantReviews, setAssistantReviews] = useState(initialAssistantReviews);
+  const [notifications, setNotifications] = useState([]);
   const [taskSearch, setTaskSearch] = useState("");
   const [complaintSearch, setComplaintSearch] = useState("");
+  const [meetingSearch, setMeetingSearch] = useState("");
+  const [reviewSearch, setReviewSearch] = useState("");
   const [selectedModuleId, setSelectedModuleId] = useState(null);
   const [complaintFormError, setComplaintFormError] = useState("");
   const [taskTypeFilter, setTaskTypeFilter] = useState("all");
@@ -1538,6 +1871,35 @@ function App() {
     preferredWindow: "20:00-21:00",
     priority: "Regular",
   });
+  const [newMeeting, setNewMeeting] = useState({
+    customerName: "",
+    date: "2026-03-12",
+    time: "10:00",
+    contact: "",
+    topic: "",
+    tagCode: "FTF",
+    result: "Takip gerekli",
+    notes: "",
+    followUpDate: "2026-03-12",
+    owner: "",
+    assignedAssistant: "",
+  });
+  const [newReview, setNewReview] = useState({
+    platform: "Google",
+    rating: 5,
+    author: "",
+    date: "2026-03-12",
+    branch: "Voyage Kundu",
+    content: "",
+    status: "Open",
+    owner: "",
+  });
+  const [managedUsername, setManagedUsername] = useState(users[0].username);
+  const [managedDisplayName, setManagedDisplayName] = useState(users[0].displayName);
+  const [managedPassword, setManagedPassword] = useState("");
+  const [userAdminStatus, setUserAdminStatus] = useState("");
+  const [userAdminError, setUserAdminError] = useState("");
+  const notifiedIdsRef = useRef(new Set());
 
   const copy = translations[language];
   const authText = authCopy[language] ?? authCopy.en;
@@ -1546,11 +1908,13 @@ function App() {
   const activeRole = currentUser ? permissions[currentUser.role] : null;
   const scopedDepartment = currentUser?.scopeDepartment ?? null;
   const isDepartmentManager = currentUser?.role === "departmentManager";
+  const isAdminUser = ["admin", "manager"].includes(currentUser?.role ?? "");
   const availableTabIds = useMemo(
     () => {
       const baseTabs = [
         ...(activeRole?.tabs ?? []),
-        ...(currentUser?.role === "manager" ? managerTabs : []),
+        ...(activeRole?.modules?.includes("assistantTracker") ? ["assistantTracker"] : []),
+        ...(isAdminUser ? managerTabs : []),
       ].filter((value, index, array) => array.indexOf(value) === index);
 
       if (!isDepartmentManager) return baseTabs;
@@ -1560,22 +1924,27 @@ function App() {
           tabId !== "alacarte" || ["fb", "guestRelations", "frontOffice"].includes(scopedDepartment),
       );
     },
-    [activeRole, currentUser, isDepartmentManager, scopedDepartment],
+    [activeRole, isAdminUser, isDepartmentManager, scopedDepartment],
   );
   const loginRoleOptions = useMemo(
     () =>
-      users.reduce((options, user) => {
+      userDirectory.reduce((options, user) => {
         const key = loginRoleKey(user);
         if (options.some((item) => item.key === key)) return options;
         options.push({ key, label: titleCopy[key] ?? copy.roles[key] ?? key });
         return options;
       }, []),
-    [copy.roles, titleCopy],
+    [copy.roles, titleCopy, userDirectory],
   );
   const filteredLoginUsers = useMemo(
-    () => users.filter((user) => loginRoleKey(user) === selectedLoginRole),
-    [selectedLoginRole],
+    () => userDirectory.filter((user) => loginRoleKey(user) === selectedLoginRole),
+    [selectedLoginRole, userDirectory],
   );
+  const managedUsers = useMemo(
+    () => userDirectory.filter((user) => user.role !== "admin" || user.username === currentUser?.username),
+    [currentUser?.username, userDirectory],
+  );
+  const managedUser = managedUsers.find((user) => user.username === managedUsername) ?? managedUsers[0] ?? null;
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -1584,9 +1953,38 @@ function App() {
   }, [copy.appTitle, language]);
 
   useEffect(() => {
+    let ignore = false;
+
+    async function loadLoginCatalog() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/auth/catalog`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!ignore && Array.isArray(payload.users) && payload.users.length) {
+          setUserDirectory(payload.users);
+        }
+      } catch {
+        if (!ignore) setUserDirectory(users);
+      }
+    }
+
+    void loadLoginCatalog();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (filteredLoginUsers.some((user) => user.username === selectedUsername)) return;
     if (filteredLoginUsers[0]) setSelectedUsername(filteredLoginUsers[0].username);
   }, [filteredLoginUsers, selectedUsername]);
+
+  useEffect(() => {
+    if (!managedUsers.length) return;
+    const nextManagedUser = managedUsers.find((user) => user.username === managedUsername) ?? managedUsers[0];
+    setManagedUsername(nextManagedUser.username);
+    setManagedDisplayName(nextManagedUser.displayName);
+  }, [managedUsername, managedUsers]);
 
   useEffect(() => {
     if (!isDepartmentManager || !scopedDepartment) return;
@@ -1621,6 +2019,9 @@ function App() {
         const payload = await response.json();
         if (ignore) return;
         setCurrentUser(sessionPayload.user);
+        if (["admin", "manager"].includes(sessionPayload.user.role) && payload.users?.length) {
+          setUserDirectory(payload.users);
+        }
         setTasks(payload.tasks?.length ? payload.tasks : initialTasks);
         setComplaints(payload.complaints?.length ? payload.complaints : initialComplaints);
         setAgendaItems(payload.agendaItems?.length ? payload.agendaItems : initialAgendaItems);
@@ -1628,6 +2029,9 @@ function App() {
         setAlaCarteReservations(payload.alaCarteReservations?.length ? payload.alaCarteReservations : initialAlaCarteReservations);
         setAlaCarteWaitlist(payload.alaCarteWaitlist?.length ? payload.alaCarteWaitlist : initialAlaCarteWaitlist);
         setAlaCarteServiceSlots(payload.alaCarteServiceSlots?.length ? payload.alaCarteServiceSlots : initialAlaCarteServiceSlots);
+        setAssistantMeetings(payload.assistantMeetings?.length ? payload.assistantMeetings : initialAssistantMeetings);
+        setAssistantReviews(payload.assistantReviews?.length ? payload.assistantReviews : initialAssistantReviews);
+        setNotifications(payload.notifications ?? []);
         setActivityLogs(payload.activityLogs ?? []);
         setPermissions(normalizePermissions(payload.permissions));
         setSyncMode("api");
@@ -1669,6 +2073,8 @@ function App() {
           alaCarteReservations,
           alaCarteWaitlist,
           alaCarteServiceSlots,
+          assistantMeetings,
+          assistantReviews,
           activityLogs,
         }),
       }).catch(() => {
@@ -1677,7 +2083,37 @@ function App() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, bootstrapReady, complaints, permissions, sessionToken, syncMode, tasks]);
+  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, assistantMeetings, assistantReviews, bootstrapReady, complaints, permissions, sessionToken, syncMode, tasks]);
+
+  useEffect(() => {
+    if (!sessionToken) return undefined;
+
+    const pollNotifications = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/notifications`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        const nextNotifications = payload.notifications ?? [];
+        setNotifications(nextNotifications);
+
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        nextNotifications
+          .filter((item) => !item.readAt && !notifiedIdsRef.current.has(item.id))
+          .forEach((item) => {
+            notifiedIdsRef.current.add(item.id);
+            new Notification(item.title, { body: item.message });
+          });
+      } catch {
+        return;
+      }
+    };
+
+    void pollNotifications();
+    const timer = window.setInterval(pollNotifications, 15000);
+    return () => window.clearInterval(timer);
+  }, [sessionToken]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -1739,6 +2175,8 @@ function App() {
             ? copy.complaintsTab
             : id === "alacarte"
               ? copy.alacarteTab
+              : id === "assistantTracker"
+                ? copy.assistantTrackerTab
               : id === "managerAgenda"
                 ? copy.managerAgendaTab
               : id === "permissions"
@@ -1753,10 +2191,12 @@ function App() {
   const moduleTargetTab =
     selectedModule?.id === "guest"
       ? "dashboard"
-      : selectedModule?.id === "settings"
-        ? (currentUser?.role === "manager" ? "permissions" : "analysis")
+          : selectedModule?.id === "settings"
+        ? (isAdminUser ? "permissions" : "analysis")
         : selectedModule?.id === "assistant"
           ? "complaints"
+          : selectedModule?.id === "assistantTracker"
+            ? "assistantTracker"
           : "dashboard";
 
   const updateRolePermission = (role, type, value) => {
@@ -1945,6 +2385,78 @@ function App() {
     [alaCarteReservations],
   );
 
+  const ftfMeetings = useMemo(
+    () =>
+      [...assistantMeetings]
+        .filter((item) => /(^|\b)ftf(\b|$)/i.test([item.tagCode, item.topic, item.notes].join(" ")))
+        .sort((left, right) => `${right.date}${right.time}`.localeCompare(`${left.date}${left.time}`)),
+    [assistantMeetings],
+  );
+
+  const assistantLeaderboard = useMemo(() => {
+    const map = new Map();
+    assistantReviews.forEach((review) => {
+      const name = (review.owner || "Unknown").trim() || "Unknown";
+      const entry = map.get(name) || { name, reviewCount: 0, ftfCount: 0 };
+      entry.reviewCount += 1;
+      map.set(name, entry);
+    });
+    ftfMeetings.forEach((meeting) => {
+      const name = (meeting.assignedAssistant || meeting.owner || "Unknown").trim() || "Unknown";
+      const entry = map.get(name) || { name, reviewCount: 0, ftfCount: 0 };
+      entry.ftfCount += 1;
+      map.set(name, entry);
+    });
+    return [...map.values()].sort((left, right) => {
+      if (right.reviewCount !== left.reviewCount) return right.reviewCount - left.reviewCount;
+      if (right.ftfCount !== left.ftfCount) return right.ftfCount - left.ftfCount;
+      return left.name.localeCompare(right.name);
+    });
+  }, [assistantReviews, ftfMeetings]);
+
+  const assistantTrackerStats = useMemo(() => {
+    const today = "2026-03-12";
+    return {
+      todayMeetings: assistantMeetings.filter((item) => item.date === today).length,
+      waitingFollowUp: assistantMeetings.filter((item) => item.followUpDate && item.followUpDate <= today).length,
+      openReviews: assistantReviews.filter((item) => item.status !== "Resolved").length,
+      lowReviews: assistantReviews.filter((item) => Number(item.rating) <= 2).length,
+      ftfCount: ftfMeetings.length,
+      topAssistant: assistantLeaderboard[0]?.name ?? "-",
+    };
+  }, [assistantLeaderboard, assistantMeetings, assistantReviews, ftfMeetings]);
+
+  const filteredAssistantMeetings = useMemo(
+    () =>
+      [...assistantMeetings]
+        .filter((item) =>
+          [item.customerName, item.topic, item.owner, item.assignedAssistant, item.tagCode]
+            .join(" ")
+            .toLowerCase()
+            .includes(meetingSearch.toLowerCase()),
+        )
+        .sort((left, right) => `${right.date}${right.time}`.localeCompare(`${left.date}${left.time}`)),
+    [assistantMeetings, meetingSearch],
+  );
+
+  const filteredAssistantReviews = useMemo(
+    () =>
+      [...assistantReviews]
+        .filter((item) =>
+          [item.platform, item.author, item.branch, item.owner]
+            .join(" ")
+            .toLowerCase()
+            .includes(reviewSearch.toLowerCase()),
+        )
+        .sort((left, right) => right.date.localeCompare(left.date)),
+    [assistantReviews, reviewSearch],
+  );
+
+  const unreadNotifications = useMemo(
+    () => notifications.filter((item) => !item.readAt),
+    [notifications],
+  );
+
   const addTask = () => {
     if (!newTask.title.trim()) return;
     const scopedTask = isDepartmentManager && scopedDepartment ? { ...newTask, department: scopedDepartment } : newTask;
@@ -1963,6 +2475,55 @@ function App() {
     setNewComplaint({ guest: "", category: "housekeeping", severity: "Medium", status: "Open", channel: "frontDesk", date: "", department: isDepartmentManager && scopedDepartment ? scopedDepartment : "guestRelations", summary: "" });
     setComplaintFormError("");
     logAction("actionComplaintAdded", newComplaint.guest);
+    void createDepartmentNotification(scopedComplaint);
+  };
+
+  const createDepartmentNotification = async (complaint) => {
+    if (syncMode !== "api" || !sessionToken) return;
+    try {
+      await fetch(`${apiBaseUrl}/api/notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          department: complaint.department,
+          title: copy.notificationComplaintTitle,
+          message: `${complaint.guest}: ${complaint.summary}`,
+        }),
+      });
+    } catch {
+      return;
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (!("Notification" in window)) return;
+    try {
+      await Notification.requestPermission();
+    } catch {
+      return;
+    }
+  };
+
+  const markNotificationRead = async (id) => {
+    setNotifications((current) =>
+      current.map((item) => (item.id === id ? { ...item, readAt: item.readAt || new Date().toISOString() } : item)),
+    );
+    if (syncMode !== "api" || !sessionToken) return;
+    try {
+      await fetch(`${apiBaseUrl}/api/notifications/read`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ id }),
+      });
+    } catch {
+      return;
+    }
   };
 
   const addAlaCarteVenue = () => {
@@ -2136,6 +2697,56 @@ function App() {
     logAction("actionAgendaAdded", item.title);
   };
 
+  const addAssistantMeeting = () => {
+    if (!newMeeting.customerName.trim() || !newMeeting.topic.trim()) return;
+    const meeting = {
+      id: `meet-${Date.now()}`,
+      ...newMeeting,
+      owner: newMeeting.owner.trim() || currentUser?.displayName || copy.unassigned,
+      assignedAssistant: newMeeting.assignedAssistant.trim() || currentUser?.displayName || copy.unassigned,
+      isFTF: /(^|\\b)ftf(\\b|$)/i.test([newMeeting.tagCode, newMeeting.topic, newMeeting.notes].join(" ")),
+      createdAt: new Date().toISOString(),
+    };
+    setAssistantMeetings((current) => [meeting, ...current]);
+    setNewMeeting({
+      customerName: "",
+      date: meeting.date,
+      time: "10:00",
+      contact: "",
+      topic: "",
+      tagCode: "FTF",
+      result: "Takip gerekli",
+      notes: "",
+      followUpDate: meeting.followUpDate,
+      owner: "",
+      assignedAssistant: "",
+    });
+    logAction("actionComplaintAdded", `ftf:${meeting.customerName}`);
+  };
+
+  const addAssistantReview = () => {
+    if (!newReview.author.trim() || !newReview.content.trim()) return;
+    const review = {
+      id: `review-${Date.now()}`,
+      ...newReview,
+      rating: Number(newReview.rating),
+      owner: newReview.owner.trim() || currentUser?.displayName || copy.unassigned,
+      createdAt: new Date().toISOString(),
+    };
+    setAssistantReviews((current) => [review, ...current]);
+    setNewReview({
+      platform: review.platform,
+      rating: 5,
+      author: "",
+      date: review.date,
+      branch: review.branch,
+      content: "",
+      status: "Open",
+      owner: "",
+    });
+    logAction("actionComplaintAdded", `review:${review.author}`);
+  };
+
   const toggleAgendaItem = (id) => {
     const item = agendaItems.find((entry) => entry.id === id);
     setAgendaItems((current) =>
@@ -2179,7 +2790,7 @@ function App() {
     const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: selectedUsername, password: loginPassword }),
+      body: JSON.stringify({ username: selectedUsername, password: loginPassword, accessCode }),
     });
     if (!response.ok) {
       setAuthError(copy.authFailed);
@@ -2188,7 +2799,10 @@ function App() {
     const payload = await response.json();
     setSessionToken(payload.token);
     setCurrentUser(payload.user);
+    setAccessCode("");
     setLoginPassword("");
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
     const firstAllowedTab = permissions[payload.user.role]?.tabs?.[0] ?? "dashboard";
     setActiveTab(firstAllowedTab);
   };
@@ -2202,6 +2816,84 @@ function App() {
     }
     setSessionToken("");
     setCurrentUser(null);
+  };
+
+  const handleUserUpdate = async () => {
+    if (!isAdminUser || !managedUser) return;
+    setUserAdminStatus("");
+    setUserAdminError("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/users`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          username: managedUser.username,
+          displayName: managedDisplayName,
+          password: managedPassword,
+        }),
+      });
+      if (!response.ok) {
+        setUserAdminError(copy.userUpdateError);
+        return;
+      }
+      const payload = await response.json();
+      if (Array.isArray(payload.users) && payload.users.length) {
+        setUserDirectory(payload.users);
+      }
+      if (payload.currentUser) {
+        setCurrentUser(payload.currentUser);
+      }
+      setManagedPassword("");
+      setUserAdminStatus(copy.userUpdateSuccess);
+      logAction("actionPermissionUpdated", `${managedUser.username}:profile`);
+    } catch {
+      setUserAdminError(copy.userUpdateError);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordChangeError(copy.passwordChangeMismatch);
+      return;
+    }
+
+    if (newPassword.trim().length < 8) {
+      setPasswordChangeError(copy.passwordChangeLength);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/users/self-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (!response.ok) {
+        setPasswordChangeError(copy.passwordChangeError);
+        return;
+      }
+
+      const payload = await response.json();
+      if (payload.user) {
+        setCurrentUser(payload.user);
+      }
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPasswordChangeSuccess(copy.passwordChangeSuccess);
+    } catch {
+      setPasswordChangeError(copy.passwordChangeError);
+    }
   };
 
   const inspectModule = (module) => {
@@ -2258,6 +2950,16 @@ function App() {
                 </select>
               </label>
               <label>
+                <span>{copy.accessCodeLabel}</span>
+                <input
+                  aria-label={copy.accessCodeLabel}
+                  type="password"
+                  value={accessCode}
+                  placeholder={copy.accessCodePlaceholder}
+                  onChange={(event) => setAccessCode(event.target.value)}
+                />
+              </label>
+              <label>
                 <span>{copy.passwordLabel}</span>
                 <input
                   aria-label={copy.passwordLabel}
@@ -2274,6 +2976,64 @@ function App() {
               </div>
               <button type="button" className="button" onClick={() => void handleSignIn()}>
                 {copy.signIn}
+              </button>
+            </div>
+          </Panel>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentUser.requirePasswordChange) {
+    return (
+      <div className="app-shell">
+        <div className="page-glow page-glow-one" />
+        <div className="page-glow page-glow-two" />
+        <main className="layout auth-layout">
+          <Panel className="auth-panel">
+            <div className="auth-heading">
+              <div className="hero-badge">
+                <ShieldCheck size={14} />
+                {copy.hotelOperationsPwa}
+              </div>
+              <label className="language-switcher">
+                <span>
+                  <Globe size={14} />
+                  {copy.languageLabel}
+                </span>
+                <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={copy.languageLabel}>
+                  <option value="tr">Türkçe</option>
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                  <option value="ru">Русский</option>
+                </select>
+              </label>
+            </div>
+            <h1>{copy.passwordChangeTitle}</h1>
+            <p className="muted">{copy.passwordChangeText}</p>
+            <div className="form-grid">
+              <label>
+                <span>{copy.newPasswordRequiredLabel}</span>
+                <input
+                  aria-label={copy.newPasswordRequiredLabel}
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>{copy.confirmPasswordLabel}</span>
+                <input
+                  aria-label={copy.confirmPasswordLabel}
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(event) => setConfirmNewPassword(event.target.value)}
+                />
+              </label>
+              {passwordChangeError && <p className="form-error">{passwordChangeError}</p>}
+              {passwordChangeSuccess && <p className="muted">{passwordChangeSuccess}</p>}
+              <button type="button" className="button" onClick={() => void handlePasswordChange()}>
+                {copy.saveNewPassword}
               </button>
             </div>
           </Panel>
@@ -2438,6 +3198,45 @@ function App() {
               </div>
             </Panel>
 
+            {(isDepartmentManager || isAdminUser) && (
+              <Panel>
+                <div className="panel-heading">
+                  <h2>
+                    <AlertTriangle size={18} /> {copy.notificationsTitle}
+                  </h2>
+                </div>
+                <p className="muted module-intro">{copy.notificationsText}</p>
+                <div className="stack">
+                  <div className="control-line">
+                    <span>{copy.unreadNotifications}</span>
+                    <strong>{unreadNotifications.length}</strong>
+                  </div>
+                  {"Notification" in window && Notification.permission !== "granted" && (
+                    <button type="button" className="button secondary" onClick={() => void requestNotificationPermission()}>
+                      {copy.allowNotifications}
+                    </button>
+                  )}
+                  {notifications.length === 0 && <p className="muted">{copy.noNotifications}</p>}
+                  {notifications.slice(0, 4).map((item) => (
+                    <article key={item.id} className="item-card">
+                      <div className="row space-between top">
+                        <div className="stack compact">
+                          <strong>{item.title}</strong>
+                          <p className="muted">{localizeDepartment(item.department)} | {formatDate(item.createdAt)}</p>
+                          <p>{item.message}</p>
+                        </div>
+                        {!item.readAt && (
+                          <button type="button" className="button secondary slim-button" onClick={() => void markNotificationRead(item.id)}>
+                            {copy.markAsRead}
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Panel>
+            )}
+
             <Panel className="span-2">
               <div className="panel-heading">
                 <h2>
@@ -2485,15 +3284,11 @@ function App() {
                         type="button"
                         className="button secondary"
                         onClick={() => {
-                          if (selectedModule.href) {
-                            window.location.assign(selectedModule.href);
-                            return;
-                          }
                           setActiveTab(moduleTargetTab);
                           logAction("actionTab", copy.modules[selectedModule.id].title);
                         }}
                       >
-                        {selectedModule.href ? copy.openPanel : copy.moduleGoto}
+                        {copy.moduleGoto}
                       </button>
                     </div>
                   </div>
@@ -2913,7 +3708,178 @@ function App() {
           </section>
         )}
 
-        {visibleTab === "managerAgenda" && currentUser?.role === "manager" && (
+        {visibleTab === "assistantTracker" && (
+          <section className="content-grid">
+            <Panel className="span-2">
+              <div className="panel-heading">
+                <h2>
+                  <ClipboardList size={18} /> {copy.ftfStatsTitle}
+                </h2>
+              </div>
+              <div className="metrics-grid compact">
+                <Panel>
+                  <p className="eyebrow">{copy.todayMeetingCount}</p>
+                  <p className="hero-value">{assistantTrackerStats.todayMeetings}</p>
+                </Panel>
+                <Panel>
+                  <p className="eyebrow">{copy.followUpWaiting}</p>
+                  <p className="hero-value">{assistantTrackerStats.waitingFollowUp}</p>
+                </Panel>
+                <Panel>
+                  <p className="eyebrow">{copy.reviewOpenCount}</p>
+                  <p className="hero-value">{assistantTrackerStats.openReviews}</p>
+                </Panel>
+                <Panel>
+                  <p className="eyebrow">{copy.lowReviewCount}</p>
+                  <p className="hero-value">{assistantTrackerStats.lowReviews}</p>
+                </Panel>
+              </div>
+              <div className="manager-grid">
+                <div className="stack">
+                  <article className="item-card">
+                    <p className="eyebrow">{copy.ftfCountLabel}</p>
+                    <p className="hero-value">{assistantTrackerStats.ftfCount}</p>
+                  </article>
+                  <article className="item-card">
+                    <p className="eyebrow">{copy.leaderAssistant}</p>
+                    <p className="hero-value">{assistantTrackerStats.topAssistant}</p>
+                  </article>
+                </div>
+                <div className="stack">
+                  <div className="panel-heading">
+                    <h2>{copy.ftfLeaderboardTitle}</h2>
+                  </div>
+                  {assistantLeaderboard.slice(0, 5).map((entry, index) => (
+                    <article key={entry.name} className="item-card">
+                      <div className="row space-between">
+                        <strong>#{index + 1} {entry.name}</strong>
+                        <span className="tag tag-green">{entry.reviewCount + entry.ftfCount}</span>
+                      </div>
+                      <div className="control-line">
+                        <span>{copy.reviewOpenCount}</span>
+                        <strong>{entry.reviewCount}</strong>
+                      </div>
+                      <div className="control-line">
+                        <span>{copy.ftfCountLabel}</span>
+                        <strong>{entry.ftfCount}</strong>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </Panel>
+
+            <Panel>
+              <div className="panel-heading">
+                <h2><Plus size={18} /> {copy.addMeetingTitle}</h2>
+              </div>
+              <div className="form-grid">
+                <label><span>{copy.customerNameLabel}</span><input aria-label={copy.customerNameLabel} value={newMeeting.customerName} onChange={(event) => setNewMeeting({ ...newMeeting, customerName: event.target.value })} /></label>
+                <div className="two-col">
+                  <label><span>{copy.date}</span><input aria-label={copy.date} type="date" value={newMeeting.date} onChange={(event) => setNewMeeting({ ...newMeeting, date: event.target.value })} /></label>
+                  <label><span>{copy.time}</span><input aria-label={copy.time} type="time" value={newMeeting.time} onChange={(event) => setNewMeeting({ ...newMeeting, time: event.target.value })} /></label>
+                </div>
+                <label><span>{copy.contactLabel}</span><input aria-label={copy.contactLabel} value={newMeeting.contact} onChange={(event) => setNewMeeting({ ...newMeeting, contact: event.target.value })} /></label>
+                <label><span>{copy.topicLabel}</span><input aria-label={copy.topicLabel} value={newMeeting.topic} onChange={(event) => setNewMeeting({ ...newMeeting, topic: event.target.value })} /></label>
+                <div className="two-col">
+                  <label><span>{copy.tagCodeLabel}</span><input aria-label={copy.tagCodeLabel} value={newMeeting.tagCode} onChange={(event) => setNewMeeting({ ...newMeeting, tagCode: event.target.value })} /></label>
+                  <label><span>{copy.resultLabel}</span><input aria-label={copy.resultLabel} value={newMeeting.result} onChange={(event) => setNewMeeting({ ...newMeeting, result: event.target.value })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{copy.followUpDateLabel}</span><input aria-label={copy.followUpDateLabel} type="date" value={newMeeting.followUpDate} onChange={(event) => setNewMeeting({ ...newMeeting, followUpDate: event.target.value })} /></label>
+                  <label><span>{copy.assignedAssistantLabel}</span><input aria-label={copy.assignedAssistantLabel} value={newMeeting.assignedAssistant} onChange={(event) => setNewMeeting({ ...newMeeting, assignedAssistant: event.target.value })} placeholder={currentUser?.displayName || ""} /></label>
+                </div>
+                <label><span>{copy.notes}</span><textarea aria-label={copy.notes} rows="4" value={newMeeting.notes} onChange={(event) => setNewMeeting({ ...newMeeting, notes: event.target.value })} /></label>
+                <button type="button" className="button" onClick={addAssistantMeeting}>{copy.saveMeeting}</button>
+              </div>
+            </Panel>
+
+            <Panel className="span-2">
+              <div className="panel-heading split">
+                <h2>{copy.ftfMeetingsTitle}</h2>
+                <label className="searchbox">
+                  <Search size={16} />
+                  <input value={meetingSearch} onChange={(event) => setMeetingSearch(event.target.value)} placeholder={copy.searchMeeting} />
+                </label>
+              </div>
+              <div className="stack">
+                {filteredAssistantMeetings.map((meeting) => (
+                  <article key={meeting.id} className="item-card">
+                    <div className="row space-between top">
+                      <div className="stack compact">
+                        <div className="badge-row">
+                          <strong>{meeting.customerName}</strong>
+                          <span className="tag tag-blue">{meeting.date}</span>
+                          <span className="tag tag-slate">{meeting.time}</span>
+                          {meeting.isFTF && <span className="tag tag-green">FTF</span>}
+                        </div>
+                        <p className="muted">{meeting.topic}</p>
+                        <p className="muted">{meeting.contact || copy.notSet} | {meeting.assignedAssistant || meeting.owner}</p>
+                        <p>{meeting.notes}</p>
+                      </div>
+                      <div className="stack compact">
+                        <span className="tag tag-amber">{meeting.result}</span>
+                        <span className="tag tag-slate">{meeting.followUpDate || copy.noDate}</span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel>
+              <div className="panel-heading">
+                <h2><Plus size={18} /> {copy.addReviewTitle}</h2>
+              </div>
+              <div className="form-grid">
+                <div className="two-col">
+                  <label><span>{copy.platformLabel}</span><input aria-label={copy.platformLabel} value={newReview.platform} onChange={(event) => setNewReview({ ...newReview, platform: event.target.value })} /></label>
+                  <label><span>{copy.ratingLabel}</span><input aria-label={copy.ratingLabel} type="number" min="1" max="5" value={newReview.rating} onChange={(event) => setNewReview({ ...newReview, rating: Number(event.target.value) })} /></label>
+                </div>
+                <label><span>{copy.authorLabel}</span><input aria-label={copy.authorLabel} value={newReview.author} onChange={(event) => setNewReview({ ...newReview, author: event.target.value })} /></label>
+                <div className="two-col">
+                  <label><span>{copy.date}</span><input aria-label={copy.date} type="date" value={newReview.date} onChange={(event) => setNewReview({ ...newReview, date: event.target.value })} /></label>
+                  <label><span>{copy.branchLabel}</span><input aria-label={copy.branchLabel} value={newReview.branch} onChange={(event) => setNewReview({ ...newReview, branch: event.target.value })} /></label>
+                </div>
+                <label><span>{copy.status}</span><select aria-label={copy.status} value={newReview.status} onChange={(event) => setNewReview({ ...newReview, status: event.target.value })}><option value="Open">{localizeStatus("Open")}</option><option value="In Review">{localizeStatus("In Review")}</option><option value="Resolved">{localizeStatus("Resolved")}</option></select></label>
+                <label><span>{copy.contentLabel}</span><textarea aria-label={copy.contentLabel} rows="4" value={newReview.content} onChange={(event) => setNewReview({ ...newReview, content: event.target.value })} /></label>
+                <button type="button" className="button" onClick={addAssistantReview}>{copy.saveReview}</button>
+              </div>
+            </Panel>
+
+            <Panel className="span-2">
+              <div className="panel-heading split">
+                <h2>{copy.ftfReviewsTitle}</h2>
+                <label className="searchbox">
+                  <Search size={16} />
+                  <input value={reviewSearch} onChange={(event) => setReviewSearch(event.target.value)} placeholder={copy.searchReview} />
+                </label>
+              </div>
+              <div className="stack">
+                {filteredAssistantReviews.map((review) => (
+                  <article key={review.id} className="item-card">
+                    <div className="row space-between top">
+                      <div className="stack compact">
+                        <div className="badge-row">
+                          <strong>{review.author}</strong>
+                          <span className="tag tag-outline">{review.platform}</span>
+                          <span className={statusTone[review.status] || "tag tag-slate"}>{localizeStatus(review.status)}</span>
+                        </div>
+                        <p className="muted">{review.branch} | {review.date} | {review.owner || copy.unassigned}</p>
+                        <p>{review.content}</p>
+                      </div>
+                      <span className={Number(review.rating) <= 2 ? "tag tag-red" : Number(review.rating) === 3 ? "tag tag-amber" : "tag tag-green"}>
+                        {review.rating}/5
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </Panel>
+          </section>
+        )}
+
+        {visibleTab === "managerAgenda" && isAdminUser && (
           <section className="content-grid">
             <Panel className="span-2">
               <div className="panel-heading">
@@ -3049,7 +4015,7 @@ function App() {
           </section>
         )}
 
-        {visibleTab === "permissions" && currentUser?.role === "manager" && (
+        {visibleTab === "permissions" && isAdminUser && (
           <section className="content-grid">
             <Panel className="span-2 permission-panel">
               <div className="panel-heading">
@@ -3090,7 +4056,7 @@ function App() {
                     <div className="permission-section">
                       <span className="eyebrow">{copy.voyageModules}</span>
                       <div className="permission-options">
-                        {internalModules.map((module) => (
+                        {controllableModules.map((module) => (
                           <label key={module.id} className="permission-option">
                             <input
                               type="checkbox"
@@ -3128,7 +4094,7 @@ function App() {
           </section>
         )}
 
-        {visibleTab === "managerOps" && currentUser?.role === "manager" && (
+        {visibleTab === "managerOps" && isAdminUser && (
           <section className="content-grid">
             <Panel className="span-2 audit-panel">
               <div className="panel-heading">
@@ -3168,6 +4134,45 @@ function App() {
                   <span>{copy.auditAction}</span>
                   <strong>{activityLogs[0] ? (copy[activityLogs[0].actionKey] ?? activityLogs[0].actionKey) : "-"}</strong>
                 </div>
+              </div>
+            </Panel>
+            <Panel className="span-2">
+              <div className="panel-heading">
+                <h2>
+                  <UserRound size={18} /> {copy.userAdminTitle}
+                </h2>
+              </div>
+              <p className="muted module-intro">{copy.userAdminText}</p>
+              <div className="form-grid">
+                <label>
+                  <span>{copy.accountTitle}</span>
+                  <select aria-label={copy.accountTitle} value={managedUsername} onChange={(event) => { setManagedUsername(event.target.value); setUserAdminStatus(""); setUserAdminError(""); }}>
+                    {managedUsers.map((user) => (
+                      <option key={user.username} value={user.username}>
+                        {user.role === "assistant" ? `${user.displayName} · ${roleLabel(user.role)}` : userLabel(user)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>{copy.displayNameLabel}</span>
+                  <input aria-label={copy.displayNameLabel} value={managedDisplayName} onChange={(event) => setManagedDisplayName(event.target.value)} />
+                </label>
+                <label>
+                  <span>{copy.newPasswordLabel}</span>
+                  <input
+                    aria-label={copy.newPasswordLabel}
+                    type="password"
+                    value={managedPassword}
+                    placeholder={copy.newPasswordPlaceholder}
+                    onChange={(event) => setManagedPassword(event.target.value)}
+                  />
+                </label>
+                {userAdminStatus && <p className="muted">{userAdminStatus}</p>}
+                {userAdminError && <p className="form-error">{userAdminError}</p>}
+                <button type="button" className="button" onClick={() => void handleUserUpdate()}>
+                  {copy.saveUserSettings}
+                </button>
               </div>
             </Panel>
           </section>
