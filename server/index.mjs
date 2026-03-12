@@ -13,6 +13,7 @@ const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl }) : null;
 const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "1234";
 const mainAccessCode = process.env.MAIN_ACCESS_CODE || "1234";
+const adminResetKey = process.env.ADMIN_RESET_KEY || "1234-admin-reset";
 
 const seedUsers = [
   { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management", requirePasswordChange: true },
@@ -558,6 +559,42 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/auth/catalog" && request.method === "GET") {
       const state = await readState();
       sendJson(response, 200, { users: state.users.map(sanitizeUser) });
+      return;
+    }
+
+    if (url.pathname === "/api/admin/reset-password" && request.method === "POST") {
+      const body = await readBody(request);
+      const resetKey = typeof body.resetKey === "string" ? body.resetKey.trim() : "";
+      const username = typeof body.username === "string" ? body.username.trim() : "admin.voyage";
+      const password = typeof body.password === "string" ? body.password.trim() : defaultPassword;
+
+      if (resetKey !== adminResetKey) {
+        forbidden(response);
+        return;
+      }
+
+      const state = await readState();
+      const targetIndex = state.users.findIndex((item) => item.username === username);
+
+      if (targetIndex === -1) {
+        sendJson(response, 404, { error: "User not found" });
+        return;
+      }
+
+      const authShape = hashPassword(password);
+      const updatedUser = {
+        ...state.users[targetIndex],
+        ...authShape,
+        requirePasswordChange: true,
+      };
+
+      state.users = state.users.map((item, index) => (index === targetIndex ? updatedUser : item));
+      await writeState(state);
+      sendJson(response, 200, {
+        ok: true,
+        username,
+        requirePasswordChange: true,
+      });
       return;
     }
 

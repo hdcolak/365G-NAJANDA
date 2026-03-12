@@ -50,6 +50,8 @@ The application now uses backend-backed login sessions.
 - Backend env override: `DEFAULT_LOGIN_PASSWORD`
 - Shared main access code default: `1234`
 - Backend env override: `MAIN_ACCESS_CODE`
+- Admin emergency reset key default: `1234-admin-reset`
+- Backend env override: `ADMIN_RESET_KEY`
 - Session storage: server-side state
 
 Seed users:
@@ -70,6 +72,17 @@ Recommended first production step:
 
 1. Set `DEFAULT_LOGIN_PASSWORD` in Render. Current default is `1234`; users are forced to change it on first sign-in.
 2. Set `MAIN_ACCESS_CODE` in Render to the shared entry code. Current default is `1234`.
+3. Set `ADMIN_RESET_KEY` in Render for emergency admin password recovery.
+
+Admin emergency reset example:
+
+```bash
+curl -X POST https://voyage-kundu-api.onrender.com/api/admin/reset-password \
+  -H "Content-Type: application/json" \
+  --data '{"username":"admin.voyage","password":"1234","resetKey":"1234-admin-reset"}'
+```
+
+After the reset, the user signs in with `1234` and is forced to create a personal password.
 3. Redeploy the backend.
 4. Verify users can sign in with the shared access code plus their own password.
 
