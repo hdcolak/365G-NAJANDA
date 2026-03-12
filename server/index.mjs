@@ -296,7 +296,13 @@ function ensureAuthShape(state) {
     ...seedUsers.filter((seedUser) => !currentUsers.some((user) => user.username === seedUser.username)),
   ];
   nextState.users = mergedUsers.map((user) => {
-    if (user.passwordHash && user.salt) return user;
+    if (user.passwordHash && user.salt) {
+      if (user.requirePasswordChange && !verifyPassword(defaultPassword, user.salt, user.passwordHash)) {
+        const auth = hashPassword(defaultPassword);
+        return { ...user, ...auth };
+      }
+      return user;
+    }
     const auth = hashPassword(defaultPassword);
     return { ...user, ...auth };
   });
