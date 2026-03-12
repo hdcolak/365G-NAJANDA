@@ -559,6 +559,66 @@ body {
   margin-top: 1rem;
 }
 
+.alacarte-operational-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.status-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--line);
+}
+
+.status-card strong {
+  font-size: 1.4rem;
+}
+
+.compact-table {
+  margin-bottom: 0;
+}
+
+.reservation-row {
+  grid-template-columns: 1.25fr 1fr 0.9fr 0.8fr 0.9fr 0.65fr auto;
+}
+
+.row-action {
+  justify-self: end;
+}
+
+.waitlist-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.waitlist-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+}
+
+.top-gap h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .top-gap {
   margin-top: 1rem;
 }
@@ -830,6 +890,7 @@ body {
   .analysis-grid,
   .manager-grid,
   .alacarte-layout,
+  .alacarte-operational-grid,
   .calendar-grid {
     grid-template-columns: 1fr;
   }
@@ -861,6 +922,7 @@ body {
   .module-grid,
   .permission-options,
   .alacarte-grid,
+  .status-board,
   .spec-grid,
   .spec-pairs,
   .control-panel-grid,
@@ -870,6 +932,11 @@ body {
 
   .data-table {
     display: none;
+  }
+
+  .waitlist-card {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .panel {

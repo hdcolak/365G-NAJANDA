@@ -38,6 +38,13 @@ const users = [
   { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management" },
   { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations" },
   { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations" },
+  { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice" },
+  { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping" },
+  { username: "emir.animasyonmdr", role: "departmentManager", titleKey: "entertainmentManager", displayName: "Emir", department: "entertainment", scopeDepartment: "entertainment" },
+  { username: "emre.teknikmdr", role: "departmentManager", titleKey: "chiefEngineer", displayName: "Emre", department: "technical", scopeDepartment: "technical" },
+  { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb" },
+  { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations" },
+  { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security" },
 ];
 
 const defaultRoleAccess = {
@@ -58,6 +65,11 @@ const defaultRoleAccess = {
   },
   assistant: {
     tabs: ["dashboard", "complaints"],
+    modules: ["guest", "assistant"],
+    showAudit: false,
+  },
+  departmentManager: {
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
     modules: ["guest", "assistant"],
     showAudit: false,
   },
@@ -147,6 +159,276 @@ const initialAlaCarteVenues = [
     slotCount: 2,
   },
 ];
+
+const initialAlaCarteReservations = [
+  {
+    id: "res-1001",
+    venueId: "vista-italian",
+    guestName: "Muller Family",
+    roomNumber: "4102",
+    partySize: 4,
+    reservationDate: "2026-03-12",
+    slotTime: "19:00",
+    status: "Booked",
+    source: "Guest Relations",
+    note: "Anniversary dessert request",
+  },
+  {
+    id: "res-1002",
+    venueId: "asia-flame",
+    guestName: "Ivan Petrov",
+    roomNumber: "3304",
+    partySize: 2,
+    reservationDate: "2026-03-12",
+    slotTime: "20:00",
+    status: "Confirmed",
+    source: "App",
+    note: "No peanuts",
+  },
+  {
+    id: "res-1003",
+    venueId: "vista-italian",
+    guestName: "Sarah Collins",
+    roomNumber: "5201",
+    partySize: 3,
+    reservationDate: "2026-03-13",
+    slotTime: "19:30",
+    status: "Arrived",
+    source: "Front Office",
+    note: "Terrace requested",
+  },
+];
+
+const initialAlaCarteWaitlist = [
+  {
+    id: "wait-1001",
+    venueId: "asia-flame",
+    guestName: "Kaya Suite",
+    roomNumber: "2201",
+    partySize: 2,
+    preferredDate: "2026-03-12",
+    preferredWindow: "20:30-21:00",
+    priority: "VIP",
+    status: "Waiting",
+  },
+  {
+    id: "wait-1002",
+    venueId: "vista-italian",
+    guestName: "Lena Hoffmann",
+    roomNumber: "1408",
+    partySize: 5,
+    preferredDate: "2026-03-13",
+    preferredWindow: "19:00-20:00",
+    priority: "Family",
+    status: "Waiting",
+  },
+];
+
+const initialAlaCarteServiceSlots = [
+  { id: "slot-1", venueId: "vista-italian", date: "2026-03-12", time: "19:00", maxCovers: 24, bookedCovers: 12, waitlistCount: 1 },
+  { id: "slot-2", venueId: "vista-italian", date: "2026-03-12", time: "20:30", maxCovers: 18, bookedCovers: 8, waitlistCount: 0 },
+  { id: "slot-3", venueId: "asia-flame", date: "2026-03-12", time: "20:00", maxCovers: 20, bookedCovers: 18, waitlistCount: 1 },
+  { id: "slot-4", venueId: "asia-flame", date: "2026-03-13", time: "19:30", maxCovers: 16, bookedCovers: 6, waitlistCount: 0 },
+];
+
+const alaCarteLabels = {
+  tr: {
+    reservations: "Rezervasyonlar",
+    waitlist: "Bekleme listesi",
+    serviceSlots: "Servis slotları",
+    reservationStatusBoard: "Rezervasyon durum panosu",
+    addReservation: "Rezervasyon ekle",
+    addWaitlist: "Bekleme listesine ekle",
+    guestName: "Misafir adı",
+    roomNumber: "Oda numarası",
+    partySize: "Kişi sayısı",
+    reservationDate: "Rezervasyon tarihi",
+    slotTime: "Slot saati",
+    source: "Kanal",
+    reservationStatus: "Rezervasyon durumu",
+    waitlistWindow: "Tercih penceresi",
+    waitlistPriority: "Öncelik",
+    moveToReservation: "Rezervasyona çevir",
+    increaseCapacity: "Kapasite artır",
+    availableSeats: "Boş kapasite",
+    noShowRisk: "No-show riski",
+    low: "Düşük",
+    medium: "Orta",
+    high: "Yüksek",
+    reservationFlow: "Rezervasyon akışı",
+    booked: "Booked",
+    confirmed: "Confirmed",
+    arrived: "Arrived",
+    seated: "Seated",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    noShow: "No-show",
+    waiting: "Bekliyor",
+    converted: "Dönüştürüldü",
+    vip: "VIP",
+    family: "Aile",
+    regular: "Standart",
+  },
+  en: {
+    reservations: "Reservations",
+    waitlist: "Waitlist",
+    serviceSlots: "Service slots",
+    reservationStatusBoard: "Reservation status board",
+    addReservation: "Add reservation",
+    addWaitlist: "Add to waitlist",
+    guestName: "Guest name",
+    roomNumber: "Room number",
+    partySize: "Party size",
+    reservationDate: "Reservation date",
+    slotTime: "Slot time",
+    source: "Source",
+    reservationStatus: "Reservation status",
+    waitlistWindow: "Preferred window",
+    waitlistPriority: "Priority",
+    moveToReservation: "Convert to reservation",
+    increaseCapacity: "Increase capacity",
+    availableSeats: "Available seats",
+    noShowRisk: "No-show risk",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    reservationFlow: "Reservation flow",
+    booked: "Booked",
+    confirmed: "Confirmed",
+    arrived: "Arrived",
+    seated: "Seated",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    noShow: "No-show",
+    waiting: "Waiting",
+    converted: "Converted",
+    vip: "VIP",
+    family: "Family",
+    regular: "Regular",
+  },
+  de: {
+    reservations: "Reservierungen",
+    waitlist: "Warteliste",
+    serviceSlots: "Service-Slots",
+    reservationStatusBoard: "Reservierungsstatus",
+    addReservation: "Reservierung hinzufügen",
+    addWaitlist: "Zur Warteliste hinzufügen",
+    guestName: "Gastname",
+    roomNumber: "Zimmernummer",
+    partySize: "Personenzahl",
+    reservationDate: "Reservierungsdatum",
+    slotTime: "Slot-Zeit",
+    source: "Quelle",
+    reservationStatus: "Reservierungsstatus",
+    waitlistWindow: "Zeitfenster",
+    waitlistPriority: "Priorität",
+    moveToReservation: "In Reservierung umwandeln",
+    increaseCapacity: "Kapazität erhöhen",
+    availableSeats: "Freie Plätze",
+    noShowRisk: "No-Show-Risiko",
+    low: "Niedrig",
+    medium: "Mittel",
+    high: "Hoch",
+    reservationFlow: "Reservierungsfluss",
+    booked: "Booked",
+    confirmed: "Confirmed",
+    arrived: "Arrived",
+    seated: "Seated",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    noShow: "No-show",
+    waiting: "Wartet",
+    converted: "Umgewandelt",
+    vip: "VIP",
+    family: "Familie",
+    regular: "Standard",
+  },
+  ru: {
+    reservations: "Бронирования",
+    waitlist: "Лист ожидания",
+    serviceSlots: "Сервисные слоты",
+    reservationStatusBoard: "Статусы бронирований",
+    addReservation: "Добавить бронирование",
+    addWaitlist: "Добавить в лист ожидания",
+    guestName: "Имя гостя",
+    roomNumber: "Номер комнаты",
+    partySize: "Количество гостей",
+    reservationDate: "Дата бронирования",
+    slotTime: "Время слота",
+    source: "Источник",
+    reservationStatus: "Статус бронирования",
+    waitlistWindow: "Желаемое окно",
+    waitlistPriority: "Приоритет",
+    moveToReservation: "Преобразовать в бронь",
+    increaseCapacity: "Увеличить вместимость",
+    availableSeats: "Свободные места",
+    noShowRisk: "Риск неявки",
+    low: "Низкий",
+    medium: "Средний",
+    high: "Высокий",
+    reservationFlow: "Поток бронирований",
+    booked: "Booked",
+    confirmed: "Confirmed",
+    arrived: "Arrived",
+    seated: "Seated",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    noShow: "No-show",
+    waiting: "Ожидает",
+    converted: "Преобразовано",
+    vip: "VIP",
+    family: "Семья",
+    regular: "Стандарт",
+  },
+};
+
+const reservationStatusOrder = ["Booked", "Confirmed", "Arrived", "Seated", "Completed", "Cancelled", "No Show"];
+
+const authCopy = {
+  tr: { selectRole: "Rol seç", passwordStrategyTitle: "Şifre çözümü", passwordStrategyText: "Mail doğrulama yerine yönetici tarafından verilen geçici şifre kullanılabilir." },
+  en: { selectRole: "Select role", passwordStrategyTitle: "Password method", passwordStrategyText: "Use manager-issued temporary passwords instead of email verification." },
+  de: { selectRole: "Rolle wählen", passwordStrategyTitle: "Passwortmethode", passwordStrategyText: "Anstelle einer E-Mail-Bestätigung kann ein temporäres Passwort vom Manager vergeben werden." },
+  ru: { selectRole: "Выберите роль", passwordStrategyTitle: "Способ пароля", passwordStrategyText: "Вместо подтверждения по e-mail можно использовать временный пароль от менеджера." },
+};
+
+const titleLabels = {
+  tr: {
+    frontOfficeManager: "Resepsiyon Müdürü",
+    executiveHousekeeper: "Housekeeping Müdürü",
+    entertainmentManager: "Animasyon Müdürü",
+    chiefEngineer: "Teknik Müdürü",
+    foodBeverageManager: "Yiyecek ve İçecek Müdürü",
+    guestRelationsManager: "Misafir İlişkileri Müdürü",
+    securityManager: "Güvenlik Müdürü",
+  },
+  en: {
+    frontOfficeManager: "Front Office Manager",
+    executiveHousekeeper: "Executive Housekeeper",
+    entertainmentManager: "Entertainment Manager",
+    chiefEngineer: "Chief Engineer",
+    foodBeverageManager: "Food and Beverage Manager",
+    guestRelationsManager: "Guest Relations Manager",
+    securityManager: "Security Manager",
+  },
+  de: {
+    frontOfficeManager: "Front-Office-Manager",
+    executiveHousekeeper: "Leitung Housekeeping",
+    entertainmentManager: "Entertainment-Manager",
+    chiefEngineer: "Technischer Leiter",
+    foodBeverageManager: "F&B-Manager",
+    guestRelationsManager: "Leitung Gästebetreuung",
+    securityManager: "Sicherheitsleiter",
+  },
+  ru: {
+    frontOfficeManager: "Менеджер ресепшен",
+    executiveHousekeeper: "Руководитель housekeeping",
+    entertainmentManager: "Менеджер анимации",
+    chiefEngineer: "Технический директор",
+    foodBeverageManager: "Менеджер F&B",
+    guestRelationsManager: "Менеджер по работе с гостями",
+    securityManager: "Менеджер службы безопасности",
+  },
+};
 
 const translations = {
   tr: {
@@ -239,12 +521,16 @@ const translations = {
       deputy: "Müdür Yardımcısı",
       chief: "Şef",
       assistant: "Asistan",
+      departmentManager: "Departman Müdürü",
     },
     loginTitle: "Tek link giriş paneli",
     loginText:
       "Kullanıcı adına göre giriş yapın. Müdür tüm işlem kayıtlarını görür, diğer roller yalnızca kendi yetkili alanlarını kullanır.",
     selectUser: "Kullanıcı seç",
+    passwordLabel: "Şifre",
+    passwordPlaceholder: "Şifrenizi girin",
     signIn: "Giriş yap",
+    authFailed: "Kullanıcı adı veya şifre hatalı.",
     signedInAs: "Giriş yapan",
     signOut: "Çıkış yap",
     limitedAccess: "Sınırlı erişim",
@@ -329,6 +615,8 @@ const translations = {
     permissionScopeNote: "Rol bazlı sekme ve panel yetkileri sadece müdür tarafından güncellenir.",
     accessNoteAssistant:
       "Asistan hesabı yalnızca panel özeti, şikayetler ve izin verilen dış modüllere erişebilir.",
+    accessNoteDepartmentManager:
+      "Departman müdürü yalnızca kendi departman verilerini görür ve sadece kendi departman kayıtlarını yönetir.",
     accessNoteFull:
       "Bu rol tüm sekmelere ve tüm canlı modüllere erişebilir.",
     statuses: {
@@ -349,6 +637,7 @@ const translations = {
       fb: "Yiyecek ve İçecek",
       technical: "Teknik",
       security: "Güvenlik",
+      entertainment: "Animasyon",
       frontOffice: "Ön Büro",
       management: "Yönetim",
     },
@@ -468,12 +757,15 @@ const translations = {
       settings: { title: "Settings panel", text: "Internal admin module for content, teams, mappings and operation rules." },
       assistant: { title: "Assistant panel", text: "Internal service area for room selection, routing and guest chat flow." },
     },
-    roles: { manager: "Manager", deputy: "Deputy Manager", chief: "Chief", assistant: "Assistant" },
+    roles: { manager: "Manager", deputy: "Deputy Manager", chief: "Chief", assistant: "Assistant", departmentManager: "Department Manager" },
     loginTitle: "Single-link sign-in panel",
     loginText:
       "Sign in by username. The manager sees all activity logs, while other roles use only their authorized areas.",
     selectUser: "Select user",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Enter your password",
     signIn: "Sign in",
+    authFailed: "Invalid username or password.",
     signedInAs: "Signed in as",
     signOut: "Sign out",
     limitedAccess: "Limited access",
@@ -558,6 +850,8 @@ const translations = {
     permissionScopeNote: "Role-based tab and panel permissions can only be updated by the manager.",
     accessNoteAssistant:
       "Assistant accounts can access only the dashboard summary, complaints and allowed external modules.",
+    accessNoteDepartmentManager:
+      "Department managers can see only their own department data and manage only department-scoped records.",
     accessNoteFull: "This role can access all tabs and all live modules.",
     statuses: {
       "Not Started": "Not Started",
@@ -577,6 +871,7 @@ const translations = {
       fb: "F&B",
       technical: "Technical",
       security: "Security",
+      entertainment: "Entertainment",
       frontOffice: "Front Office",
       management: "Management",
     },
@@ -695,12 +990,15 @@ const translations = {
       settings: { title: "Management-Einstellungen", text: "Internes Admin-Modul für Inhalte, Teams, Zuordnungen und Regeln." },
       assistant: { title: "Assistentenbetrieb", text: "Interner Servicebereich für Zimmerauswahl, Routing und Gast-Chat." },
     },
-    roles: { manager: "Manager", deputy: "Stellv. Manager", chief: "Chef", assistant: "Assistent" },
+    roles: { manager: "Manager", deputy: "Stellv. Manager", chief: "Chef", assistant: "Assistent", departmentManager: "Abteilungsleiter" },
     loginTitle: "Einzel-Link-Anmeldung",
     loginText:
       "Anmeldung per Benutzername. Nur der Manager sieht alle Aktivitätsprotokolle, andere Rollen nur ihre freigegebenen Bereiche.",
     selectUser: "Benutzer wählen",
+    passwordLabel: "Passwort",
+    passwordPlaceholder: "Passwort eingeben",
     signIn: "Anmelden",
+    authFailed: "Benutzername oder Passwort ist ungültig.",
     signedInAs: "Angemeldet als",
     signOut: "Abmelden",
     limitedAccess: "Eingeschränkter Zugriff",
@@ -785,6 +1083,8 @@ const translations = {
     permissionScopeNote: "Rollenbasierte Register- und Panelrechte können nur vom Manager geändert werden.",
     accessNoteAssistant:
       "Assistentenkonten können nur auf Dashboard, Beschwerden und erlaubte externe Module zugreifen.",
+    accessNoteDepartmentManager:
+      "Abteilungsleiter sehen nur Daten ihrer eigenen Abteilung und verwalten nur abteilungsbezogene Einträge.",
     accessNoteFull: "Diese Rolle kann auf alle Register und alle Live-Module zugreifen.",
     statuses: {
       "Not Started": "Nicht begonnen",
@@ -804,6 +1104,7 @@ const translations = {
       fb: "F&B",
       technical: "Technik",
       security: "Sicherheit",
+      entertainment: "Entertainment",
       frontOffice: "Rezeption",
       management: "Management",
     },
@@ -925,12 +1226,15 @@ const translations = {
       settings: { title: "Управленческие настройки", text: "Внутренний админ-модуль для контента, команд, связок и операционных правил." },
       assistant: { title: "Операции ассистента", text: "Внутренний сервисный блок для выбора номера, маршрутизации и гостевого чата." },
     },
-    roles: { manager: "Менеджер", deputy: "Зам. менеджера", chief: "Шеф", assistant: "Ассистент" },
+    roles: { manager: "Менеджер", deputy: "Зам. менеджера", chief: "Шеф", assistant: "Ассистент", departmentManager: "Руководитель отдела" },
     loginTitle: "Единая панель входа",
     loginText:
       "Вход по имени пользователя. Только менеджер видит все журналы действий, остальные роли работают в своих разрешенных зонах.",
     selectUser: "Выберите пользователя",
+    passwordLabel: "Пароль",
+    passwordPlaceholder: "Введите пароль",
     signIn: "Войти",
+    authFailed: "Неверное имя пользователя или пароль.",
     signedInAs: "Вошел как",
     signOut: "Выйти",
     limitedAccess: "Ограниченный доступ",
@@ -1015,6 +1319,8 @@ const translations = {
     permissionScopeNote: "Ролевые права на вкладки и панели может менять только менеджер.",
     accessNoteAssistant:
       "Аккаунт ассистента может работать только с панелью, жалобами и разрешенными внешними модулями.",
+    accessNoteDepartmentManager:
+      "Руководитель отдела видит только данные своего отдела и управляет только записями своего отдела.",
     accessNoteFull: "Эта роль может использовать все вкладки и все живые модули.",
     statuses: {
       "Not Started": "Не начато",
@@ -1034,6 +1340,7 @@ const translations = {
       fb: "Питание и напитки",
       technical: "Технический отдел",
       security: "Безопасность",
+      entertainment: "Анимация",
       frontOffice: "Ресепшен",
       management: "Менеджмент",
     },
@@ -1106,28 +1413,15 @@ function getInitialLanguage() {
 }
 
 function getStoredUser() {
-  if (typeof window === "undefined") return null;
-  const username = window.localStorage.getItem("active-user");
-  return users.find((item) => item.username === username) ?? null;
+  return null;
 }
 
 function getStoredLogs() {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(window.localStorage.getItem("activity-logs") ?? "[]");
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 function getStoredPermissions() {
-  if (typeof window === "undefined") return defaultRoleAccess;
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem("role-permissions") ?? "null");
-    return parsed ? { ...defaultRoleAccess, ...parsed } : defaultRoleAccess;
-  } catch {
-    return defaultRoleAccess;
-  }
+  return defaultRoleAccess;
 }
 
 function normalizePermissions(payload) {
@@ -1170,7 +1464,14 @@ function App() {
     const view = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("view") : null;
     return ["dashboard", "tasks", "complaints", "alacarte", "analysis", "managerAgenda", "permissions", "managerOps"].includes(view) ? view : "dashboard";
   });
+  const loginRoleKey = (user) => user.titleKey ?? user.role;
+  const [selectedLoginRole, setSelectedLoginRole] = useState(loginRoleKey(users[0]));
   const [selectedUsername, setSelectedUsername] = useState(users[0].username);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [sessionToken, setSessionToken] = useState(() =>
+    (typeof window !== "undefined" ? window.localStorage.getItem("session-token") : "") || "",
+  );
+  const [authError, setAuthError] = useState("");
   const [currentUser, setCurrentUser] = useState(getStoredUser);
   const [activityLogs, setActivityLogs] = useState(getStoredLogs);
   const [permissions, setPermissions] = useState(getStoredPermissions);
@@ -1180,6 +1481,9 @@ function App() {
   const [complaints, setComplaints] = useState(initialComplaints);
   const [agendaItems, setAgendaItems] = useState(initialAgendaItems);
   const [alaCarteVenues, setAlaCarteVenues] = useState(initialAlaCarteVenues);
+  const [alaCarteReservations, setAlaCarteReservations] = useState(initialAlaCarteReservations);
+  const [alaCarteWaitlist, setAlaCarteWaitlist] = useState(initialAlaCarteWaitlist);
+  const [alaCarteServiceSlots, setAlaCarteServiceSlots] = useState(initialAlaCarteServiceSlots);
   const [taskSearch, setTaskSearch] = useState("");
   const [complaintSearch, setComplaintSearch] = useState("");
   const [selectedModuleId, setSelectedModuleId] = useState(null);
@@ -1205,16 +1509,63 @@ function App() {
     priority: "High",
     note: "",
   });
+  const [newReservation, setNewReservation] = useState({
+    venueId: initialAlaCarteVenues[0].id,
+    guestName: "",
+    roomNumber: "",
+    partySize: 2,
+    reservationDate: "2026-03-12",
+    slotTime: "19:00",
+    source: "App",
+    status: "Booked",
+    note: "",
+  });
+  const [newWaitlistEntry, setNewWaitlistEntry] = useState({
+    venueId: initialAlaCarteVenues[0].id,
+    guestName: "",
+    roomNumber: "",
+    partySize: 2,
+    preferredDate: "2026-03-12",
+    preferredWindow: "20:00-21:00",
+    priority: "Regular",
+  });
 
   const copy = translations[language];
+  const authText = authCopy[language] ?? authCopy.en;
+  const diningCopy = alaCarteLabels[language] ?? alaCarteLabels.en;
+  const titleCopy = titleLabels[language] ?? titleLabels.en;
   const activeRole = currentUser ? permissions[currentUser.role] : null;
+  const scopedDepartment = currentUser?.scopeDepartment ?? null;
+  const isDepartmentManager = currentUser?.role === "departmentManager";
   const availableTabIds = useMemo(
-    () =>
-      [
+    () => {
+      const baseTabs = [
         ...(activeRole?.tabs ?? []),
         ...(currentUser?.role === "manager" ? managerTabs : []),
-      ].filter((value, index, array) => array.indexOf(value) === index),
-    [activeRole, currentUser],
+      ].filter((value, index, array) => array.indexOf(value) === index);
+
+      if (!isDepartmentManager) return baseTabs;
+
+      return baseTabs.filter(
+        (tabId) =>
+          tabId !== "alacarte" || ["fb", "guestRelations", "frontOffice"].includes(scopedDepartment),
+      );
+    },
+    [activeRole, currentUser, isDepartmentManager, scopedDepartment],
+  );
+  const loginRoleOptions = useMemo(
+    () =>
+      users.reduce((options, user) => {
+        const key = loginRoleKey(user);
+        if (options.some((item) => item.key === key)) return options;
+        options.push({ key, label: titleCopy[key] ?? copy.roles[key] ?? key });
+        return options;
+      }, []),
+    [copy.roles, titleCopy],
+  );
+  const filteredLoginUsers = useMemo(
+    () => users.filter((user) => loginRoleKey(user) === selectedLoginRole),
+    [selectedLoginRole],
   );
 
   useEffect(() => {
@@ -1224,29 +1575,58 @@ function App() {
   }, [copy.appTitle, language]);
 
   useEffect(() => {
-    if (!currentUser) return;
-    window.localStorage.setItem("active-user", currentUser.username);
-  }, [currentUser]);
+    if (filteredLoginUsers.some((user) => user.username === selectedUsername)) return;
+    if (filteredLoginUsers[0]) setSelectedUsername(filteredLoginUsers[0].username);
+  }, [filteredLoginUsers, selectedUsername]);
+
+  useEffect(() => {
+    if (!isDepartmentManager || !scopedDepartment) return;
+    setNewTask((current) => ({ ...current, department: scopedDepartment }));
+    setNewComplaint((current) => ({ ...current, department: scopedDepartment }));
+  }, [isDepartmentManager, scopedDepartment]);
+
+  useEffect(() => {
+    if (sessionToken) window.localStorage.setItem("session-token", sessionToken);
+    else window.localStorage.removeItem("session-token");
+  }, [sessionToken]);
 
   useEffect(() => {
     let ignore = false;
 
     async function bootstrap() {
+      if (!sessionToken) {
+        setBootstrapReady(true);
+        setSyncMode("api");
+        return;
+      }
       try {
-        const response = await fetch(`${apiBaseUrl}/api/bootstrap`);
+        const sessionResponse = await fetch(`${apiBaseUrl}/api/auth/session`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        });
+        if (!sessionResponse.ok) throw new Error("session failed");
+        const sessionPayload = await sessionResponse.json();
+        const response = await fetch(`${apiBaseUrl}/api/bootstrap`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        });
         if (!response.ok) throw new Error("bootstrap failed");
         const payload = await response.json();
         if (ignore) return;
+        setCurrentUser(sessionPayload.user);
         setTasks(payload.tasks?.length ? payload.tasks : initialTasks);
         setComplaints(payload.complaints?.length ? payload.complaints : initialComplaints);
         setAgendaItems(payload.agendaItems?.length ? payload.agendaItems : initialAgendaItems);
         setAlaCarteVenues(payload.alaCarteVenues?.length ? payload.alaCarteVenues : initialAlaCarteVenues);
+        setAlaCarteReservations(payload.alaCarteReservations?.length ? payload.alaCarteReservations : initialAlaCarteReservations);
+        setAlaCarteWaitlist(payload.alaCarteWaitlist?.length ? payload.alaCarteWaitlist : initialAlaCarteWaitlist);
+        setAlaCarteServiceSlots(payload.alaCarteServiceSlots?.length ? payload.alaCarteServiceSlots : initialAlaCarteServiceSlots);
         setActivityLogs(payload.activityLogs ?? []);
         setPermissions(normalizePermissions(payload.permissions));
         setSyncMode("api");
       } catch {
         if (ignore) return;
         setSyncMode("local");
+        setSessionToken("");
+        setCurrentUser(null);
       } finally {
         if (!ignore) setBootstrapReady(true);
       }
@@ -1256,7 +1636,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [sessionToken]);
 
   useEffect(() => {
     if (!bootstrapReady) return;
@@ -1269,7 +1649,7 @@ function App() {
     const timer = window.setTimeout(() => {
       fetch(`${apiBaseUrl}/api/state`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
         body: JSON.stringify({
           users,
           permissions,
@@ -1277,6 +1657,9 @@ function App() {
           complaints,
           agendaItems,
           alaCarteVenues,
+          alaCarteReservations,
+          alaCarteWaitlist,
+          alaCarteServiceSlots,
           activityLogs,
         }),
       }).catch(() => {
@@ -1285,7 +1668,7 @@ function App() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [activityLogs, agendaItems, alaCarteVenues, bootstrapReady, complaints, permissions, syncMode, tasks]);
+  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, bootstrapReady, complaints, permissions, sessionToken, syncMode, tasks]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -1308,6 +1691,11 @@ function App() {
   const localizeSummary = (item) => item.summary ?? copy.complaintSummaries[item.summaryKey] ?? item.summaryKey;
   const formatDate = (value) => (value ? new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(new Date(value)) : "");
   const roleLabel = (role) => copy.roles[role] ?? role;
+  const titleLabel = (titleKey) => titleCopy[titleKey] ?? titleKey;
+  const userLabel = (user) => user.titleKey ? titleLabel(user.titleKey) : roleLabel(user.role);
+  const availableDepartmentOptions = isDepartmentManager && scopedDepartment
+    ? [scopedDepartment]
+    : Object.keys(copy.departments);
   const visibleTab = availableTabIds.includes(activeTab)
     ? activeTab
     : availableTabIds[0] ?? "dashboard";
@@ -1522,13 +1910,36 @@ function App() {
               active.length,
           )
         : 0,
+      reservationCount: alaCarteReservations.length,
+      waitlistCount: alaCarteWaitlist.filter((item) => item.status === "Waiting").length,
+      noShowRiskCount: alaCarteReservations.filter((item) => item.status === "Booked").length,
     };
-  }, [alaCarteVenues]);
+  }, [alaCarteReservations, alaCarteVenues, alaCarteWaitlist]);
+
+  const reservationStatusCounts = useMemo(
+    () =>
+      reservationStatusOrder.map((status) => ({
+        status,
+        count: alaCarteReservations.filter((item) => item.status === status).length,
+      })),
+    [alaCarteReservations],
+  );
+
+  const upcomingReservations = useMemo(
+    () =>
+      [...alaCarteReservations].sort(
+        (left, right) =>
+          new Date(`${left.reservationDate}T${left.slotTime}:00`) -
+          new Date(`${right.reservationDate}T${right.slotTime}:00`),
+      ),
+    [alaCarteReservations],
+  );
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
-    setTasks((current) => [{ ...newTask, id: Date.now(), notes: newTask.notes }, ...current]);
-    setNewTask({ title: "", type: "daily", department: "guestRelations", owner: "", dueDate: "", priority: "Medium", status: "Planned", progress: 0, notes: "" });
+    const scopedTask = isDepartmentManager && scopedDepartment ? { ...newTask, department: scopedDepartment } : newTask;
+    setTasks((current) => [{ ...scopedTask, id: Date.now(), notes: scopedTask.notes }, ...current]);
+    setNewTask({ title: "", type: "daily", department: isDepartmentManager && scopedDepartment ? scopedDepartment : "guestRelations", owner: "", dueDate: "", priority: "Medium", status: "Planned", progress: 0, notes: "" });
     logAction("actionTaskAdded", newTask.title);
   };
 
@@ -1537,8 +1948,9 @@ function App() {
       setComplaintFormError(copy.complaintValidation);
       return;
     }
-    setComplaints((current) => [{ ...newComplaint, id: Date.now(), summary: newComplaint.summary }, ...current]);
-    setNewComplaint({ guest: "", category: "housekeeping", severity: "Medium", status: "Open", channel: "frontDesk", date: "", department: "guestRelations", summary: "" });
+    const scopedComplaint = isDepartmentManager && scopedDepartment ? { ...newComplaint, department: scopedDepartment } : newComplaint;
+    setComplaints((current) => [{ ...scopedComplaint, id: Date.now(), summary: scopedComplaint.summary }, ...current]);
+    setNewComplaint({ guest: "", category: "housekeeping", severity: "Medium", status: "Open", channel: "frontDesk", date: "", department: isDepartmentManager && scopedDepartment ? scopedDepartment : "guestRelations", summary: "" });
     setComplaintFormError("");
     logAction("actionComplaintAdded", newComplaint.guest);
   };
@@ -1581,6 +1993,115 @@ function App() {
       note: "",
     });
     logAction("actionAlaCarteAdded", venue.name);
+  };
+
+  const addAlaCarteReservation = () => {
+    if (!newReservation.guestName.trim() || !newReservation.roomNumber.trim()) return;
+    const reservation = {
+      id: `res-${Date.now()}`,
+      ...newReservation,
+      partySize: Number(newReservation.partySize),
+    };
+    setAlaCarteReservations((current) => [reservation, ...current]);
+    setAlaCarteServiceSlots((current) =>
+      current.map((slot) =>
+        slot.venueId === reservation.venueId &&
+        slot.date === reservation.reservationDate &&
+        slot.time === reservation.slotTime
+          ? { ...slot, bookedCovers: slot.bookedCovers + reservation.partySize }
+          : slot,
+      ),
+    );
+    setNewReservation({
+      venueId: reservation.venueId,
+      guestName: "",
+      roomNumber: "",
+      partySize: 2,
+      reservationDate: reservation.reservationDate,
+      slotTime: reservation.slotTime,
+      source: "App",
+      status: "Booked",
+      note: "",
+    });
+    logAction("actionAlaCarteAdded", reservation.guestName);
+  };
+
+  const addWaitlistEntry = () => {
+    if (!newWaitlistEntry.guestName.trim() || !newWaitlistEntry.roomNumber.trim()) return;
+    const entry = {
+      id: `wait-${Date.now()}`,
+      ...newWaitlistEntry,
+      partySize: Number(newWaitlistEntry.partySize),
+      status: "Waiting",
+    };
+    setAlaCarteWaitlist((current) => [entry, ...current]);
+    setNewWaitlistEntry({
+      venueId: entry.venueId,
+      guestName: "",
+      roomNumber: "",
+      partySize: 2,
+      preferredDate: entry.preferredDate,
+      preferredWindow: "20:00-21:00",
+      priority: "Regular",
+    });
+    logAction("actionAlaCarteAdded", `${entry.guestName} waitlist`);
+  };
+
+  const cycleReservationStatus = (id) => {
+    const reservation = alaCarteReservations.find((item) => item.id === id);
+    if (!reservation) return;
+    const currentIndex = reservationStatusOrder.indexOf(reservation.status);
+    const nextStatus = reservationStatusOrder[(currentIndex + 1) % reservationStatusOrder.length];
+    setAlaCarteReservations((current) =>
+      current.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)),
+    );
+    logAction("actionAlaCarteToggled", `${reservation.guestName}:${nextStatus}`);
+  };
+
+  const convertWaitlistToReservation = (id) => {
+    const entry = alaCarteWaitlist.find((item) => item.id === id);
+    if (!entry) return;
+    const slot = alaCarteServiceSlots.find(
+      (item) => item.venueId === entry.venueId && item.date === entry.preferredDate,
+    );
+    const reservation = {
+      id: `res-${Date.now()}`,
+      venueId: entry.venueId,
+      guestName: entry.guestName,
+      roomNumber: entry.roomNumber,
+      partySize: entry.partySize,
+      reservationDate: entry.preferredDate,
+      slotTime: slot?.time ?? "20:00",
+      status: "Booked",
+      source: "Waitlist",
+      note: `Converted from waitlist (${entry.preferredWindow})`,
+    };
+    setAlaCarteReservations((current) => [reservation, ...current]);
+    setAlaCarteWaitlist((current) =>
+      current.map((item) => (item.id === id ? { ...item, status: "Converted" } : item)),
+    );
+    setAlaCarteServiceSlots((current) =>
+      current.map((item) =>
+        item.venueId === reservation.venueId &&
+        item.date === reservation.reservationDate &&
+        item.time === reservation.slotTime
+          ? {
+              ...item,
+              bookedCovers: item.bookedCovers + reservation.partySize,
+              waitlistCount: Math.max(0, item.waitlistCount - 1),
+            }
+          : item,
+      ),
+    );
+    logAction("actionAlaCarteAdded", `${entry.guestName} reservation`);
+  };
+
+  const increaseSlotCapacity = (id) => {
+    const slot = alaCarteServiceSlots.find((item) => item.id === id);
+    setAlaCarteServiceSlots((current) =>
+      current.map((item) => (item.id === id ? { ...item, maxCovers: item.maxCovers + 2 } : item)),
+    );
+    if (slot) logAction("actionAlaCartePriceUpdated", `${slot.time} capacity`);
   };
 
   const addAgendaItem = () => {
@@ -1643,42 +2164,33 @@ function App() {
     if (task) logAction("actionTaskToggled", localizeTaskTitle(task));
   };
 
-  const handleSignIn = () => {
-    const selected = users.find((item) => item.username === selectedUsername);
-    if (!selected) return;
-    setCurrentUser(selected);
-    setActivityLogs((current) => [
-      {
-        id: Date.now(),
-        username: selected.username,
-        displayName: selected.displayName,
-        role: selected.role,
-        actionKey: "actionLogin",
-        detail: selected.username,
-        createdAt: new Date().toISOString(),
-      },
-      ...current,
-    ]);
-    const firstAllowedTab = permissions[selected.role].tabs[0] ?? "dashboard";
+  const handleSignIn = async () => {
+    setAuthError("");
+    const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: selectedUsername, password: loginPassword }),
+    });
+    if (!response.ok) {
+      setAuthError(copy.authFailed);
+      return;
+    }
+    const payload = await response.json();
+    setSessionToken(payload.token);
+    setCurrentUser(payload.user);
+    setLoginPassword("");
+    const firstAllowedTab = permissions[payload.user.role]?.tabs?.[0] ?? "dashboard";
     setActiveTab(firstAllowedTab);
   };
 
-  const handleSignOut = () => {
-    if (currentUser) {
-      setActivityLogs((current) => [
-        {
-          id: Date.now(),
-          username: currentUser.username,
-          displayName: currentUser.displayName,
-          role: currentUser.role,
-          actionKey: "actionLogout",
-          detail: currentUser.username,
-          createdAt: new Date().toISOString(),
-        },
-        ...current,
-      ]);
+  const handleSignOut = async () => {
+    if (sessionToken) {
+      await fetch(`${apiBaseUrl}/api/auth/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sessionToken}` },
+      }).catch(() => {});
     }
-    window.localStorage.removeItem("active-user");
+    setSessionToken("");
     setCurrentUser(null);
   };
 
@@ -1716,16 +2228,41 @@ function App() {
             <p className="muted">{copy.loginText}</p>
             <div className="form-grid">
               <label>
-                <span>{copy.selectUser}</span>
-                <select aria-label={copy.selectUser} value={selectedUsername} onChange={(event) => setSelectedUsername(event.target.value)}>
-                  {users.map((user) => (
-                    <option key={user.username} value={user.username}>
-                      {user.displayName} · {roleLabel(user.role)} · {user.username}
+                <span>{authText.selectRole}</span>
+                <select aria-label={authText.selectRole} value={selectedLoginRole} onChange={(event) => setSelectedLoginRole(event.target.value)}>
+                  {loginRoleOptions.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
               </label>
-              <button type="button" className="button" onClick={handleSignIn}>
+              <label>
+                <span>{copy.selectUser}</span>
+                <select aria-label={copy.selectUser} value={selectedUsername} onChange={(event) => setSelectedUsername(event.target.value)}>
+                  {filteredLoginUsers.map((user) => (
+                    <option key={user.username} value={user.username}>
+                      {user.displayName} · {userLabel(user)} · {user.username}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>{copy.passwordLabel}</span>
+                <input
+                  aria-label={copy.passwordLabel}
+                  type="password"
+                  value={loginPassword}
+                  placeholder={copy.passwordPlaceholder}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                />
+              </label>
+              {authError && <p className="form-error">{authError}</p>}
+              <div className="spec-note side-note">
+                <span className="eyebrow">{authText.passwordStrategyTitle}</span>
+                <p>{authText.passwordStrategyText}</p>
+              </div>
+              <button type="button" className="button" onClick={() => void handleSignIn()}>
                 {copy.signIn}
               </button>
             </div>
@@ -1751,7 +2288,7 @@ function App() {
                 <div className="user-chip">
                   <UserRound size={14} />
                   <span>{copy.signedInAs}: {currentUser.displayName}</span>
-                  <strong>{roleLabel(currentUser.role)}</strong>
+                  <strong>{currentUser.titleKey ? titleLabel(currentUser.titleKey) : roleLabel(currentUser.role)}</strong>
                 </div>
                 <label className="language-switcher">
                   <span>
@@ -1773,7 +2310,13 @@ function App() {
             </div>
             <h1>{copy.heroTitle}</h1>
             <p>{copy.heroDescription}</p>
-            <p className="access-note">{currentUser.role === "assistant" ? copy.accessNoteAssistant : copy.accessNoteFull}</p>
+            <p className="access-note">
+              {currentUser.role === "assistant"
+                ? copy.accessNoteAssistant
+                : currentUser.role === "departmentManager"
+                  ? copy.accessNoteDepartmentManager
+                  : copy.accessNoteFull}
+            </p>
           </div>
           <Panel className="control-panel">
             <div className="control-panel-grid">
@@ -2002,7 +2545,7 @@ function App() {
                   <label><span>{copy.priority}</span><select value={newTask.priority} onChange={(event) => setNewTask({ ...newTask, priority: event.target.value })}><option value="Low">{localizePriority("Low")}</option><option value="Medium">{localizePriority("Medium")}</option><option value="High">{localizePriority("High")}</option></select></label>
                 </div>
                 <div className="two-col">
-                  <label><span>{copy.department}</span><select value={newTask.department} onChange={(event) => setNewTask({ ...newTask, department: event.target.value })}>{Object.keys(copy.departments).map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
+                  <label><span>{copy.department}</span><select value={newTask.department} disabled={isDepartmentManager} onChange={(event) => setNewTask({ ...newTask, department: event.target.value })}>{availableDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
                   <label><span>{copy.owner}</span><input value={newTask.owner} onChange={(event) => setNewTask({ ...newTask, owner: event.target.value })} /></label>
                 </div>
                 <label><span>{copy.dueDate}</span><input type="date" value={newTask.dueDate} onChange={(event) => setNewTask({ ...newTask, dueDate: event.target.value })} /></label>
@@ -2062,7 +2605,7 @@ function App() {
                   <label><span>{copy.channel}</span><select value={newComplaint.channel} onChange={(event) => setNewComplaint({ ...newComplaint, channel: event.target.value })}>{Object.keys(copy.channels).map((key) => <option key={key} value={key}>{localizeChannel(key)}</option>)}</select></label>
                   <label><span>{copy.date}</span><input type="date" value={newComplaint.date} onChange={(event) => setNewComplaint({ ...newComplaint, date: event.target.value })} /></label>
                 </div>
-                <label><span>{copy.department}</span><select value={newComplaint.department} onChange={(event) => setNewComplaint({ ...newComplaint, department: event.target.value })}>{Object.keys(copy.departments).map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
+                <label><span>{copy.department}</span><select value={newComplaint.department} disabled={isDepartmentManager} onChange={(event) => setNewComplaint({ ...newComplaint, department: event.target.value })}>{availableDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
                 <label><span>{copy.summary}</span><textarea aria-label={copy.summary} rows="5" value={newComplaint.summary} onChange={(event) => { setNewComplaint({ ...newComplaint, summary: event.target.value }); setComplaintFormError(""); }} /></label>
                 {complaintFormError && <p className="form-error">{complaintFormError}</p>}
                 <button type="button" className="button" onClick={addComplaint}>{copy.addComplaint}</button>
@@ -2104,6 +2647,77 @@ function App() {
                     <span>{restaurant.workingDays.join(", ")}</span>
                   </div>
                 ))}
+              </div>
+              <div className="alacarte-operational-grid">
+                <article className="spec-card">
+                  <div className="panel-heading">
+                    <h2>{diningCopy.reservationStatusBoard}</h2>
+                  </div>
+                  <div className="status-board">
+                    {reservationStatusCounts.map((item) => (
+                      <div key={item.status} className="status-card">
+                        <span className="eyebrow">{item.status}</span>
+                        <strong>{item.count}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="data-table compact-table">
+                    <div className="data-row data-head reservation-row">
+                      <span>{diningCopy.guestName}</span>
+                      <span>{copy.venueName}</span>
+                      <span>{diningCopy.reservationDate}</span>
+                      <span>{diningCopy.slotTime}</span>
+                      <span>{diningCopy.reservationStatus}</span>
+                      <span>{diningCopy.partySize}</span>
+                    </div>
+                    {upcomingReservations.map((reservation) => {
+                      const venue = alaCarteVenues.find((item) => item.id === reservation.venueId);
+                      return (
+                        <div key={reservation.id} className="data-row reservation-row">
+                          <span>
+                            <strong>{reservation.guestName}</strong>
+                            <small>{reservation.roomNumber}</small>
+                          </span>
+                          <span>{venue?.name ?? reservation.venueId}</span>
+                          <span>{formatDate(reservation.reservationDate)}</span>
+                          <span>{reservation.slotTime}</span>
+                          <span>{reservation.status}</span>
+                          <span>{reservation.partySize}</span>
+                          <button type="button" className="button secondary slim-button row-action" onClick={() => cycleReservationStatus(reservation.id)}>
+                            {diningCopy.reservationFlow}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+                <article className="spec-card">
+                  <div className="panel-heading">
+                    <h2>{diningCopy.waitlist}</h2>
+                  </div>
+                  <div className="waitlist-stack">
+                    {alaCarteWaitlist.map((entry) => {
+                      const venue = alaCarteVenues.find((item) => item.id === entry.venueId);
+                      return (
+                        <div key={entry.id} className="waitlist-card">
+                          <div>
+                            <strong>{entry.guestName}</strong>
+                            <p className="muted">{venue?.name ?? entry.venueId} | {entry.preferredWindow} | {entry.partySize}</p>
+                          </div>
+                          <div className="spec-actions">
+                            <span className="tag tag-outline">{entry.priority}</span>
+                            <span className={entry.status === "Waiting" ? statusTone.Open : statusTone.Resolved}>{entry.status}</span>
+                            {entry.status === "Waiting" && (
+                              <button type="button" className="button secondary slim-button" onClick={() => convertWaitlistToReservation(entry.id)}>
+                                {diningCopy.moveToReservation}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
               </div>
               <div className="spec-grid">
                 {alaCarteVenues.map((restaurant) => (
@@ -2153,11 +2767,74 @@ function App() {
                 <div className="control-line"><span>{copy.maxGuests}</span><strong>{alaCarteStats.maxGuests}</strong></div>
                 <div className="control-line"><span>{copy.occupancy}</span><strong>{alaCarteStats.averageOccupancy}%</strong></div>
                 <div className="control-line"><span>{copy.quickRules}</span><strong>{alaCarteVenues.filter((item) => item.areaPreference || item.mixedTable).length}</strong></div>
+                <div className="control-line"><span>{diningCopy.reservations}</span><strong>{alaCarteStats.reservationCount}</strong></div>
+                <div className="control-line"><span>{diningCopy.waitlist}</span><strong>{alaCarteStats.waitlistCount}</strong></div>
+                <div className="control-line"><span>{diningCopy.noShowRisk}</span><strong>{alaCarteStats.noShowRiskCount}</strong></div>
               </div>
               <div className="spec-note side-note">
                 <span className="eyebrow">Runtime</span>
                 <p>Role-scoped internal operational model. No outbound dependency on live reservation pages.</p>
               </div>
+              <div className="form-grid top-gap">
+                <h3>{diningCopy.addReservation}</h3>
+                <label><span>{copy.venueName}</span><select aria-label={copy.venueName} value={newReservation.venueId} onChange={(event) => setNewReservation({ ...newReservation, venueId: event.target.value })}>{alaCarteVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}</select></label>
+                <div className="two-col">
+                  <label><span>{diningCopy.guestName}</span><input aria-label={diningCopy.guestName} value={newReservation.guestName} onChange={(event) => setNewReservation({ ...newReservation, guestName: event.target.value })} /></label>
+                  <label><span>{diningCopy.roomNumber}</span><input aria-label={diningCopy.roomNumber} value={newReservation.roomNumber} onChange={(event) => setNewReservation({ ...newReservation, roomNumber: event.target.value })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{diningCopy.partySize}</span><input aria-label={diningCopy.partySize} type="number" value={newReservation.partySize} onChange={(event) => setNewReservation({ ...newReservation, partySize: Number(event.target.value) })} /></label>
+                  <label><span>{diningCopy.source}</span><select value={newReservation.source} onChange={(event) => setNewReservation({ ...newReservation, source: event.target.value })}><option>App</option><option>Guest Relations</option><option>Front Office</option><option>Manager</option></select></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{diningCopy.reservationDate}</span><input type="date" value={newReservation.reservationDate} onChange={(event) => setNewReservation({ ...newReservation, reservationDate: event.target.value })} /></label>
+                  <label><span>{diningCopy.slotTime}</span><input type="time" value={newReservation.slotTime} onChange={(event) => setNewReservation({ ...newReservation, slotTime: event.target.value })} /></label>
+                </div>
+                <label><span>{copy.operationalNote}</span><textarea rows="3" value={newReservation.note} onChange={(event) => setNewReservation({ ...newReservation, note: event.target.value })} /></label>
+                <button type="button" className="button" onClick={addAlaCarteReservation}>{diningCopy.addReservation}</button>
+              </div>
+              <div className="form-grid top-gap">
+                <h3>{diningCopy.addWaitlist}</h3>
+                <label><span>{copy.venueName}</span><select value={newWaitlistEntry.venueId} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, venueId: event.target.value })}>{alaCarteVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}</select></label>
+                <div className="two-col">
+                  <label><span>{diningCopy.guestName}</span><input aria-label={`${diningCopy.guestName} waitlist`} value={newWaitlistEntry.guestName} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, guestName: event.target.value })} /></label>
+                  <label><span>{diningCopy.roomNumber}</span><input value={newWaitlistEntry.roomNumber} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, roomNumber: event.target.value })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{diningCopy.partySize}</span><input type="number" value={newWaitlistEntry.partySize} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, partySize: Number(event.target.value) })} /></label>
+                  <label><span>{diningCopy.waitlistPriority}</span><select value={newWaitlistEntry.priority} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, priority: event.target.value })}><option value="VIP">{diningCopy.vip}</option><option value="Family">{diningCopy.family}</option><option value="Regular">{diningCopy.regular}</option></select></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{diningCopy.reservationDate}</span><input type="date" value={newWaitlistEntry.preferredDate} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, preferredDate: event.target.value })} /></label>
+                  <label><span>{diningCopy.waitlistWindow}</span><input value={newWaitlistEntry.preferredWindow} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, preferredWindow: event.target.value })} /></label>
+                </div>
+                <button type="button" className="button secondary" onClick={addWaitlistEntry}>{diningCopy.addWaitlist}</button>
+              </div>
+              <article className="spec-card top-gap">
+                <div className="panel-heading">
+                  <h2>{diningCopy.serviceSlots}</h2>
+                </div>
+                <div className="waitlist-stack">
+                  {alaCarteServiceSlots.map((slot) => {
+                    const venue = alaCarteVenues.find((item) => item.id === slot.venueId);
+                    const availableSeats = Math.max(0, slot.maxCovers - slot.bookedCovers);
+                    return (
+                      <div key={slot.id} className="waitlist-card">
+                        <div>
+                          <strong>{venue?.name ?? slot.venueId} | {formatDate(slot.date)} | {slot.time}</strong>
+                          <p className="muted">{diningCopy.availableSeats}: {availableSeats} | {diningCopy.waitlist}: {slot.waitlistCount}</p>
+                        </div>
+                        <div className="spec-actions">
+                          <span className="tag tag-outline">{slot.bookedCovers}/{slot.maxCovers}</span>
+                          <button type="button" className="button secondary slim-button" onClick={() => increaseSlotCapacity(slot.id)}>
+                            {diningCopy.increaseCapacity}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
               <div className="form-grid top-gap">
                 <label><span>{copy.venueName}</span><input value={newVenue.name} onChange={(event) => setNewVenue({ ...newVenue, name: event.target.value })} /></label>
                 <div className="two-col">

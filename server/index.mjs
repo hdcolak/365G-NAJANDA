@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -10,23 +11,35 @@ const dataDir = process.env.DATA_DIR || join(process.cwd(), "server-data");
 const dataFile = join(dataDir, "state.json");
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl }) : null;
+const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "Voyage365!";
+
+const seedUsers = [
+  { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management" },
+  { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management" },
+  { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations" },
+  { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations" },
+  { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice" },
+  { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping" },
+  { username: "emir.animasyonmdr", role: "departmentManager", titleKey: "entertainmentManager", displayName: "Emir", department: "entertainment", scopeDepartment: "entertainment" },
+  { username: "emre.teknikmdr", role: "departmentManager", titleKey: "chiefEngineer", displayName: "Emre", department: "technical", scopeDepartment: "technical" },
+  { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb" },
+  { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations" },
+  { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security" },
+];
 
 const initialState = {
   meta: {
     hotel: "Voyage Kundu",
     updatedAt: new Date().toISOString(),
   },
-  users: [
-    { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management" },
-    { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management" },
-    { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations" },
-    { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations" },
-  ],
+  users: seedUsers,
+  sessions: [],
   permissions: {
     manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: true },
     deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: false },
     chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: false },
     assistant: { tabs: ["dashboard", "complaints"], modules: ["guest", "assistant"], showAudit: false },
+    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "assistant"], showAudit: false },
   },
   tasks: [
     { id: 1, titleKey: "vipArrivalPreparation", type: "daily", department: "guestRelations", owner: "Denizcan", dueDate: "2026-03-10", priority: "High", status: "In Progress", progress: 60, notesKey: "vipArrivalPreparation" },
@@ -120,8 +133,188 @@ const initialState = {
       slotCount: 2
     },
   ],
+  alaCarteReservations: [
+    { id: "res-1001", venueId: "vista-italian", guestName: "Muller Family", roomNumber: "4102", partySize: 4, reservationDate: "2026-03-12", slotTime: "19:00", status: "Booked", source: "Guest Relations", note: "Anniversary dessert request" },
+    { id: "res-1002", venueId: "asia-flame", guestName: "Ivan Petrov", roomNumber: "3304", partySize: 2, reservationDate: "2026-03-12", slotTime: "20:00", status: "Confirmed", source: "App", note: "No peanuts" },
+  ],
+  alaCarteWaitlist: [
+    { id: "wait-1001", venueId: "asia-flame", guestName: "Kaya Suite", roomNumber: "2201", partySize: 2, preferredDate: "2026-03-12", preferredWindow: "20:30-21:00", priority: "VIP", status: "Waiting" },
+  ],
+  alaCarteServiceSlots: [
+    { id: "slot-1", venueId: "vista-italian", date: "2026-03-12", time: "19:00", maxCovers: 24, bookedCovers: 12, waitlistCount: 0 },
+    { id: "slot-2", venueId: "asia-flame", date: "2026-03-12", time: "20:00", maxCovers: 20, bookedCovers: 18, waitlistCount: 1 },
+  ],
   activityLogs: [],
 };
+
+const roleCapabilities = {
+  manager: {
+    canEditTasks: true,
+    canEditComplaints: true,
+    canEditAlaCarte: true,
+    canEditAgenda: true,
+    canEditPermissions: true,
+  },
+  deputy: {
+    canEditTasks: true,
+    canEditComplaints: true,
+    canEditAlaCarte: true,
+    canEditAgenda: false,
+    canEditPermissions: false,
+  },
+  chief: {
+    canEditTasks: true,
+    canEditComplaints: true,
+    canEditAlaCarte: true,
+    canEditAgenda: false,
+    canEditPermissions: false,
+  },
+  assistant: {
+    canEditTasks: false,
+    canEditComplaints: true,
+    canEditAlaCarte: false,
+    canEditAgenda: false,
+    canEditPermissions: false,
+  },
+  departmentManager: {
+    canEditTasks: true,
+    canEditComplaints: true,
+    canEditAlaCarte: false,
+    canEditAgenda: false,
+    canEditPermissions: false,
+  },
+};
+
+function hashPassword(password, salt = randomBytes(16).toString("hex")) {
+  return {
+    salt,
+    passwordHash: scryptSync(password, salt, 64).toString("hex"),
+  };
+}
+
+function verifyPassword(password, salt, passwordHash) {
+  const expected = Buffer.from(passwordHash, "hex");
+  const actual = scryptSync(password, salt, 64);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+function sanitizeUser(user) {
+  return {
+    username: user.username,
+    role: user.role,
+    titleKey: user.titleKey ?? null,
+    displayName: user.displayName,
+    department: user.department,
+    scopeDepartment: user.scopeDepartment ?? null,
+  };
+}
+
+function getScopeDepartment(user) {
+  return user.scopeDepartment ?? (user.role === "departmentManager" ? user.department : null);
+}
+
+function isGlobalManager(user) {
+  return ["manager", "deputy", "chief"].includes(user.role);
+}
+
+function canAccessAlaCarte(user) {
+  if (isGlobalManager(user)) return true;
+  return ["fb", "guestRelations", "frontOffice"].includes(getScopeDepartment(user));
+}
+
+function filterDepartmentScopedCollection(items, user) {
+  if (isGlobalManager(user) || user.role !== "departmentManager") return items;
+  const scopeDepartment = getScopeDepartment(user);
+  return items.filter((item) => item.department === scopeDepartment);
+}
+
+function mergeScopedCollection(currentItems, incomingItems, predicate) {
+  if (!Array.isArray(incomingItems)) return currentItems;
+  return [
+    ...currentItems.filter((item) => !predicate(item)),
+    ...incomingItems,
+  ];
+}
+
+function ensureAuthShape(state) {
+  const nextState = { ...state };
+  nextState.users = (state.users?.length ? state.users : seedUsers).map((user) => {
+    if (user.passwordHash && user.salt) return user;
+    const auth = hashPassword(defaultPassword);
+    return { ...user, ...auth };
+  });
+  nextState.sessions = Array.isArray(state.sessions) ? state.sessions : [];
+  return nextState;
+}
+
+function sanitizeStateForUser(state, user) {
+  const scopedTasks = filterDepartmentScopedCollection(state.tasks ?? [], user);
+  const scopedComplaints = filterDepartmentScopedCollection(state.complaints ?? [], user);
+
+  return {
+    ...state,
+    users: user.role === "manager" ? state.users.map(sanitizeUser) : [sanitizeUser(user)],
+    tasks: scopedTasks,
+    complaints: scopedComplaints,
+    agendaItems: user.role === "manager" ? state.agendaItems ?? [] : [],
+    alaCarteVenues: canAccessAlaCarte(user) ? state.alaCarteVenues ?? [] : [],
+    alaCarteReservations: canAccessAlaCarte(user) ? state.alaCarteReservations ?? [] : [],
+    alaCarteWaitlist: canAccessAlaCarte(user) ? state.alaCarteWaitlist ?? [] : [],
+    alaCarteServiceSlots: canAccessAlaCarte(user) ? state.alaCarteServiceSlots ?? [] : [],
+    sessions: undefined,
+    activityLogs: user.role === "manager" ? state.activityLogs ?? [] : [],
+  };
+}
+
+function getBearerToken(request) {
+  const header = request.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return null;
+  return header.slice(7).trim();
+}
+
+function findSession(state, token) {
+  if (!token) return null;
+  return state.sessions?.find((session) => session.token === token) ?? null;
+}
+
+function mergeStateForRole(state, body, authUser) {
+  const capabilities = {
+    ...(roleCapabilities[authUser.role] ?? roleCapabilities.assistant),
+    canEditAlaCarte:
+      (roleCapabilities[authUser.role] ?? roleCapabilities.assistant).canEditAlaCarte ||
+      (authUser.role === "departmentManager" && canAccessAlaCarte(authUser)),
+  };
+
+  const scopeDepartment = getScopeDepartment(authUser);
+  const scopedTaskPredicate = (item) => item.department === scopeDepartment;
+  const scopedComplaintPredicate = (item) => item.department === scopeDepartment;
+
+  return ensureAuthShape({
+    ...state,
+    ...body,
+    users: state.users,
+    sessions: state.sessions,
+    permissions: capabilities.canEditPermissions ? body.permissions ?? state.permissions : state.permissions,
+    tasks:
+      capabilities.canEditTasks
+        ? authUser.role === "departmentManager"
+          ? mergeScopedCollection(state.tasks ?? [], body.tasks, scopedTaskPredicate)
+          : body.tasks ?? state.tasks
+        : state.tasks,
+    complaints:
+      capabilities.canEditComplaints
+        ? authUser.role === "departmentManager"
+          ? mergeScopedCollection(state.complaints ?? [], body.complaints, scopedComplaintPredicate)
+          : body.complaints ?? state.complaints
+        : state.complaints,
+    alaCarteVenues: capabilities.canEditAlaCarte ? body.alaCarteVenues ?? state.alaCarteVenues : state.alaCarteVenues,
+    alaCarteReservations: capabilities.canEditAlaCarte ? body.alaCarteReservations ?? state.alaCarteReservations : state.alaCarteReservations,
+    alaCarteWaitlist: capabilities.canEditAlaCarte ? body.alaCarteWaitlist ?? state.alaCarteWaitlist : state.alaCarteWaitlist,
+    alaCarteServiceSlots: capabilities.canEditAlaCarte ? body.alaCarteServiceSlots ?? state.alaCarteServiceSlots : state.alaCarteServiceSlots,
+    agendaItems: capabilities.canEditAgenda ? body.agendaItems ?? state.agendaItems : state.agendaItems,
+    activityLogs: state.activityLogs,
+  });
+}
 
 async function ensureStore() {
   if (pool) {
@@ -146,14 +339,20 @@ async function readState() {
   if (pool) {
     const result = await pool.query("select data from app_state where id = 1");
     if (result.rowCount === 0) {
-      await writeState(initialState);
-      return initialState;
+      const seeded = ensureAuthShape(initialState);
+      await writeState(seeded);
+      return seeded;
     }
-    return result.rows[0].data;
+    const normalized = ensureAuthShape(result.rows[0].data);
+    if (JSON.stringify(normalized) !== JSON.stringify(result.rows[0].data)) {
+      await writeState(normalized);
+    }
+    return normalized;
   }
 
   const raw = await readFile(dataFile, "utf8");
-  return JSON.parse(raw);
+  const normalized = ensureAuthShape(JSON.parse(raw));
+  return normalized;
 }
 
 async function writeState(nextState) {
@@ -187,10 +386,14 @@ function sendJson(response, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Cache-Control": "no-store",
   });
   response.end(JSON.stringify(payload));
+}
+
+function unauthorized(response) {
+  sendJson(response, 401, { error: "Unauthorized" });
 }
 
 function readBody(request) {
@@ -228,22 +431,83 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (url.pathname === "/api/bootstrap" && request.method === "GET") {
+    if (url.pathname === "/api/auth/login" && request.method === "POST") {
+      const body = await readBody(request);
       const state = await readState();
-      sendJson(response, 200, state);
+      const user = state.users.find((item) => item.username === body.username);
+      if (!user || !body.password || !verifyPassword(body.password, user.salt, user.passwordHash)) {
+        sendJson(response, 401, { error: "Invalid username or password" });
+        return;
+      }
+
+      const token = randomUUID();
+      state.sessions = [
+        { token, username: user.username, createdAt: new Date().toISOString() },
+        ...(state.sessions || []).filter((session) => session.username !== user.username),
+      ];
+      await writeState(state);
+      sendJson(response, 200, { token, user: sanitizeUser(user) });
+      return;
+    }
+
+    if (url.pathname === "/api/auth/session" && request.method === "GET") {
+      const state = await readState();
+      const session = findSession(state, getBearerToken(request));
+      if (!session) {
+        unauthorized(response);
+        return;
+      }
+      const user = state.users.find((item) => item.username === session.username);
+      if (!user) {
+        unauthorized(response);
+        return;
+      }
+      sendJson(response, 200, { user: sanitizeUser(user) });
+      return;
+    }
+
+    if (url.pathname === "/api/auth/logout" && request.method === "POST") {
+      const state = await readState();
+      const token = getBearerToken(request);
+      state.sessions = (state.sessions || []).filter((session) => session.token !== token);
+      await writeState(state);
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    const state = await readState();
+    const session = findSession(state, getBearerToken(request));
+    const authUser = session
+      ? state.users.find((item) => item.username === session.username)
+      : null;
+
+    if (url.pathname === "/api/bootstrap" && request.method === "GET") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+      sendJson(response, 200, sanitizeStateForUser(state, authUser));
       return;
     }
 
     if (url.pathname === "/api/state" && request.method === "PUT") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
       const body = await readBody(request);
-      const state = await writeState(body);
-      sendJson(response, 200, state);
+      const mergedState = mergeStateForRole(state, body, authUser);
+      const savedState = await writeState(mergedState);
+      sendJson(response, 200, sanitizeStateForUser(savedState, authUser));
       return;
     }
 
     if (url.pathname === "/api/logs" && request.method === "POST") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
       const body = await readBody(request);
-      const state = await readState();
       const nextLog = {
         id: Date.now(),
         createdAt: new Date().toISOString(),

@@ -42,6 +42,34 @@ iPad and Android without using macOS as the host.
 Frontend reads `VITE_API_URL`.
 Backend reads `DATABASE_URL` in production.
 
+## Authentication and roles
+
+The application now uses backend-backed login sessions.
+
+- Default login password: `Voyage365!`
+- Backend env override: `DEFAULT_LOGIN_PASSWORD`
+- Session storage: server-side state
+
+Seed users:
+
+- `gizem.yonetici` -> manager
+- `selim.muduryrd` -> deputy
+- `ece.sef` -> chief
+- `deniz.asistan` -> assistant
+
+Server-side role restrictions:
+
+- `manager`: can manage tasks, complaints, ala carte, agenda and permissions
+- `deputy`: can manage tasks, complaints and ala carte
+- `chief`: can manage tasks, complaints and ala carte
+- `assistant`: can manage complaints only
+
+Recommended first production step:
+
+1. Set `DEFAULT_LOGIN_PASSWORD` in Render to a private strong password.
+2. Redeploy the backend.
+3. Verify users can sign in with the new password.
+
 ## Render deploy
 
 1. Push this project to GitHub.
