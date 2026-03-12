@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asistan Takip Paneli</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">Çok cihazlı takip sistemi</p>
+          <h1>Görüşmeleri ve yorumları tek panelden yönetin.</h1>
+          <p class="hero__text">
+            Asistanlar yüz yüze görüşmeleri ve dış platformlardaki yorumları
+            manuel ekler. Panel telefon, tablet ve bilgisayarda açılır.
+          </p>
+        </div>
+        <div class="hero__actions">
+          <a class="button button--ghost" href="./hall-of-fame.html">
+            Hall of Fame
+          </a>
+          <button class="button button--ghost" id="seedDataButton">
+            Örnek veri yükle
+          </button>
+          <button class="button button--ghost" id="importButton">
+            Veri içe aktar
+          </button>
+          <button class="button" id="exportButton">Verileri dışa aktar</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel panel--summary">
+          <div class="panel__header">
+            <h2>Bugün</h2>
+            <p>Güncel operasyon özeti</p>
+          </div>
+          <div class="stats-grid" id="statsGrid"></div>
+        </section>
+
+        <section class="panel panel--summary">
+          <div class="panel__header">
+            <h2>FTF takip listesi</h2>
+            <p>`FTF` veya `ftf` kodu geçen kayıtlar otomatik burada toplanır</p>
+          </div>
+          <div id="ftfList" class="card-list"></div>
+        </section>
+
+        <section class="panel panel--form">
+          <div class="panel__header">
+            <h2>Yüz yüze görüşme ekle</h2>
+            <p>Gün içindeki birebir görüşmeleri kaydedin</p>
+          </div>
+          <form id="meetingForm" class="form-grid">
+            <label>
+              <span>Müşteri adı</span>
+              <input name="customerName" required />
+            </label>
+            <label>
+              <span>Tarih</span>
+              <input type="date" name="date" required />
+            </label>
+            <label>
+              <span>Saat</span>
+              <input type="time" name="time" required />
+            </label>
+            <label>
+              <span>Telefon</span>
+              <input name="contact" />
+            </label>
+            <label class="form-grid__full">
+              <span>Görüşme konusu</span>
+              <input name="topic" required />
+            </label>
+            <label>
+              <span>Kod / etiket</span>
+              <input name="tagCode" placeholder="Örn: FTF, VIP, tekrar arama" />
+            </label>
+            <label class="form-grid__full">
+              <span>Sonuç</span>
+              <select name="result">
+                <option>Olumlu</option>
+                <option>Takip gerekli</option>
+                <option>Beklemede</option>
+                <option>Olumsuz</option>
+              </select>
+            </label>
+            <label class="form-grid__full">
+              <span>Notlar</span>
+              <textarea name="notes" rows="4"></textarea>
+            </label>
+            <label>
+              <span>Takip tarihi</span>
+              <input type="date" name="followUpDate" />
+            </label>
+            <label>
+              <span>Kaydı ekleyen</span>
+              <input name="owner" placeholder="Asistan adı" required />
+            </label>
+            <label>
+              <span>İlgili asistan</span>
+              <input name="assignedAssistant" placeholder="Takip edecek asistan" required />
+            </label>
+            <div class="form-grid__full form-actions">
+              <button class="button" type="submit">Görüşmeyi kaydet</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel panel--form">
+          <div class="panel__header">
+            <h2>Yorum ekle</h2>
+            <p>Google, Tripadvisor veya başka platformlardaki yorumları elle girin</p>
+          </div>
+          <form id="reviewForm" class="form-grid">
+            <label>
+              <span>Platform</span>
+              <select name="platform">
+                <option>Google</option>
+                <option>Tripadvisor</option>
+                <option>Instagram</option>
+                <option>Diğer</option>
+              </select>
+            </label>
+            <label>
+              <span>Puan</span>
+              <select name="rating">
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+            </label>
+            <label>
+              <span>Yorum sahibi</span>
+              <input name="author" required />
+            </label>
+            <label>
+              <span>Tarih</span>
+              <input type="date" name="date" required />
+            </label>
+            <label class="form-grid__full">
+              <span>Şube veya işletme</span>
+              <input name="branch" required />
+            </label>
+            <label class="form-grid__full">
+              <span>Yorum metni</span>
+              <textarea name="content" rows="4" required></textarea>
+            </label>
+            <label>
+              <span>Durum</span>
+              <select name="status">
+                <option>Yeni</option>
+                <option>Cevaplandı</option>
+                <option>İnceleniyor</option>
+              </select>
+            </label>
+            <label>
+              <span>Kaydı ekleyen</span>
+              <input name="owner" placeholder="Asistan adı" required />
+            </label>
+            <div class="form-grid__full form-actions">
+              <button class="button" type="submit">Yorumu kaydet</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel panel--list">
+          <div class="panel__header panel__header--inline">
+            <div>
+              <h2>Görüşme listesi</h2>
+              <p>Takip gerektiren kayıtları hızlıca bulun</p>
+            </div>
+            <input id="meetingSearch" placeholder="Müşteri ya da konu ara" />
+          </div>
+          <div id="meetingList" class="card-list"></div>
+        </section>
+
+        <section class="panel panel--list">
+          <div class="panel__header panel__header--inline">
+            <div>
+              <h2>Yorum listesi</h2>
+              <p>Düşük puanlı yorumları önceleyin</p>
+            </div>
+            <input id="reviewSearch" placeholder="Platform, şube veya kişi ara" />
+          </div>
+          <div id="reviewList" class="card-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <input id="importInput" type="file" accept="application/json" hidden />
+
+    <template id="emptyStateTemplate">
+      <div class="empty-state">
+        <strong>Henüz kayıt yok</strong>
+        <p>Formlardan veri eklediğinizde burada görünecek.</p>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

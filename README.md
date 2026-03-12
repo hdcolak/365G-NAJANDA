@@ -117,3 +117,10 @@ on the server side, not in local-only browser storage.
 - Render blueprint: `render.yaml`
 - PWA manifest: `public/manifest.webmanifest`
 - Service worker: `public/sw.js`
+
+## Asistan takip modülü
+
+- Ana uygulama içinden `Asistan takip modülü` kartıyla açılır
+- Statik modül yolu: `/assistant-tracker/`
+- Hall of Fame yolu: `/assistant-tracker/hall-of-fame.html`
+- Entegrasyon planı: `ASSISTANT-TRACKER-INTEGRATION-PLAN.md`

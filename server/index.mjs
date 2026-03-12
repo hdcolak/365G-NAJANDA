@@ -35,11 +35,11 @@ const initialState = {
   users: seedUsers,
   sessions: [],
   permissions: {
-    manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: true },
-    deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: false },
-    chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: false },
-    assistant: { tabs: ["dashboard", "complaints"], modules: ["guest", "assistant"], showAudit: false },
-    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "assistant"], showAudit: false },
+    manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
+    deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+    chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+    assistant: { tabs: ["dashboard", "complaints"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
   },
   tasks: [
     { id: 1, titleKey: "vipArrivalPreparation", type: "daily", department: "guestRelations", owner: "Denizcan", dueDate: "2026-03-10", priority: "High", status: "In Progress", progress: 60, notesKey: "vipArrivalPreparation" },

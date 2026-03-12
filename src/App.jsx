@@ -50,27 +50,27 @@ const users = [
 const defaultRoleAccess = {
   manager: {
     tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
-    modules: ["guest", "settings", "assistant"],
+    modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: true,
   },
   deputy: {
     tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
-    modules: ["guest", "settings", "assistant"],
+    modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: false,
   },
   chief: {
     tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
-    modules: ["guest", "settings", "assistant"],
+    modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: false,
   },
   assistant: {
     tabs: ["dashboard", "complaints"],
-    modules: ["guest", "assistant"],
+    modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
   departmentManager: {
     tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"],
-    modules: ["guest", "assistant"],
+    modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
 };
@@ -83,6 +83,7 @@ const internalModules = [
   { id: "guest", icon: Building2 },
   { id: "settings", icon: CheckSquare },
   { id: "assistant", icon: MessageSquareWarning },
+  { id: "assistantTracker", icon: ClipboardList, href: "/assistant-tracker/" },
 ];
 
 const initialAlaCarteVenues = [
@@ -510,11 +511,13 @@ const translations = {
       guest: "Panel özeti, görev akışı ve misafir operasyonu görünümü",
       settings: "Yetki ve yönetim ayarları görünümü",
       assistant: "Şikayet ve misafir yönlendirme görünümü",
+      assistantTracker: "Yüz yüze görüşme, manuel yorum ve Hall of Fame ekranı",
     },
     modules: {
       guest: { title: "Misafir paneli", text: "Misafir akışları, programlar ve rezervasyon kural motoru için iç sistem alanı." },
       settings: { title: "Ayarlar paneli", text: "İçerik, ekip, eşleştirme ve operasyon kuralları için iç yönetim modülü." },
       assistant: { title: "Asistan paneli", text: "Oda seçimi, görev yönlendirme ve misafir chat akışı için iç servis alanı." },
+      assistantTracker: { title: "Asistan takip modülü", text: "Yüz yüze görüşmeler, manuel platform yorumları, FTF takibi ve Hall of Fame ekranı." },
     },
     roles: {
       manager: "Müdür",
@@ -523,10 +526,10 @@ const translations = {
       assistant: "Asistan",
       departmentManager: "Departman Müdürü",
     },
-    loginTitle: "Tek link giriş paneli",
+    loginTitle: "Admin giriş paneli",
     loginText:
-      "Kullanıcı adına göre giriş yapın. Müdür tüm işlem kayıtlarını görür, diğer roller yalnızca kendi yetkili alanlarını kullanır.",
-    selectUser: "Kullanıcı seç",
+      "Yönetici girişinde sadece title gösterilir. Karışıklığı önlemek için isimler yalnızca asistan hesaplarında görünür.",
+    selectUser: "Giriş hesabı",
     passwordLabel: "Şifre",
     passwordPlaceholder: "Şifrenizi girin",
     signIn: "Giriş yap",
@@ -751,11 +754,13 @@ const translations = {
       guest: "Dashboard summary, task flow and guest operation view",
       settings: "Permission and management settings view",
       assistant: "Complaint and guest routing view",
+      assistantTracker: "Face-to-face logs, manual reviews and hall of fame screen",
     },
     modules: {
       guest: { title: "Guest panel", text: "Internal system area for guest flows, schedules and reservation rules." },
       settings: { title: "Settings panel", text: "Internal admin module for content, teams, mappings and operation rules." },
       assistant: { title: "Assistant panel", text: "Internal service area for room selection, routing and guest chat flow." },
+      assistantTracker: { title: "Assistant tracker module", text: "Standalone screen for face-to-face meetings, manual platform reviews, FTF follow-up and hall of fame." },
     },
     roles: { manager: "Manager", deputy: "Deputy Manager", chief: "Chief", assistant: "Assistant", departmentManager: "Department Manager" },
     loginTitle: "Single-link sign-in panel",
@@ -984,11 +989,13 @@ const translations = {
       guest: "Dashboard-Übersicht, Aufgabenfluss und Gastbetriebsansicht",
       settings: "Ansicht für Rechte und Verwaltungseinstellungen",
       assistant: "Ansicht für Beschwerden und Gast-Routing",
+      assistantTracker: "Face-to-Face-Protokolle, manuelle Bewertungen und Hall-of-Fame-Bildschirm",
     },
     modules: {
       guest: { title: "Gasterlebnis", text: "Interner Systembereich für Gastabläufe, Zeitpläne und Reservierungsregeln." },
       settings: { title: "Management-Einstellungen", text: "Internes Admin-Modul für Inhalte, Teams, Zuordnungen und Regeln." },
       assistant: { title: "Assistentenbetrieb", text: "Interner Servicebereich für Zimmerauswahl, Routing und Gast-Chat." },
+      assistantTracker: { title: "Assistenten-Tracking", text: "Eigenständiger Bildschirm für Face-to-Face-Gespräche, manuelle Plattformbewertungen, FTF-Nachverfolgung und Hall of Fame." },
     },
     roles: { manager: "Manager", deputy: "Stellv. Manager", chief: "Chef", assistant: "Assistent", departmentManager: "Abteilungsleiter" },
     loginTitle: "Einzel-Link-Anmeldung",
@@ -1220,11 +1227,13 @@ const translations = {
       guest: "Сводка панели, поток задач и гостевые операции",
       settings: "Экран прав доступа и управленческих настроек",
       assistant: "Экран жалоб и маршрутизации гостей",
+      assistantTracker: "Очные встречи, ручные отзывы и экран Hall of Fame",
     },
     modules: {
       guest: { title: "Гостевой опыт", text: "Внутренний системный блок для потоков гостя, расписаний и правил бронирования." },
       settings: { title: "Управленческие настройки", text: "Внутренний админ-модуль для контента, команд, связок и операционных правил." },
       assistant: { title: "Операции ассистента", text: "Внутренний сервисный блок для выбора номера, маршрутизации и гостевого чата." },
+      assistantTracker: { title: "Модуль трекинга ассистентов", text: "Отдельный экран для очных встреч, ручных отзывов с платформ, FTF-отслеживания и Hall of Fame." },
     },
     roles: { manager: "Менеджер", deputy: "Зам. менеджера", chief: "Шеф", assistant: "Ассистент", departmentManager: "Руководитель отдела" },
     loginTitle: "Единая панель входа",
@@ -1693,6 +1702,7 @@ function App() {
   const roleLabel = (role) => copy.roles[role] ?? role;
   const titleLabel = (titleKey) => titleCopy[titleKey] ?? titleKey;
   const userLabel = (user) => user.titleKey ? titleLabel(user.titleKey) : roleLabel(user.role);
+  const loginOptionLabel = (user) => (user.role === "assistant" ? `${user.displayName} · ${roleLabel(user.role)}` : userLabel(user));
   const availableDepartmentOptions = isDepartmentManager && scopedDepartment
     ? [scopedDepartment]
     : Object.keys(copy.departments);
@@ -2242,7 +2252,7 @@ function App() {
                 <select aria-label={copy.selectUser} value={selectedUsername} onChange={(event) => setSelectedUsername(event.target.value)}>
                   {filteredLoginUsers.map((user) => (
                     <option key={user.username} value={user.username}>
-                      {user.displayName} · {userLabel(user)} · {user.username}
+                      {loginOptionLabel(user)}
                     </option>
                   ))}
                 </select>
@@ -2287,8 +2297,8 @@ function App() {
               <div className="session-strip">
                 <div className="user-chip">
                   <UserRound size={14} />
-                  <span>{copy.signedInAs}: {currentUser.displayName}</span>
-                  <strong>{currentUser.titleKey ? titleLabel(currentUser.titleKey) : roleLabel(currentUser.role)}</strong>
+                  <span>{copy.signedInAs}</span>
+                  <strong>{currentUser.role === "assistant" ? currentUser.displayName : (currentUser.titleKey ? titleLabel(currentUser.titleKey) : roleLabel(currentUser.role))}</strong>
                 </div>
                 <label className="language-switcher">
                   <span>
@@ -2475,11 +2485,15 @@ function App() {
                         type="button"
                         className="button secondary"
                         onClick={() => {
+                          if (selectedModule.href) {
+                            window.location.assign(selectedModule.href);
+                            return;
+                          }
                           setActiveTab(moduleTargetTab);
                           logAction("actionTab", copy.modules[selectedModule.id].title);
                         }}
                       >
-                        {copy.moduleGoto}
+                        {selectedModule.href ? copy.openPanel : copy.moduleGoto}
                       </button>
                     </div>
                   </div>

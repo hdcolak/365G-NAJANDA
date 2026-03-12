@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hall of Fame</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">Asistan performansı</p>
+          <h1>Hall of Fame</h1>
+          <p class="hero__text">
+            En fazla yorum ekleyen asistanları ve FTF takip yoğunluğunu tek ekranda görün.
+          </p>
+        </div>
+        <div class="hero__actions">
+          <a class="button button--ghost" href="./index.html">Ana panele dön</a>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel panel--summary">
+          <div class="panel__header">
+            <h2>Asistan sıralaması</h2>
+            <p>Yorum sayısına göre sıralanır, eşitlikte FTF takip sayısı dikkate alınır</p>
+          </div>
+          <div id="hallOfFame" class="leaderboard"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="emptyStateTemplate">
+      <div class="empty-state">
+        <strong>Henüz veri yok</strong>
+        <p>Asistanlar yorum ekledikçe burada sıralama oluşacak.</p>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

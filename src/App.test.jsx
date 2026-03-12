@@ -41,7 +41,7 @@ async function signInAs(username, password = "Voyage365!") {
       loginRoleKeyForUser(account),
     );
   }
-  const select = screen.getByRole("combobox", { name: /Kullanıcı seç|Select user|Benutzer wählen|Выберите пользователя/ });
+  const select = screen.getByRole("combobox", { name: /Giriş hesabı|Kullanıcı seç|Select user|Benutzer wählen|Выберите пользователя/ });
   await user.selectOptions(select, username);
   await user.type(
     screen.getByLabelText(/Şifre|Password|Passwort|Пароль/),
@@ -61,11 +61,11 @@ describe("Voyage Kundu control panel", () => {
     let serverState = {
       users: demoUsers,
       permissions: {
-        manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: true },
-        deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: false },
-        chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant"], showAudit: false },
-        assistant: { tabs: ["dashboard", "complaints"], modules: ["guest", "assistant"], showAudit: false },
-        departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "assistant"], showAudit: false },
+        manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
+        deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+        chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+        assistant: { tabs: ["dashboard", "complaints"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+        departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
       },
       tasks: [
         { id: 1, title: "Kat kontrol turu", type: "daily", department: "housekeeping", owner: "Ayse", dueDate: "2026-03-12", priority: "High", status: "Planned", progress: 20, notes: "VIP kat odalari" },
