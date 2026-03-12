@@ -32,6 +32,6 @@ services:
 
 databases:
   - name: voyage-kundu-db
-    plan: starter
+    plan: basic-256mb
     databaseName: voyage_kundu
     user: voyage_kundu
