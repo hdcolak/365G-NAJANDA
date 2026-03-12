@@ -11,14 +11,14 @@ const dataDir = process.env.DATA_DIR || join(process.cwd(), "server-data");
 const dataFile = join(dataDir, "state.json");
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl }) : null;
-const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "Voyage365!";
-const mainAccessCode = process.env.MAIN_ACCESS_CODE || "VoyageKundu365";
+const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "1234";
+const mainAccessCode = process.env.MAIN_ACCESS_CODE || "1234";
 
 const seedUsers = [
   { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management", requirePasswordChange: true },
-  { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management", requirePasswordChange: true },
-  { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management", requirePasswordChange: true },
-  { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations", requirePasswordChange: true },
+  { username: "gizem.yonetici", role: "manager", titleKey: "generalManager", displayName: "Gizem", department: "management", requirePasswordChange: true },
+  { username: "selim.muduryrd", role: "deputy", titleKey: "generalManagerAssistant", displayName: "Selim", department: "management", requirePasswordChange: true },
+  { username: "ece.operasyonmdr", role: "chief", titleKey: "operationsManager", displayName: "Ece", department: "operations", requirePasswordChange: true },
   { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations", requirePasswordChange: true },
   { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice", requirePasswordChange: true },
   { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping", requirePasswordChange: true },
@@ -28,6 +28,11 @@ const seedUsers = [
   { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations", requirePasswordChange: true },
   { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security", requirePasswordChange: true },
   { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa", requirePasswordChange: true },
+  { username: "ceren.satismdr", role: "departmentManager", titleKey: "salesManager", displayName: "Ceren", department: "sales", scopeDepartment: "sales", requirePasswordChange: true },
+  { username: "onur.ikmdr", role: "departmentManager", titleKey: "hrManager", displayName: "Onur", department: "humanResources", scopeDepartment: "humanResources", requirePasswordChange: true },
+  { username: "asli.finansmdr", role: "departmentManager", titleKey: "financeManager", displayName: "Asli", department: "finance", scopeDepartment: "finance", requirePasswordChange: true },
+  { username: "tolga.satinalmamdr", role: "departmentManager", titleKey: "purchasingManager", displayName: "Tolga", department: "purchasing", scopeDepartment: "purchasing", requirePasswordChange: true },
+  { username: "derya.kalitemdr", role: "departmentManager", titleKey: "qualityManager", displayName: "Derya", department: "quality", scopeDepartment: "quality", requirePasswordChange: true },
 ];
 
 const initialState = {
@@ -36,6 +41,7 @@ const initialState = {
     updatedAt: new Date().toISOString(),
   },
   users: seedUsers,
+  userPermissions: {},
   sessions: [],
   permissions: {
     admin: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
@@ -239,7 +245,11 @@ function isGlobalManager(user) {
 }
 
 function isAdminUser(user) {
-  return ["admin", "manager"].includes(user.role);
+  return user.role === "admin";
+}
+
+function canManageScopedPermissions(user) {
+  return ["manager", "deputy", "chief", "departmentManager"].includes(user.role);
 }
 
 function canAccessAlaCarte(user) {
@@ -266,6 +276,18 @@ function notificationsForUser(notifications, user) {
   return notifications.filter((item) => item.recipientUsername === user.username);
 }
 
+function manageableUsersForUser(users, user) {
+  if (isAdminUser(user)) return users;
+  if (!canManageScopedPermissions(user)) return [user];
+
+  const scopeDepartment = getScopeDepartment(user) ?? user.department;
+  return users.filter((item) => {
+    if (item.username === user.username) return true;
+    if (item.role === "admin") return false;
+    return (getScopeDepartment(item) ?? item.department) === scopeDepartment;
+  });
+}
+
 function ensureAuthShape(state) {
   const nextState = { ...state };
   const currentUsers = state.users?.length ? state.users : [];
@@ -283,6 +305,9 @@ function ensureAuthShape(state) {
     ...initialState.permissions,
     ...(state.permissions ?? {}),
   };
+  nextState.userPermissions = {
+    ...(state.userPermissions ?? {}),
+  };
   nextState.notifications = Array.isArray(state.notifications) ? state.notifications : [];
   return nextState;
 }
@@ -290,10 +315,16 @@ function ensureAuthShape(state) {
 function sanitizeStateForUser(state, user) {
   const scopedTasks = filterDepartmentScopedCollection(state.tasks ?? [], user);
   const scopedComplaints = filterDepartmentScopedCollection(state.complaints ?? [], user);
+  const manageableUsers = manageableUsersForUser(state.users ?? [], user);
+  const allowedUsernames = new Set(manageableUsers.map((item) => item.username));
+  const scopedUserPermissions = Object.fromEntries(
+    Object.entries(state.userPermissions ?? {}).filter(([username]) => allowedUsernames.has(username)),
+  );
 
   return {
     ...state,
-    users: isAdminUser(user) ? state.users.map(sanitizeUser) : [sanitizeUser(user)],
+    users: manageableUsers.map(sanitizeUser),
+    userPermissions: scopedUserPermissions,
     tasks: scopedTasks,
     complaints: scopedComplaints,
     agendaItems: isAdminUser(user) ? state.agendaItems ?? [] : [],
@@ -331,6 +362,10 @@ function mergeStateForRole(state, body, authUser) {
   const scopeDepartment = getScopeDepartment(authUser);
   const scopedTaskPredicate = (item) => item.department === scopeDepartment;
   const scopedComplaintPredicate = (item) => item.department === scopeDepartment;
+  const manageableUsernames = new Set(manageableUsersForUser(state.users ?? [], authUser).map((item) => item.username));
+  const scopedUserPermissions = Object.fromEntries(
+    Object.entries(body.userPermissions ?? {}).filter(([username]) => manageableUsernames.has(username)),
+  );
 
   return ensureAuthShape({
     ...state,
@@ -338,6 +373,15 @@ function mergeStateForRole(state, body, authUser) {
     users: state.users,
     sessions: state.sessions,
     permissions: capabilities.canEditPermissions ? body.permissions ?? state.permissions : state.permissions,
+    userPermissions:
+      isAdminUser(authUser)
+        ? body.userPermissions ?? state.userPermissions
+        : canManageScopedPermissions(authUser)
+          ? {
+              ...(state.userPermissions ?? {}),
+              ...scopedUserPermissions,
+            }
+          : state.userPermissions,
     tasks:
       capabilities.canEditTasks
         ? authUser.role === "departmentManager"
@@ -594,6 +638,7 @@ const server = createServer(async (request, response) => {
       const username = typeof body.username === "string" ? body.username : "";
       const displayName = typeof body.displayName === "string" ? body.displayName.trim() : "";
       const password = typeof body.password === "string" ? body.password.trim() : "";
+      const nextRole = typeof body.role === "string" ? body.role : "";
       const targetIndex = state.users.findIndex((item) => item.username === username);
 
       if (targetIndex === -1) {
@@ -601,11 +646,26 @@ const server = createServer(async (request, response) => {
         return;
       }
 
+      const allowedRoles = ["admin", "manager", "deputy", "chief", "assistant", "departmentManager"];
+      const currentTarget = state.users[targetIndex];
+      const role = allowedRoles.includes(nextRole) ? nextRole : currentTarget.role;
+      const nextDepartment =
+        role === "admin"
+          ? "management"
+          : currentTarget.department;
+      const nextScopeDepartment =
+        role === "departmentManager"
+          ? currentTarget.scopeDepartment ?? currentTarget.department
+          : null;
+
       const authShape = password ? hashPassword(password) : null;
       const updatedUser = {
-        ...state.users[targetIndex],
-        displayName: displayName || state.users[targetIndex].displayName,
-        requirePasswordChange: password ? true : state.users[targetIndex].requirePasswordChange,
+        ...currentTarget,
+        role,
+        department: nextDepartment,
+        scopeDepartment: nextScopeDepartment,
+        displayName: displayName || currentTarget.displayName,
+        requirePasswordChange: password ? true : currentTarget.requirePasswordChange,
         ...(authShape ?? {}),
       };
 

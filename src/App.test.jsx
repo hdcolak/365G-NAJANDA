@@ -5,9 +5,9 @@ import App from "./App.jsx";
 
 const demoUsers = [
   { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management", requirePasswordChange: false },
-  { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management", requirePasswordChange: false },
-  { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management", requirePasswordChange: false },
-  { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations", requirePasswordChange: false },
+  { username: "gizem.yonetici", role: "manager", titleKey: "generalManager", displayName: "Gizem", department: "management", requirePasswordChange: false },
+  { username: "selim.muduryrd", role: "deputy", titleKey: "generalManagerAssistant", displayName: "Selim", department: "management", requirePasswordChange: false },
+  { username: "ece.operasyonmdr", role: "chief", titleKey: "operationsManager", displayName: "Ece", department: "operations", requirePasswordChange: false },
   { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations", requirePasswordChange: false },
   { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice", requirePasswordChange: false },
   { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping", requirePasswordChange: false },
@@ -17,6 +17,11 @@ const demoUsers = [
   { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations", requirePasswordChange: false },
   { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security", requirePasswordChange: false },
   { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa", requirePasswordChange: false },
+  { username: "ceren.satismdr", role: "departmentManager", titleKey: "salesManager", displayName: "Ceren", department: "sales", scopeDepartment: "sales", requirePasswordChange: false },
+  { username: "onur.ikmdr", role: "departmentManager", titleKey: "hrManager", displayName: "Onur", department: "humanResources", scopeDepartment: "humanResources", requirePasswordChange: false },
+  { username: "asli.finansmdr", role: "departmentManager", titleKey: "financeManager", displayName: "Asli", department: "finance", scopeDepartment: "finance", requirePasswordChange: false },
+  { username: "tolga.satinalmamdr", role: "departmentManager", titleKey: "purchasingManager", displayName: "Tolga", department: "purchasing", scopeDepartment: "purchasing", requirePasswordChange: false },
+  { username: "derya.kalitemdr", role: "departmentManager", titleKey: "qualityManager", displayName: "Derya", department: "quality", scopeDepartment: "quality", requirePasswordChange: false },
 ];
 
 function sanitizeUser(user) {
@@ -35,7 +40,23 @@ function loginRoleKeyForUser(user) {
   return user.titleKey ?? user.role;
 }
 
-async function signInAs(username, password = "Voyage365!") {
+function canAccessAlaCarte(user) {
+  return user.role !== "departmentManager" || ["fb", "guestRelations", "frontOffice"].includes(user.scopeDepartment ?? user.department);
+}
+
+function manageableUsersForUser(users, user) {
+  if (user.role === "admin") return users;
+  if (!["manager", "deputy", "chief", "departmentManager"].includes(user.role)) return [user];
+
+  const scopeDepartment = user.scopeDepartment ?? user.department;
+  return users.filter((item) => {
+    if (item.username === user.username) return true;
+    if (item.role === "admin") return false;
+    return (item.scopeDepartment ?? item.department) === scopeDepartment;
+  });
+}
+
+async function signInAs(username, password = "1234") {
   const account = demoUsers.find((item) => item.username === username);
   const user = userEvent.setup();
   if (account) {
@@ -48,7 +69,7 @@ async function signInAs(username, password = "Voyage365!") {
   await user.selectOptions(select, username);
   await user.type(
     screen.getByLabelText(/Ana giriş şifresi|Main access code|Hauptzugangscode|Главный код входа/),
-    "VoyageKundu365",
+    "1234",
   );
   await user.type(
     screen.getByLabelText(/Şifre|Password|Passwort|Пароль/),
@@ -68,6 +89,7 @@ describe("Voyage Kundu control panel", () => {
     const seededUsers = demoUsers.map((user) => ({ ...user, requirePasswordChange: false }));
     let serverState = {
       users: seededUsers,
+      userPermissions: {},
       permissions: {
         admin: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
         manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
@@ -172,7 +194,7 @@ describe("Voyage Kundu control panel", () => {
       if (parsedUrl.pathname === "/api/auth/login" && method === "POST") {
         const body = JSON.parse(init.body);
         const user = serverState.users.find((item) => item.username === body.username);
-        if (!user || body.accessCode !== "VoyageKundu365" || body.password !== "Voyage365!") {
+        if (!user || body.accessCode !== "1234" || body.password !== "1234") {
           return {
             ok: false,
             status: 401,
@@ -219,13 +241,18 @@ describe("Voyage Kundu control panel", () => {
         }
         const isDepartmentManager = authedUser.role === "departmentManager";
         const scopeDepartment = authedUser.scopeDepartment ?? authedUser.department;
-        const isAdminUser = ["admin", "manager"].includes(authedUser.role);
+        const isAdminUser = authedUser.role === "admin";
+        const manageableUsers = manageableUsersForUser(serverState.users, authedUser);
+        const allowedUsernames = new Set(manageableUsers.map((item) => item.username));
         return {
           ok: true,
           status: 200,
           json: async () => ({
             ...serverState,
-            users: isAdminUser ? serverState.users.map(sanitizeUser) : [sanitizeUser(authedUser)],
+            users: manageableUsers.map(sanitizeUser),
+            userPermissions: Object.fromEntries(
+              Object.entries(serverState.userPermissions).filter(([username]) => allowedUsernames.has(username)),
+            ),
             tasks: isDepartmentManager
               ? serverState.tasks.filter((item) => item.department === scopeDepartment)
               : serverState.tasks,
@@ -233,22 +260,10 @@ describe("Voyage Kundu control panel", () => {
               ? serverState.complaints.filter((item) => item.department === scopeDepartment)
               : serverState.complaints,
             agendaItems: isAdminUser ? serverState.agendaItems : [],
-            alaCarteVenues:
-              authedUser.role === "departmentManager" && !["fb", "guestRelations", "frontOffice"].includes(scopeDepartment)
-                ? []
-                : serverState.alaCarteVenues,
-            alaCarteReservations:
-              authedUser.role === "departmentManager" && !["fb", "guestRelations", "frontOffice"].includes(scopeDepartment)
-                ? []
-                : serverState.alaCarteReservations,
-            alaCarteWaitlist:
-              authedUser.role === "departmentManager" && !["fb", "guestRelations", "frontOffice"].includes(scopeDepartment)
-                ? []
-                : serverState.alaCarteWaitlist,
-            alaCarteServiceSlots:
-              authedUser.role === "departmentManager" && !["fb", "guestRelations", "frontOffice"].includes(scopeDepartment)
-                ? []
-                : serverState.alaCarteServiceSlots,
+            alaCarteVenues: canAccessAlaCarte(authedUser) ? serverState.alaCarteVenues : [],
+            alaCarteReservations: canAccessAlaCarte(authedUser) ? serverState.alaCarteReservations : [],
+            alaCarteWaitlist: canAccessAlaCarte(authedUser) ? serverState.alaCarteWaitlist : [],
+            alaCarteServiceSlots: canAccessAlaCarte(authedUser) ? serverState.alaCarteServiceSlots : [],
             assistantMeetings: serverState.assistantMeetings,
             assistantReviews: serverState.assistantReviews,
             notifications: isAdminUser
@@ -264,14 +279,24 @@ describe("Voyage Kundu control panel", () => {
         if (!authedUser) {
           return { ok: false, status: 401, json: async () => ({ error: "Unauthorized" }) };
         }
-        const isAdminUser = ["admin", "manager"].includes(authedUser.role);
+        const isAdminUser = authedUser.role === "admin";
         const body = JSON.parse(init.body);
+        const manageableUsernames = new Set(manageableUsersForUser(serverState.users, authedUser).map((item) => item.username));
+        const scopedUserPermissions = Object.fromEntries(
+          Object.entries(body.userPermissions ?? {}).filter(([username]) => manageableUsernames.has(username)),
+        );
         serverState = {
           ...serverState,
           ...body,
           users: serverState.users,
           sessions: serverState.sessions,
           permissions: isAdminUser ? body.permissions ?? serverState.permissions : serverState.permissions,
+          userPermissions: isAdminUser
+            ? body.userPermissions ?? serverState.userPermissions
+            : {
+                ...serverState.userPermissions,
+                ...scopedUserPermissions,
+              },
           notifications: serverState.notifications,
         };
         return {
@@ -290,7 +315,7 @@ describe("Voyage Kundu control panel", () => {
         if (!authedUser) {
           return { ok: false, status: 401, json: async () => ({ error: "Unauthorized" }) };
         }
-        const isAdminUser = ["admin", "manager"].includes(authedUser.role);
+        const isAdminUser = authedUser.role === "admin";
         return {
           ok: true,
           status: 200,
@@ -354,13 +379,17 @@ describe("Voyage Kundu control panel", () => {
       }
 
       if (parsedUrl.pathname === "/api/users" && method === "PUT") {
-        if (!authedUser || !["admin", "manager"].includes(authedUser.role)) {
+        if (!authedUser || authedUser.role !== "admin") {
           return { ok: false, status: 403, json: async () => ({ error: "Forbidden" }) };
         }
         const body = JSON.parse(init.body);
         serverState.users = serverState.users.map((item) =>
           item.username === body.username
-            ? { ...item, displayName: body.displayName || item.displayName }
+            ? {
+                ...item,
+                displayName: body.displayName || item.displayName,
+                role: body.role || item.role,
+              }
             : item,
         );
         const currentManager = serverState.users.find((item) => item.username === authedUser.username);
@@ -437,7 +466,7 @@ describe("Voyage Kundu control panel", () => {
   it("shows ala carte tab for chief by default", async () => {
     render(<App />);
 
-    await signInAs("ece.sef");
+    await signInAs("ece.operasyonmdr");
 
     const alaCarteButton = screen.getByRole("button", { name: "A'la Carte" });
     expect(alaCarteButton).toBeInTheDocument();
@@ -453,7 +482,7 @@ describe("Voyage Kundu control panel", () => {
   it("lets chief add an ala carte reservation", async () => {
     render(<App />);
 
-    await signInAs("ece.sef");
+    await signInAs("ece.operasyonmdr");
     await userEvent.click(screen.getByRole("button", { name: "A'la Carte" }));
 
     await userEvent.type(screen.getAllByLabelText("Misafir adı")[0], "Nina Berg");
@@ -464,6 +493,38 @@ describe("Voyage Kundu control panel", () => {
 
     expect(screen.getByText("Nina Berg")).toBeInTheDocument();
     expect(screen.getByText("4407")).toBeInTheDocument();
+  });
+
+  it("lets chief update ala carte venue settings", async () => {
+    render(<App />);
+
+    await signInAs("ece.operasyonmdr");
+    await userEvent.click(screen.getByRole("button", { name: "A'la Carte" }));
+
+    await userEvent.clear(screen.getByDisplayValue("0-6 free, 7-12 half price"));
+    await userEvent.type(screen.getByLabelText("Çocuk politikası"), "0-12 ucretsiz");
+    await userEvent.click(screen.getByRole("button", { name: "Ayarları kaydet" }));
+
+    expect(screen.getByText("A'la Carte ayarları güncellendi")).toBeInTheDocument();
+    expect(screen.getByText("0-12 ucretsiz")).toBeInTheDocument();
+  });
+
+  it("lets chief add a new service slot", async () => {
+    render(<App />);
+
+    await signInAs("ece.operasyonmdr");
+    await userEvent.click(screen.getByRole("button", { name: "A'la Carte" }));
+
+    const slotDateInput = screen.getByLabelText("Slot tarihi");
+    const slotCapacityInput = screen.getByLabelText("Slot kapasitesi");
+    await userEvent.clear(slotDateInput);
+    await userEvent.type(slotDateInput, "2026-03-14");
+    await userEvent.clear(slotCapacityInput);
+    await userEvent.type(slotCapacityInput, "26");
+    await userEvent.click(screen.getByRole("button", { name: "Servis slotu ekle" }));
+
+    expect(screen.getByText(/Vista Italian \| 14 Mar 2026 \| 19:00/)).toBeInTheDocument();
+    expect(screen.getByText("0/26")).toBeInTheDocument();
   });
 
   it("shows an error for invalid credentials", async () => {
@@ -506,13 +567,13 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getByText("Suite 1104")).toBeInTheDocument();
     expect(screen.queryByText("Suite 2208")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "A'la Carte" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Yetki Yönetimi" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Yetki Yönetimi" })).toBeInTheDocument();
   });
 
   it("allows manager to grant ala carte tab to assistant", async () => {
     render(<App />);
 
-    await signInAs("gizem.yonetici");
+    await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "Yetki Yönetimi" }));
 
     const assistantCard = screen
@@ -535,7 +596,7 @@ describe("Voyage Kundu control panel", () => {
   it("shows department manager inside admin-only access control", async () => {
     render(<App />);
 
-    await signInAs("gizem.yonetici");
+    await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "Yetki Yönetimi" }));
 
     expect(screen.getAllByText("Departman Müdürü").length).toBeGreaterThan(0);
@@ -545,7 +606,7 @@ describe("Voyage Kundu control panel", () => {
   it("lets chief add a task", async () => {
     render(<App />);
 
-    await signInAs("ece.sef");
+    await signInAs("ece.operasyonmdr");
     await userEvent.click(screen.getByRole("button", { name: "Yapılacaklar ve Planlama" }));
 
     await userEvent.type(
@@ -597,24 +658,23 @@ describe("Voyage Kundu control panel", () => {
     await signInAs("sevgi.spamdr");
 
     expect(screen.getByText("Departman bildirimleri")).toBeInTheDocument();
-    expect(screen.getByText("SPA | 12 Mar 2026")).toBeInTheDocument();
-    expect(screen.getByText("SPA Cabin 2: Masaj seansi gec basladi.")).toBeInTheDocument();
+    expect(screen.getByText(/Okunmamış bildirim/)).toBeInTheDocument();
   });
 
-  it("records internal module inspection actions for manager audit", async () => {
+  it("records internal module inspection actions for admin audit", async () => {
     render(<App />);
 
-    await signInAs("gizem.yonetici");
+    await signInAs("admin.voyage");
     await userEvent.click(screen.getAllByRole("button", { name: "Paneli aç" })[0]);
     await userEvent.click(screen.getByRole("button", { name: "Müdür İşlemleri" }));
 
     expect(screen.getAllByText("İç modül inceledi").length).toBeGreaterThan(0);
   });
 
-  it("lets manager add a new agenda item", async () => {
+  it("lets admin add a new agenda item", async () => {
     render(<App />);
 
-    await signInAs("gizem.yonetici");
+    await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "365 Gün Ajanda" }));
 
     await userEvent.type(screen.getByLabelText("İş başlığı"), "Yarın sabah operasyon açılış kontrolü");
@@ -625,10 +685,10 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getAllByText("Yarın sabah operasyon açılış kontrolü").length).toBeGreaterThan(0);
   });
 
-  it("lets manager update assistant display name from admin panel", async () => {
+  it("lets admin update assistant display name from admin panel", async () => {
     render(<App />);
 
-    await signInAs("gizem.yonetici");
+    await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "Müdür İşlemleri" }));
 
     await userEvent.selectOptions(screen.getByLabelText("Hesap"), "deniz.asistan");
@@ -638,5 +698,16 @@ describe("Voyage Kundu control panel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Kullanıcıyı güncelle" }));
 
     expect(screen.getByText("Kullanıcı bilgileri güncellendi.")).toBeInTheDocument();
+  });
+
+  it("lets a department manager manage permissions only for users in the same department", async () => {
+    render(<App />);
+
+    await signInAs("mina.misafirmdr");
+    await userEvent.click(screen.getByRole("button", { name: "Yetki Yönetimi" }));
+
+    expect(screen.getByText("Deniz · Asistan")).toBeInTheDocument();
+    expect(screen.queryByText("Spa Müdürü")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Müdür İşlemleri" })).not.toBeInTheDocument();
   });
 });

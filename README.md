@@ -46,9 +46,9 @@ Backend reads `DATABASE_URL` in production.
 
 The application now uses backend-backed login sessions.
 
-- Default login password: `Voyage365!`
+- Default login password: `1234`
 - Backend env override: `DEFAULT_LOGIN_PASSWORD`
-- Shared main access code default: `VoyageKundu365`
+- Shared main access code default: `1234`
 - Backend env override: `MAIN_ACCESS_CODE`
 - Session storage: server-side state
 
@@ -68,8 +68,8 @@ Server-side role restrictions:
 
 Recommended first production step:
 
-1. Set `DEFAULT_LOGIN_PASSWORD` in Render to a private strong password.
-2. Set `MAIN_ACCESS_CODE` in Render to a private shared entry code.
+1. Set `DEFAULT_LOGIN_PASSWORD` in Render. Current default is `1234`; users are forced to change it on first sign-in.
+2. Set `MAIN_ACCESS_CODE` in Render to the shared entry code. Current default is `1234`.
 3. Redeploy the backend.
 4. Verify users can sign in with the shared access code plus their own password.
 

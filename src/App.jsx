@@ -35,9 +35,9 @@ const languages = ["tr", "en", "de", "ru"];
 
 const users = [
   { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management" },
-  { username: "gizem.yonetici", role: "manager", displayName: "Gizem", department: "management" },
-  { username: "selim.muduryrd", role: "deputy", displayName: "Selim", department: "management" },
-  { username: "ece.sef", role: "chief", displayName: "Ece", department: "operations" },
+  { username: "gizem.yonetici", role: "manager", titleKey: "generalManager", displayName: "Gizem", department: "management" },
+  { username: "selim.muduryrd", role: "deputy", titleKey: "generalManagerAssistant", displayName: "Selim", department: "management" },
+  { username: "ece.operasyonmdr", role: "chief", titleKey: "operationsManager", displayName: "Ece", department: "operations" },
   { username: "deniz.asistan", role: "assistant", displayName: "Deniz", department: "guestRelations" },
   { username: "ayse.resepsiyonmdr", role: "departmentManager", titleKey: "frontOfficeManager", displayName: "Ayse", department: "frontOffice", scopeDepartment: "frontOffice" },
   { username: "zeynep.housekeepingmdr", role: "departmentManager", titleKey: "executiveHousekeeper", displayName: "Zeynep", department: "housekeeping", scopeDepartment: "housekeeping" },
@@ -47,6 +47,11 @@ const users = [
   { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations" },
   { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security" },
   { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa" },
+  { username: "ceren.satismdr", role: "departmentManager", titleKey: "salesManager", displayName: "Ceren", department: "sales", scopeDepartment: "sales" },
+  { username: "onur.ikmdr", role: "departmentManager", titleKey: "hrManager", displayName: "Onur", department: "humanResources", scopeDepartment: "humanResources" },
+  { username: "asli.finansmdr", role: "departmentManager", titleKey: "financeManager", displayName: "Asli", department: "finance", scopeDepartment: "finance" },
+  { username: "tolga.satinalmamdr", role: "departmentManager", titleKey: "purchasingManager", displayName: "Tolga", department: "purchasing", scopeDepartment: "purchasing" },
+  { username: "derya.kalitemdr", role: "departmentManager", titleKey: "qualityManager", displayName: "Derya", department: "quality", scopeDepartment: "quality" },
 ];
 
 const defaultRoleAccess = {
@@ -84,7 +89,7 @@ const defaultRoleAccess = {
 
 const editableRoles = ["manager", "deputy", "chief", "assistant", "departmentManager"];
 const permissionTabs = ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"];
-const managerTabs = ["managerAgenda", "permissions", "managerOps"];
+const adminTabs = ["managerAgenda", "permissions", "managerOps"];
 
 const internalModules = [
   { id: "guest", icon: Building2 },
@@ -342,6 +347,16 @@ const alaCarteLabels = {
     vip: "VIP",
     family: "Aile",
     regular: "Standart",
+    settingsTitle: "A'la Carte ayarları",
+    settingsText: "Seçilen restoranın kurallarını, masa düzenini ve satış limitlerini güncelleyin.",
+    selectVenue: "Restoran seç",
+    saveSettings: "Ayarları kaydet",
+    addServiceSlot: "Servis slotu ekle",
+    slotDate: "Slot tarihi",
+    slotCapacity: "Slot kapasitesi",
+    slotWaitlist: "Bekleme kapasitesi",
+    settingsSaved: "A'la Carte ayarları güncellendi",
+    slotAdded: "Yeni servis slotu eklendi",
   },
   en: {
     reservations: "Reservations",
@@ -379,6 +394,16 @@ const alaCarteLabels = {
     vip: "VIP",
     family: "Family",
     regular: "Regular",
+    settingsTitle: "Ala carte settings",
+    settingsText: "Update the rules, table setup and sales limits of the selected venue.",
+    selectVenue: "Select venue",
+    saveSettings: "Save settings",
+    addServiceSlot: "Add service slot",
+    slotDate: "Slot date",
+    slotCapacity: "Slot capacity",
+    slotWaitlist: "Waitlist capacity",
+    settingsSaved: "Ala carte settings updated",
+    slotAdded: "New service slot added",
   },
   de: {
     reservations: "Reservierungen",
@@ -416,6 +441,16 @@ const alaCarteLabels = {
     vip: "VIP",
     family: "Familie",
     regular: "Standard",
+    settingsTitle: "Ala-Carte-Einstellungen",
+    settingsText: "Aktualisieren Sie Regeln, Tischaufbau und Verkaufslimits des ausgewählten Standorts.",
+    selectVenue: "Standort wählen",
+    saveSettings: "Einstellungen speichern",
+    addServiceSlot: "Service-Slot hinzufügen",
+    slotDate: "Slot-Datum",
+    slotCapacity: "Slot-Kapazität",
+    slotWaitlist: "Wartelistenkapazität",
+    settingsSaved: "Ala-Carte-Einstellungen aktualisiert",
+    slotAdded: "Neuer Service-Slot hinzugefügt",
   },
   ru: {
     reservations: "Бронирования",
@@ -453,6 +488,16 @@ const alaCarteLabels = {
     vip: "VIP",
     family: "Семья",
     regular: "Стандарт",
+    settingsTitle: "Настройки Ala Carte",
+    settingsText: "Обновите правила, схему столов и лимиты продаж для выбранной площадки.",
+    selectVenue: "Выбрать площадку",
+    saveSettings: "Сохранить настройки",
+    addServiceSlot: "Добавить сервисный слот",
+    slotDate: "Дата слота",
+    slotCapacity: "Вместимость слота",
+    slotWaitlist: "Лимит листа ожидания",
+    settingsSaved: "Настройки Ala Carte обновлены",
+    slotAdded: "Новый сервисный слот добавлен",
   },
 };
 
@@ -483,6 +528,9 @@ const authCopy = {
 
 const titleLabels = {
   tr: {
+    generalManager: "Genel Müdür",
+    generalManagerAssistant: "Genel Müdür Yardımcısı",
+    operationsManager: "Operasyon Müdürü",
     frontOfficeManager: "Resepsiyon Müdürü",
     executiveHousekeeper: "Housekeeping Müdürü",
     entertainmentManager: "Animasyon Müdürü",
@@ -491,8 +539,16 @@ const titleLabels = {
     guestRelationsManager: "Misafir İlişkileri Müdürü",
     securityManager: "Güvenlik Müdürü",
     spaManager: "SPA Müdürü",
+    salesManager: "Satış Müdürü",
+    hrManager: "İnsan Kaynakları Müdürü",
+    financeManager: "Finans Müdürü",
+    purchasingManager: "Satın Alma Müdürü",
+    qualityManager: "Kalite Müdürü",
   },
   en: {
+    generalManager: "General Manager",
+    generalManagerAssistant: "Assistant General Manager",
+    operationsManager: "Operations Manager",
     frontOfficeManager: "Front Office Manager",
     executiveHousekeeper: "Executive Housekeeper",
     entertainmentManager: "Entertainment Manager",
@@ -501,8 +557,16 @@ const titleLabels = {
     guestRelationsManager: "Guest Relations Manager",
     securityManager: "Security Manager",
     spaManager: "SPA Manager",
+    salesManager: "Sales Manager",
+    hrManager: "Human Resources Manager",
+    financeManager: "Finance Manager",
+    purchasingManager: "Purchasing Manager",
+    qualityManager: "Quality Manager",
   },
   de: {
+    generalManager: "Generaldirektor",
+    generalManagerAssistant: "Stellv. Generaldirektor",
+    operationsManager: "Betriebsleiter",
     frontOfficeManager: "Front-Office-Manager",
     executiveHousekeeper: "Leitung Housekeeping",
     entertainmentManager: "Entertainment-Manager",
@@ -511,8 +575,16 @@ const titleLabels = {
     guestRelationsManager: "Leitung Gästebetreuung",
     securityManager: "Sicherheitsleiter",
     spaManager: "SPA-Manager",
+    salesManager: "Verkaufsleiter",
+    hrManager: "Personalmanager",
+    financeManager: "Finanzleiter",
+    purchasingManager: "Einkaufsleiter",
+    qualityManager: "Qualitätsleiter",
   },
   ru: {
+    generalManager: "Генеральный менеджер",
+    generalManagerAssistant: "Заместитель генерального менеджера",
+    operationsManager: "Операционный менеджер",
     frontOfficeManager: "Менеджер ресепшен",
     executiveHousekeeper: "Руководитель housekeeping",
     entertainmentManager: "Менеджер анимации",
@@ -521,6 +593,11 @@ const titleLabels = {
     guestRelationsManager: "Менеджер по работе с гостями",
     securityManager: "Менеджер службы безопасности",
     spaManager: "SPA-менеджер",
+    salesManager: "Менеджер по продажам",
+    hrManager: "HR-менеджер",
+    financeManager: "Финансовый менеджер",
+    purchasingManager: "Менеджер по закупкам",
+    qualityManager: "Менеджер по качеству",
   },
 };
 
@@ -615,9 +692,9 @@ const translations = {
     },
     roles: {
       admin: "Admin",
-      manager: "Müdür",
-      deputy: "Müdür Yardımcısı",
-      chief: "Şef",
+      manager: "Genel Müdür",
+      deputy: "Genel Müdür Yardımcısı",
+      chief: "Operasyon Müdürü",
       assistant: "Asistan",
       departmentManager: "Departman Müdürü",
     },
@@ -713,6 +790,10 @@ const translations = {
     permissionText:
       "Asistan sistemi dışındaki tüm sekme ve panel erişimleri yalnızca admin tarafından açılıp kapatılır.",
     permissionScopeNote: "Asistan ve FTF sistemi sabit kalır; diğer tüm erişim yetkilerini yalnızca admin günceller.",
+    departmentPermissionTitle: "Departman bazlı kullanıcı yetkileri",
+    departmentPermissionText: "Admin tüm kullanıcıları yönetebilir. Diğer müdürler yalnızca kendi departmanlarındaki kullanıcılar için yetki açıp kapatabilir.",
+    noDepartmentPermissionUsers: "Bu kapsamda yönetebileceğiniz kullanıcı yok.",
+    accountRoleLabel: "Hesap rolü",
     userAdminTitle: "Admin kullanıcı yönetimi",
     userAdminText: "Admin, tüm kullanıcıların görünen adını güncelleyebilir ve yeni şifre atayabilir. Admin panel içinde ek doğrulama gerekmez.",
     accountTitle: "Hesap",
@@ -792,6 +873,11 @@ const translations = {
       security: "Güvenlik",
       entertainment: "Animasyon",
       frontOffice: "Ön Büro",
+      sales: "Satış",
+      humanResources: "İnsan Kaynakları",
+      finance: "Finans",
+      purchasing: "Satın Alma",
+      quality: "Kalite",
       spa: "SPA",
       management: "Yönetim",
     },
@@ -914,7 +1000,7 @@ const translations = {
       assistant: { title: "Assistant panel", text: "Internal service area for room selection, routing and guest chat flow." },
       assistantTracker: { title: "Assistant tracker module", text: "Face-to-face meetings, manual platform reviews, FTF follow-up and hall of fame now run inside the app." },
     },
-    roles: { admin: "Admin", manager: "Manager", deputy: "Deputy Manager", chief: "Chief", assistant: "Assistant", departmentManager: "Department Manager" },
+    roles: { admin: "Admin", manager: "General Manager", deputy: "Assistant General Manager", chief: "Operations Manager", assistant: "Assistant", departmentManager: "Department Manager" },
     loginTitle: "Single-link sign-in panel",
     loginText:
       "Sign in with the shared access code and the user password. For admin accounts, only the title is shown; names remain visible only for assistants.",
@@ -1007,6 +1093,10 @@ const translations = {
     permissionText:
       "All tab and panel access outside the assistant system can only be opened or closed by the admin here.",
     permissionScopeNote: "Assistant and FTF system access stays fixed; the admin controls every other permission.",
+    departmentPermissionTitle: "Department-scoped user permissions",
+    departmentPermissionText: "The admin can manage every user. Other managers can only open or close permissions for users inside their own department.",
+    noDepartmentPermissionUsers: "There are no users you can manage in this scope.",
+    accountRoleLabel: "Account role",
     userAdminTitle: "Admin user management",
     userAdminText: "The admin can update each account's display name and assign a new password. No extra password is required inside the admin panel.",
     accountTitle: "Account",
@@ -1085,6 +1175,11 @@ const translations = {
       security: "Security",
       entertainment: "Entertainment",
       frontOffice: "Front Office",
+      sales: "Sales",
+      humanResources: "Human Resources",
+      finance: "Finance",
+      purchasing: "Purchasing",
+      quality: "Quality",
       spa: "SPA",
       management: "Management",
     },
@@ -1206,7 +1301,7 @@ const translations = {
       assistant: { title: "Assistentenbetrieb", text: "Interner Servicebereich für Zimmerauswahl, Routing und Gast-Chat." },
       assistantTracker: { title: "Assistenten-Tracking", text: "Face-to-Face-Gespräche, manuelle Bewertungen, FTF-Nachverfolgung und Hall of Fame laufen jetzt direkt in der App." },
     },
-    roles: { admin: "Admin", manager: "Manager", deputy: "Stellv. Manager", chief: "Chef", assistant: "Assistent", departmentManager: "Abteilungsleiter" },
+    roles: { admin: "Admin", manager: "Generaldirektor", deputy: "Stellv. Generaldirektor", chief: "Betriebsleiter", assistant: "Assistent", departmentManager: "Abteilungsleiter" },
     loginTitle: "Einzel-Link-Anmeldung",
     loginText:
       "Melden Sie sich mit dem gemeinsamen Zugangscode und dem Benutzerpasswort an. Bei Admin-Zugängen wird nur der Titel angezeigt; Namen bleiben nur bei Assistenten sichtbar.",
@@ -1299,6 +1394,10 @@ const translations = {
     permissionText:
       "Alle Register- und Panelzugriffe außerhalb des Assistentensystems können hier nur vom Admin geöffnet oder geschlossen werden.",
     permissionScopeNote: "Assistenten- und FTF-System bleiben fest; alle übrigen Rechte steuert nur der Admin.",
+    departmentPermissionTitle: "Abteilungsbezogene Benutzerrechte",
+    departmentPermissionText: "Der Admin kann alle Benutzer verwalten. Andere Manager dürfen Rechte nur für Benutzer ihrer eigenen Abteilung anpassen.",
+    noDepartmentPermissionUsers: "In diesem Bereich gibt es keine Benutzer, die Sie verwalten können.",
+    accountRoleLabel: "Kontorolle",
     userAdminTitle: "Admin-Benutzerverwaltung",
     userAdminText: "Der Admin kann den sichtbaren Namen aller Benutzer aktualisieren und neue Passwörter vergeben. Im Admin-Bereich ist keine zusätzliche Bestätigung nötig.",
     accountTitle: "Konto",
@@ -1377,6 +1476,11 @@ const translations = {
       security: "Sicherheit",
       entertainment: "Entertainment",
       frontOffice: "Rezeption",
+      sales: "Vertrieb",
+      humanResources: "Personal",
+      finance: "Finanzen",
+      purchasing: "Einkauf",
+      quality: "Qualität",
       spa: "SPA",
       management: "Management",
     },
@@ -1501,7 +1605,7 @@ const translations = {
       assistant: { title: "Операции ассистента", text: "Внутренний сервисный блок для выбора номера, маршрутизации и гостевого чата." },
       assistantTracker: { title: "Модуль трекинга ассистентов", text: "Очные встречи, ручные отзывы, FTF-отслеживание и Hall of Fame теперь работают внутри приложения." },
     },
-    roles: { admin: "Админ", manager: "Менеджер", deputy: "Зам. менеджера", chief: "Шеф", assistant: "Ассистент", departmentManager: "Руководитель отдела" },
+    roles: { admin: "Админ", manager: "Генеральный менеджер", deputy: "Заместитель генерального менеджера", chief: "Операционный менеджер", assistant: "Ассистент", departmentManager: "Руководитель отдела" },
     loginTitle: "Единая панель входа",
     loginText:
       "Вход выполняется по общему коду доступа и паролю пользователя. Для админ-доступа отображается только должность; имена остаются видимыми только у ассистентов.",
@@ -1594,6 +1698,10 @@ const translations = {
     permissionText:
       "Все доступы к вкладкам и панелям вне системы ассистента здесь может открывать или закрывать только администратор.",
     permissionScopeNote: "Система ассистента и FTF остаются фиксированными; все остальные права управляются только администратором.",
+    departmentPermissionTitle: "Права пользователей по отделам",
+    departmentPermissionText: "Администратор управляет всеми пользователями. Остальные менеджеры могут менять права только пользователям своего отдела.",
+    noDepartmentPermissionUsers: "В этой области нет пользователей, которыми вы можете управлять.",
+    accountRoleLabel: "Роль аккаунта",
     userAdminTitle: "Управление пользователями администратора",
     userAdminText: "Администратор может менять отображаемое имя любого пользователя и назначать новый пароль. Внутри админ-панели дополнительный пароль не требуется.",
     accountTitle: "Аккаунт",
@@ -1672,6 +1780,11 @@ const translations = {
       security: "Безопасность",
       entertainment: "Анимация",
       frontOffice: "Ресепшен",
+      sales: "Продажи",
+      humanResources: "Кадры",
+      finance: "Финансы",
+      purchasing: "Закупки",
+      quality: "Качество",
       spa: "SPA",
       management: "Менеджмент",
     },
@@ -1759,6 +1872,23 @@ function normalizePermissions(payload) {
   return payload ? { ...defaultRoleAccess, ...payload } : defaultRoleAccess;
 }
 
+function getStoredUserPermissions() {
+  return {};
+}
+
+function normalizeUserPermissions(payload) {
+  return payload ?? {};
+}
+
+function mergePermissionAccess(base, override) {
+  if (!override) return base;
+  return {
+    tabs: Array.isArray(override.tabs) ? override.tabs : base.tabs,
+    modules: Array.isArray(override.modules) ? override.modules : base.modules,
+    showAudit: typeof override.showAudit === "boolean" ? override.showAudit : base.showAudit,
+  };
+}
+
 function Panel({ children, className = "" }) {
   return <section className={`panel ${className}`.trim()}>{children}</section>;
 }
@@ -1812,6 +1942,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(getStoredUser);
   const [activityLogs, setActivityLogs] = useState(getStoredLogs);
   const [permissions, setPermissions] = useState(getStoredPermissions);
+  const [userPermissions, setUserPermissions] = useState(getStoredUserPermissions);
   const [syncMode, setSyncMode] = useState("connecting");
   const [bootstrapReady, setBootstrapReady] = useState(false);
   const [tasks, setTasks] = useState(initialTasks);
@@ -1844,6 +1975,26 @@ function App() {
     workingDays: "Mon,Tue,Wed,Thu,Fri,Sat",
     note: "",
   });
+  const [selectedVenueId, setSelectedVenueId] = useState(initialAlaCarteVenues[0].id);
+  const [venueSettings, setVenueSettings] = useState({
+    childPolicy: initialAlaCarteVenues[0].childPolicy,
+    cancellationWindow: initialAlaCarteVenues[0].cancellationWindow,
+    closeSaleWindow: initialAlaCarteVenues[0].closeSaleWindow,
+    roomNightLimit: initialAlaCarteVenues[0].roomNightLimit,
+    includeOtherRooms: initialAlaCarteVenues[0].includeOtherRooms,
+    areaPreference: initialAlaCarteVenues[0].areaPreference,
+    mixedTable: initialAlaCarteVenues[0].mixedTable,
+    tableSetup: initialAlaCarteVenues[0].tableSetup,
+    note: initialAlaCarteVenues[0].note,
+  });
+  const [newServiceSlot, setNewServiceSlot] = useState({
+    venueId: initialAlaCarteVenues[0].id,
+    date: "2026-03-12",
+    time: "19:00",
+    maxCovers: 20,
+    waitlistCount: 0,
+  });
+  const [alaCarteStatusMessage, setAlaCarteStatusMessage] = useState("");
   const [newAgendaItem, setNewAgendaItem] = useState({
     title: "",
     date: "2026-03-11",
@@ -1897,6 +2048,7 @@ function App() {
   const [managedUsername, setManagedUsername] = useState(users[0].username);
   const [managedDisplayName, setManagedDisplayName] = useState(users[0].displayName);
   const [managedPassword, setManagedPassword] = useState("");
+  const [managedRole, setManagedRole] = useState(users[0].role);
   const [userAdminStatus, setUserAdminStatus] = useState("");
   const [userAdminError, setUserAdminError] = useState("");
   const notifiedIdsRef = useRef(new Set());
@@ -1905,16 +2057,18 @@ function App() {
   const authText = authCopy[language] ?? authCopy.en;
   const diningCopy = alaCarteLabels[language] ?? alaCarteLabels.en;
   const titleCopy = titleLabels[language] ?? titleLabels.en;
-  const activeRole = currentUser ? permissions[currentUser.role] : null;
+  const canManageScopedPermissions = ["manager", "deputy", "chief", "departmentManager"].includes(currentUser?.role ?? "");
+  const activeRole = currentUser ? mergePermissionAccess(permissions[currentUser.role], userPermissions[currentUser.username]) : null;
   const scopedDepartment = currentUser?.scopeDepartment ?? null;
   const isDepartmentManager = currentUser?.role === "departmentManager";
-  const isAdminUser = ["admin", "manager"].includes(currentUser?.role ?? "");
+  const isAdminUser = currentUser?.role === "admin";
   const availableTabIds = useMemo(
     () => {
       const baseTabs = [
         ...(activeRole?.tabs ?? []),
         ...(activeRole?.modules?.includes("assistantTracker") ? ["assistantTracker"] : []),
-        ...(isAdminUser ? managerTabs : []),
+        ...(isAdminUser ? adminTabs : []),
+        ...(!isAdminUser && canManageScopedPermissions ? ["permissions"] : []),
       ].filter((value, index, array) => array.indexOf(value) === index);
 
       if (!isDepartmentManager) return baseTabs;
@@ -1924,7 +2078,7 @@ function App() {
           tabId !== "alacarte" || ["fb", "guestRelations", "frontOffice"].includes(scopedDepartment),
       );
     },
-    [activeRole, isAdminUser, isDepartmentManager, scopedDepartment],
+    [activeRole, canManageScopedPermissions, isAdminUser, isDepartmentManager, scopedDepartment],
   );
   const loginRoleOptions = useMemo(
     () =>
@@ -1940,11 +2094,22 @@ function App() {
     () => userDirectory.filter((user) => loginRoleKey(user) === selectedLoginRole),
     [selectedLoginRole, userDirectory],
   );
-  const managedUsers = useMemo(
-    () => userDirectory.filter((user) => user.role !== "admin" || user.username === currentUser?.username),
-    [currentUser?.username, userDirectory],
-  );
+  const managedUsers = useMemo(() => userDirectory, [userDirectory]);
   const managedUser = managedUsers.find((user) => user.username === managedUsername) ?? managedUsers[0] ?? null;
+  const scopedPermissionUsers = useMemo(() => {
+    if (!currentUser) return [];
+    if (isAdminUser) {
+      return userDirectory.filter((user) => user.username !== currentUser.username);
+    }
+    if (!canManageScopedPermissions) return [];
+    const ownDepartment = currentUser.scopeDepartment ?? currentUser.department;
+    return userDirectory.filter(
+      (user) =>
+        user.username !== currentUser.username &&
+        user.role !== "admin" &&
+        (user.scopeDepartment ?? user.department) === ownDepartment,
+    );
+  }, [canManageScopedPermissions, currentUser, isAdminUser, userDirectory]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -1953,6 +2118,7 @@ function App() {
   }, [copy.appTitle, language]);
 
   useEffect(() => {
+    if (sessionToken) return undefined;
     let ignore = false;
 
     async function loadLoginCatalog() {
@@ -1972,7 +2138,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [sessionToken]);
 
   useEffect(() => {
     if (filteredLoginUsers.some((user) => user.username === selectedUsername)) return;
@@ -1984,7 +2150,26 @@ function App() {
     const nextManagedUser = managedUsers.find((user) => user.username === managedUsername) ?? managedUsers[0];
     setManagedUsername(nextManagedUser.username);
     setManagedDisplayName(nextManagedUser.displayName);
+    setManagedRole(nextManagedUser.role);
   }, [managedUsername, managedUsers]);
+
+  useEffect(() => {
+    if (!alaCarteVenues.length) return;
+    const nextVenue = alaCarteVenues.find((item) => item.id === selectedVenueId) ?? alaCarteVenues[0];
+    setSelectedVenueId(nextVenue.id);
+    setVenueSettings({
+      childPolicy: nextVenue.childPolicy,
+      cancellationWindow: nextVenue.cancellationWindow,
+      closeSaleWindow: nextVenue.closeSaleWindow,
+      roomNightLimit: nextVenue.roomNightLimit,
+      includeOtherRooms: nextVenue.includeOtherRooms,
+      areaPreference: nextVenue.areaPreference,
+      mixedTable: nextVenue.mixedTable,
+      tableSetup: nextVenue.tableSetup,
+      note: nextVenue.note,
+    });
+    setNewServiceSlot((current) => ({ ...current, venueId: nextVenue.id }));
+  }, [alaCarteVenues, selectedVenueId]);
 
   useEffect(() => {
     if (!isDepartmentManager || !scopedDepartment) return;
@@ -2019,7 +2204,7 @@ function App() {
         const payload = await response.json();
         if (ignore) return;
         setCurrentUser(sessionPayload.user);
-        if (["admin", "manager"].includes(sessionPayload.user.role) && payload.users?.length) {
+        if (payload.users?.length) {
           setUserDirectory(payload.users);
         }
         setTasks(payload.tasks?.length ? payload.tasks : initialTasks);
@@ -2034,6 +2219,7 @@ function App() {
         setNotifications(payload.notifications ?? []);
         setActivityLogs(payload.activityLogs ?? []);
         setPermissions(normalizePermissions(payload.permissions));
+        setUserPermissions(normalizeUserPermissions(payload.userPermissions));
         setSyncMode("api");
       } catch {
         if (ignore) return;
@@ -2066,6 +2252,7 @@ function App() {
         body: JSON.stringify({
           users,
           permissions,
+          userPermissions,
           tasks,
           complaints,
           agendaItems,
@@ -2083,7 +2270,7 @@ function App() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, assistantMeetings, assistantReviews, bootstrapReady, complaints, permissions, sessionToken, syncMode, tasks]);
+  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, assistantMeetings, assistantReviews, bootstrapReady, complaints, permissions, sessionToken, syncMode, tasks, userPermissions]);
 
   useEffect(() => {
     if (!sessionToken) return undefined;
@@ -2200,6 +2387,7 @@ function App() {
           : "dashboard";
 
   const updateRolePermission = (role, type, value) => {
+    if (!isAdminUser) return;
     setPermissions((current) => {
       const roleConfig = current[role];
       const candidateValues = roleConfig[type].includes(value)
@@ -2221,6 +2409,27 @@ function App() {
       return next;
     });
     logAction("actionPermissionUpdated", `${role}:${type}:${value}`);
+  };
+
+  const updateUserPermission = (username, type, value) => {
+    setUserPermissions((current) => {
+      const baseAccess = mergePermissionAccess(permissions[userDirectory.find((user) => user.username === username)?.role ?? "assistant"], current[username]);
+      const currentAccess = current[username] ?? baseAccess;
+      const nextValues = currentAccess[type].includes(value)
+        ? currentAccess[type].filter((item) => item !== value)
+        : [...currentAccess[type], value];
+      const normalizedValues = type === "tabs" && nextValues.length === 0 ? ["dashboard"] : nextValues;
+
+      return {
+        ...current,
+        [username]: {
+          tabs: type === "tabs" ? normalizedValues : currentAccess.tabs,
+          modules: type === "modules" ? normalizedValues : currentAccess.modules,
+          showAudit: currentAccess.showAudit,
+        },
+      };
+    });
+    logAction("actionPermissionUpdated", `${username}:${type}:${value}`);
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -2383,6 +2592,11 @@ function App() {
           new Date(`${right.reservationDate}T${right.slotTime}:00`),
       ),
     [alaCarteReservations],
+  );
+
+  const selectedVenue = useMemo(
+    () => alaCarteVenues.find((item) => item.id === selectedVenueId) ?? alaCarteVenues[0] ?? null,
+    [alaCarteVenues, selectedVenueId],
   );
 
   const ftfMeetings = useMemo(
@@ -2553,6 +2767,7 @@ function App() {
       slotCount: 3,
     };
     setAlaCarteVenues((current) => [venue, ...current]);
+    setSelectedVenueId(venue.id);
     setNewVenue({
       name: "",
       cuisine: "Mediterranean",
@@ -2563,7 +2778,48 @@ function App() {
       workingDays: "Mon,Tue,Wed,Thu,Fri,Sat",
       note: "",
     });
+    setAlaCarteStatusMessage(copy.addVenue);
     logAction("actionAlaCarteAdded", venue.name);
+  };
+
+  const saveAlaCarteSettings = () => {
+    if (!selectedVenue) return;
+    setAlaCarteVenues((current) =>
+      current.map((item) =>
+        item.id === selectedVenue.id
+          ? {
+              ...item,
+              childPolicy: venueSettings.childPolicy,
+              cancellationWindow: venueSettings.cancellationWindow,
+              closeSaleWindow: venueSettings.closeSaleWindow,
+              roomNightLimit: Number(venueSettings.roomNightLimit),
+              includeOtherRooms: venueSettings.includeOtherRooms,
+              areaPreference: venueSettings.areaPreference,
+              mixedTable: venueSettings.mixedTable,
+              tableSetup: venueSettings.tableSetup,
+              note: venueSettings.note,
+            }
+          : item,
+      ),
+    );
+    setAlaCarteStatusMessage(diningCopy.settingsSaved);
+    logAction("actionAlaCartePriceUpdated", `${selectedVenue.name}:settings`);
+  };
+
+  const addServiceSlot = () => {
+    if (!newServiceSlot.venueId || !newServiceSlot.date || !newServiceSlot.time) return;
+    const slot = {
+      id: `slot-${Date.now()}`,
+      venueId: newServiceSlot.venueId,
+      date: newServiceSlot.date,
+      time: newServiceSlot.time,
+      maxCovers: Number(newServiceSlot.maxCovers),
+      bookedCovers: 0,
+      waitlistCount: Number(newServiceSlot.waitlistCount),
+    };
+    setAlaCarteServiceSlots((current) => [slot, ...current]);
+    setAlaCarteStatusMessage(diningCopy.slotAdded);
+    logAction("actionAlaCarteAdded", `${slot.venueId}:${slot.date}:${slot.time}`);
   };
 
   const addAlaCarteReservation = () => {
@@ -2814,6 +3070,7 @@ function App() {
         headers: { Authorization: `Bearer ${sessionToken}` },
       }).catch(() => {});
     }
+    setUserDirectory(users);
     setSessionToken("");
     setCurrentUser(null);
   };
@@ -2833,6 +3090,7 @@ function App() {
         body: JSON.stringify({
           username: managedUser.username,
           displayName: managedDisplayName,
+          role: managedRole,
           password: managedPassword,
         }),
       });
@@ -3584,6 +3842,7 @@ function App() {
                 <span className="eyebrow">Runtime</span>
                 <p>Role-scoped internal operational model. No outbound dependency on live reservation pages.</p>
               </div>
+              {alaCarteStatusMessage && <p className="muted top-gap">{alaCarteStatusMessage}</p>}
               <div className="form-grid top-gap">
                 <h3>{diningCopy.addReservation}</h3>
                 <label><span>{copy.venueName}</span><select aria-label={copy.venueName} value={newReservation.venueId} onChange={(event) => setNewReservation({ ...newReservation, venueId: event.target.value })}>{alaCarteVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}</select></label>
@@ -3619,6 +3878,34 @@ function App() {
                 </div>
                 <button type="button" className="button secondary" onClick={addWaitlistEntry}>{diningCopy.addWaitlist}</button>
               </div>
+              <div className="form-grid top-gap">
+                <h3>{diningCopy.settingsTitle}</h3>
+                <p className="muted">{diningCopy.settingsText}</p>
+                <label>
+                  <span>{diningCopy.selectVenue}</span>
+                  <select value={selectedVenueId} onChange={(event) => setSelectedVenueId(event.target.value)}>
+                    {alaCarteVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
+                  </select>
+                </label>
+                <div className="two-col">
+                  <label><span>{copy.childPolicy}</span><input value={venueSettings.childPolicy} onChange={(event) => setVenueSettings({ ...venueSettings, childPolicy: event.target.value })} /></label>
+                  <label><span>{copy.tableSetup}</span><input value={venueSettings.tableSetup} onChange={(event) => setVenueSettings({ ...venueSettings, tableSetup: event.target.value })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{copy.cancellationWindow}</span><input value={venueSettings.cancellationWindow} onChange={(event) => setVenueSettings({ ...venueSettings, cancellationWindow: event.target.value })} /></label>
+                  <label><span>{copy.closeSaleWindow}</span><input value={venueSettings.closeSaleWindow} onChange={(event) => setVenueSettings({ ...venueSettings, closeSaleWindow: event.target.value })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{copy.roomNightLimit}</span><input type="number" value={venueSettings.roomNightLimit} onChange={(event) => setVenueSettings({ ...venueSettings, roomNightLimit: Number(event.target.value) })} /></label>
+                  <label><span>{copy.includeOtherRooms}</span><select value={venueSettings.includeOtherRooms ? "yes" : "no"} onChange={(event) => setVenueSettings({ ...venueSettings, includeOtherRooms: event.target.value === "yes" })}><option value="yes">{copy.yes}</option><option value="no">{copy.no}</option></select></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{copy.areaPreference}</span><select value={venueSettings.areaPreference ? "yes" : "no"} onChange={(event) => setVenueSettings({ ...venueSettings, areaPreference: event.target.value === "yes" })}><option value="yes">{copy.yes}</option><option value="no">{copy.no}</option></select></label>
+                  <label><span>{copy.mixedTable}</span><select value={venueSettings.mixedTable ? "yes" : "no"} onChange={(event) => setVenueSettings({ ...venueSettings, mixedTable: event.target.value === "yes" })}><option value="yes">{copy.yes}</option><option value="no">{copy.no}</option></select></label>
+                </div>
+                <label><span>{copy.operationalNote}</span><textarea rows="3" value={venueSettings.note} onChange={(event) => setVenueSettings({ ...venueSettings, note: event.target.value })} /></label>
+                <button type="button" className="button secondary" onClick={saveAlaCarteSettings}>{diningCopy.saveSettings}</button>
+              </div>
               <article className="spec-card top-gap">
                 <div className="panel-heading">
                   <h2>{diningCopy.serviceSlots}</h2>
@@ -3644,6 +3931,19 @@ function App() {
                   })}
                 </div>
               </article>
+              <div className="form-grid top-gap">
+                <h3>{diningCopy.addServiceSlot}</h3>
+                <div className="two-col">
+                  <label><span>{diningCopy.selectVenue}</span><select value={newServiceSlot.venueId} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, venueId: event.target.value })}>{alaCarteVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}</select></label>
+                  <label><span>{diningCopy.slotDate}</span><input type="date" value={newServiceSlot.date} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, date: event.target.value })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{diningCopy.slotTime}</span><input type="time" value={newServiceSlot.time} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, time: event.target.value })} /></label>
+                  <label><span>{diningCopy.slotCapacity}</span><input type="number" value={newServiceSlot.maxCovers} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, maxCovers: Number(event.target.value) })} /></label>
+                </div>
+                <label><span>{diningCopy.slotWaitlist}</span><input type="number" value={newServiceSlot.waitlistCount} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, waitlistCount: Number(event.target.value) })} /></label>
+                <button type="button" className="button secondary" onClick={addServiceSlot}>{diningCopy.addServiceSlot}</button>
+              </div>
               <div className="form-grid top-gap">
                 <label><span>{copy.venueName}</span><input value={newVenue.name} onChange={(event) => setNewVenue({ ...newVenue, name: event.target.value })} /></label>
                 <div className="two-col">
@@ -4015,61 +4315,131 @@ function App() {
           </section>
         )}
 
-        {visibleTab === "permissions" && isAdminUser && (
+        {visibleTab === "permissions" && (isAdminUser || canManageScopedPermissions) && (
           <section className="content-grid">
+            {isAdminUser && (
+              <Panel className="span-2 permission-panel">
+                <div className="panel-heading">
+                  <h2>
+                    <ShieldCheck size={18} /> {copy.permissionTitle}
+                  </h2>
+                </div>
+                <p className="muted module-intro">{copy.permissionText}</p>
+                <div className="permission-groups">
+                  {editableRoles.map((role) => (
+                    <div key={role} className="permission-card">
+                      <strong>{roleLabel(role)}</strong>
+                      <div className="permission-section">
+                        <span className="eyebrow">{copy.sections}</span>
+                        <div className="permission-options">
+                          {permissionTabs.map((tabId) => (
+                            <label key={tabId} className="permission-option">
+                              <input
+                                type="checkbox"
+                                checked={permissions[role].tabs.includes(tabId)}
+                                onChange={() => updateRolePermission(role, "tabs", tabId)}
+                              />
+                              <span>
+                                {tabId === "dashboard"
+                                  ? copy.dashboard
+                                  : tabId === "tasks"
+                                    ? copy.tasksTab
+                                    : tabId === "complaints"
+                                      ? copy.complaintsTab
+                                      : tabId === "alacarte"
+                                        ? copy.alacarteTab
+                                        : tabId === "assistantTracker"
+                                          ? copy.assistantTrackerTab
+                                          : copy.analysis}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="permission-section">
+                        <span className="eyebrow">{copy.voyageModules}</span>
+                        <div className="permission-options">
+                          {controllableModules.map((module) => (
+                            <label key={module.id} className="permission-option">
+                              <input
+                                type="checkbox"
+                                checked={permissions[role].modules.includes(module.id)}
+                                onChange={() => updateRolePermission(role, "modules", module.id)}
+                              />
+                              <span>{copy.modules[module.id].title}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
             <Panel className="span-2 permission-panel">
               <div className="panel-heading">
                 <h2>
-                  <ShieldCheck size={18} /> {copy.permissionTitle}
+                  <UserRound size={18} /> {copy.departmentPermissionTitle}
                 </h2>
               </div>
-              <p className="muted module-intro">{copy.permissionText}</p>
+              <p className="muted module-intro">{copy.departmentPermissionText}</p>
               <div className="permission-groups">
-                {editableRoles.map((role) => (
-                  <div key={role} className="permission-card">
-                    <strong>{roleLabel(role)}</strong>
-                    <div className="permission-section">
-                      <span className="eyebrow">{copy.sections}</span>
-                      <div className="permission-options">
-                        {permissionTabs.map((tabId) => (
-                          <label key={tabId} className="permission-option">
-                            <input
-                              type="checkbox"
-                              checked={permissions[role].tabs.includes(tabId)}
-                              onChange={() => updateRolePermission(role, "tabs", tabId)}
-                            />
-                            <span>
-                              {tabId === "dashboard"
-                                ? copy.dashboard
-                                : tabId === "tasks"
-                                  ? copy.tasksTab
-                                  : tabId === "complaints"
-                                    ? copy.complaintsTab
-                                    : tabId === "alacarte"
-                                      ? copy.alacarteTab
-                                      : copy.analysis}
-                            </span>
-                          </label>
-                        ))}
+                {scopedPermissionUsers.length === 0 && <p className="muted">{copy.noDepartmentPermissionUsers}</p>}
+                {scopedPermissionUsers.map((user) => {
+                  const userAccess = mergePermissionAccess(permissions[user.role], userPermissions[user.username]);
+                  return (
+                    <div key={user.username} className="permission-card">
+                      <div className="row space-between top">
+                        <div className="stack compact">
+                          <strong>{user.role === "assistant" ? `${user.displayName} · ${roleLabel(user.role)}` : userLabel(user)}</strong>
+                          <span className="muted">{localizeDepartment(user.scopeDepartment ?? user.department)}</span>
+                        </div>
+                      </div>
+                      <div className="permission-section">
+                        <span className="eyebrow">{copy.sections}</span>
+                        <div className="permission-options">
+                          {permissionTabs.map((tabId) => (
+                            <label key={`${user.username}-${tabId}`} className="permission-option">
+                              <input
+                                type="checkbox"
+                                checked={userAccess.tabs.includes(tabId)}
+                                onChange={() => updateUserPermission(user.username, "tabs", tabId)}
+                              />
+                              <span>
+                                {tabId === "dashboard"
+                                  ? copy.dashboard
+                                  : tabId === "tasks"
+                                    ? copy.tasksTab
+                                    : tabId === "complaints"
+                                      ? copy.complaintsTab
+                                      : tabId === "alacarte"
+                                        ? copy.alacarteTab
+                                        : tabId === "assistantTracker"
+                                          ? copy.assistantTrackerTab
+                                          : copy.analysis}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="permission-section">
+                        <span className="eyebrow">{copy.voyageModules}</span>
+                        <div className="permission-options">
+                          {controllableModules.map((module) => (
+                            <label key={`${user.username}-${module.id}`} className="permission-option">
+                              <input
+                                type="checkbox"
+                                checked={userAccess.modules.includes(module.id)}
+                                onChange={() => updateUserPermission(user.username, "modules", module.id)}
+                              />
+                              <span>{copy.modules[module.id].title}</span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <div className="permission-section">
-                      <span className="eyebrow">{copy.voyageModules}</span>
-                      <div className="permission-options">
-                        {controllableModules.map((module) => (
-                          <label key={module.id} className="permission-option">
-                            <input
-                              type="checkbox"
-                              checked={permissions[role].modules.includes(module.id)}
-                              onChange={() => updateRolePermission(role, "modules", module.id)}
-                            />
-                            <span>{copy.modules[module.id].title}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Panel>
             <Panel>
@@ -4079,12 +4449,18 @@ function App() {
                 </h2>
               </div>
               <div className="stack">
-                {editableRoles.map((role) => (
+                {isAdminUser && editableRoles.map((role) => (
                   <div key={`${role}-summary`} className="control-line">
                     <span>{roleLabel(role)}</span>
                     <strong>{permissions[role].tabs.length} / {permissionTabs.length}</strong>
                   </div>
                 ))}
+                {!isAdminUser && (
+                  <div className="control-line">
+                    <span>{copy.departmentPermissionTitle}</span>
+                    <strong>{scopedPermissionUsers.length}</strong>
+                  </div>
+                )}
                 <div className="spec-note side-note">
                   <span className="eyebrow">{copy.voyageModules}</span>
                   <p>{copy.permissionScopeNote}</p>
@@ -4157,6 +4533,17 @@ function App() {
                 <label>
                   <span>{copy.displayNameLabel}</span>
                   <input aria-label={copy.displayNameLabel} value={managedDisplayName} onChange={(event) => setManagedDisplayName(event.target.value)} />
+                </label>
+                <label>
+                  <span>{copy.accountRoleLabel}</span>
+                  <select aria-label={copy.accountRoleLabel} value={managedRole} onChange={(event) => setManagedRole(event.target.value)} disabled={!isAdminUser}>
+                    <option value="admin">{roleLabel("admin")}</option>
+                    <option value="manager">{roleLabel("manager")}</option>
+                    <option value="deputy">{roleLabel("deputy")}</option>
+                    <option value="chief">{roleLabel("chief")}</option>
+                    <option value="assistant">{roleLabel("assistant")}</option>
+                    <option value="departmentManager">{roleLabel("departmentManager")}</option>
+                  </select>
                 </label>
                 <label>
                   <span>{copy.newPasswordLabel}</span>
