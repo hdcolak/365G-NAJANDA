@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -8,7 +8,6 @@ import {
   CheckSquare,
   ClipboardList,
   Clock3,
-  Filter,
   Globe,
   LogOut,
   MessageSquareWarning,
@@ -17,18 +16,6 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import "./App.css";
 
 const languages = ["tr", "en", "de", "ru"];
@@ -45,6 +32,8 @@ const users = [
   { username: "emre.teknikmdr", role: "departmentManager", titleKey: "chiefEngineer", displayName: "Emre", department: "technical", scopeDepartment: "technical" },
   { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb" },
   { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations" },
+  { username: "pelin.misafirmdryrd", role: "departmentManager", titleKey: "guestRelationsDeputyManager", displayName: "Pelin", department: "guestRelations", scopeDepartment: "guestRelations" },
+  { username: "omer.misafirsefi", role: "departmentManager", titleKey: "guestRelationsChief", displayName: "Omer", department: "guestRelations", scopeDepartment: "guestRelations" },
   { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security" },
   { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa" },
   { username: "ceren.satismdr", role: "departmentManager", titleKey: "salesManager", displayName: "Ceren", department: "sales", scopeDepartment: "sales" },
@@ -56,40 +45,260 @@ const users = [
 
 const defaultRoleAccess = {
   admin: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: true,
   },
   manager: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: true,
   },
   deputy: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: false,
   },
   chief: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "settings", "assistant", "assistantTracker"],
     showAudit: false,
   },
   assistant: {
-    tabs: ["dashboard", "complaints", "assistantTracker"],
+    tabs: ["dashboard", "complaints", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
   departmentManager: {
-    tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"],
+    tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
 };
 
 const editableRoles = ["manager", "deputy", "chief", "assistant", "departmentManager"];
-const permissionTabs = ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"];
+const permissionTabs = ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker", "shiftPlanner"];
 const adminTabs = ["managerAgenda", "permissions", "managerOps"];
+const allowedTabs = [...permissionTabs, ...adminTabs, "criticalReviewOps"];
+const criticalReviewOpsTitleKeys = new Set(["guestRelationsManager", "guestRelationsDeputyManager", "guestRelationsChief"]);
+const defaultReviewSources = [
+  { id: "google", platform: "Google", label: "Google Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.google.com/travel/search?gsas=1&ts=EggKAggDCgIIAxocEhoSFAoHCOoPEAQYARIHCOoPEAQYBBgDMgIIAg&qs=MhNDZ29JN29leXFQX280YzhRRUFFOAI&ap=ugEHcmV2aWV3cw&ictx=111&client=safari&hs=1AB&biw=1729&bih=980&hl=tr-TR&ved=0CAAQ5JsGahcKEwjwvvnrxJyTAxUAAAAAHQAAAAAQDA", lastSyncAt: null },
+  { id: "tripadvisor", platform: "Tripadvisor", label: "Tripadvisor Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.tripadvisor.com.tr/Hotel_Review-g17951017-d33456834-Reviews-Voyage_Kundu_Hotel-Aksu_Antalya_Turkish_Mediterranean_Coast.html", lastSyncAt: null },
+  { id: "yandex", platform: "Yandex", label: "Yandex Reviews", enabled: true, branch: "Voyage Kundu", url: "https://yandex.com.tr/maps/org/voyage_kundu/178944177497/?ll=30.912637%2C36.862367&z=15", lastSyncAt: null },
+  { id: "holidaycheck", platform: "HolidayCheck", label: "HolidayCheck Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.holidaycheck.de/hi/voyage-kundu/d115b6e7-60d3-442b-8bee-a223c206ab7f", lastSyncAt: null },
+];
+
+const localizedSeedContent = {
+  cuisine: {
+    Turkish: { tr: "Türk", en: "Turkish", de: "Türkisch", ru: "Турецкая" },
+    Italian: { tr: "İtalyan", en: "Italian", de: "Italienisch", ru: "Итальянская" },
+    Greek: { tr: "Yunan", en: "Greek", de: "Griechisch", ru: "Греческая" },
+    Chinese: { tr: "Çin", en: "Chinese", de: "Chinesisch", ru: "Китайская" },
+    Steakhouse: { tr: "Steakhouse", en: "Steakhouse", de: "Steakhouse", ru: "Стейкхаус" },
+    Japanese: { tr: "Japon", en: "Japanese", de: "Japanisch", ru: "Японская" },
+    Mediterranean: { tr: "Akdeniz", en: "Mediterranean", de: "Mediterran", ru: "Средиземноморская" },
+  },
+  duration: {
+    "2 hours": { tr: "2 saat", en: "2 hours", de: "2 Stunden", ru: "2 часа" },
+    "3 hours": { tr: "3 saat", en: "3 hours", de: "3 Stunden", ru: "3 часа" },
+    "1 hour": { tr: "1 saat", en: "1 hour", de: "1 Stunde", ru: "1 час" },
+    "90 minutes": { tr: "90 dakika", en: "90 minutes", de: "90 Minuten", ru: "90 минут" },
+  },
+  childPolicy: {
+    "0-11 yaş çocuklar ücretsiz": {
+      tr: "0-11 yaş çocuklar ücretsiz",
+      en: "Children aged 0-11 are free",
+      de: "Kinder von 0 bis 11 Jahren sind kostenlos",
+      ru: "Для детей 0-11 лет бесплатно",
+    },
+    "Teppanyaki restoranında 0-11 yaş ücretsiz değildir": {
+      tr: "Teppanyaki restoranında 0-11 yaş ücretsiz değildir",
+      en: "At Teppanyaki, ages 0-11 are not free",
+      de: "Im Teppanyaki sind Kinder von 0 bis 11 Jahren nicht kostenlos",
+      ru: "В Teppanyaki для детей 0-11 лет бесплатное посещение не действует",
+    },
+    "Custom policy": {
+      tr: "Özel politika",
+      en: "Custom policy",
+      de: "Individuelle Regel",
+      ru: "Индивидуальная политика",
+    },
+  },
+  tableSetup: {
+    "2, 4, 6 pax tables": {
+      tr: "2, 4, 6 kişilik masalar",
+      en: "2, 4 and 6 pax tables",
+      de: "Tische für 2, 4 und 6 Personen",
+      ru: "Столы на 2, 4 и 6 гостей",
+    },
+    "Shared chef counter + 4 pax tables": {
+      tr: "Ortak şef bankosu + 4 kişilik masalar",
+      en: "Shared chef counter + 4 pax tables",
+      de: "Gemeinsamer Chef-Tresen + 4er-Tische",
+      ru: "Общий шеф-стол + столы на 4 гостей",
+    },
+    "Flexible setup": {
+      tr: "Esnek masa düzeni",
+      en: "Flexible setup",
+      de: "Flexible Tischanordnung",
+      ru: "Гибкая рассадка",
+    },
+  },
+  venueNote: {
+    "Türk mutfağı odaklı, klasik aile rezervasyon akışı.": {
+      tr: "Türk mutfağı odaklı, klasik aile rezervasyon akışı.",
+      en: "Focused on Turkish cuisine with a classic family reservation flow.",
+      de: "Fokus auf türkischer Küche mit klassischem Familien-Reservierungsfluss.",
+      ru: "Акцент на турецкой кухне и классическом семейном сценарии бронирования.",
+    },
+    "Italyan konseptli aksam servisi.": {
+      tr: "İtalyan konseptli akşam servisi.",
+      en: "Italian concept dinner service.",
+      de: "Abendservice mit italienischem Konzept.",
+      ru: "Вечерний сервис в итальянской концепции.",
+    },
+    "Yunan mutfağı, deniz ürünü ve meze ağırlıklı servis.": {
+      tr: "Yunan mutfağı, deniz ürünü ve meze ağırlıklı servis.",
+      en: "Greek cuisine with a seafood and meze-focused service flow.",
+      de: "Griechische Küche mit Fokus auf Meeresfrüchte und Meze.",
+      ru: "Греческая кухня с акцентом на морепродукты и мезе.",
+    },
+    "Uzak doğu servis akışı, kapalı alan ağırlıklı.": {
+      tr: "Uzak doğu servis akışı, kapalı alan ağırlıklı.",
+      en: "Far East service flow with a mainly indoor setup.",
+      de: "Fernost-Serviceablauf mit Schwerpunkt auf Innenbereich.",
+      ru: "Сервис в дальневосточной концепции с акцентом на внутренний зал.",
+    },
+    "Premium et restoranı, yüksek gelir segmenti.": {
+      tr: "Premium et restoranı, yüksek gelir segmenti.",
+      en: "Premium steak restaurant targeting the high-spend segment.",
+      de: "Premium-Steakrestaurant für das gehobene Gästesegment.",
+      ru: "Премиальный мясной ресторан для высокого ценового сегмента.",
+    },
+    "Show mutfağı akışı, çocuk ücretsiz politikası uygulanmaz.": {
+      tr: "Show mutfağı akışı, çocuk ücretsiz politikası uygulanmaz.",
+      en: "Show kitchen format where the free-child policy does not apply.",
+      de: "Showküchen-Konzept, bei dem die Gratis-Kinderregel nicht gilt.",
+      ru: "Формат шоу-кухни, где не действует политика бесплатного посещения для детей.",
+    },
+    "Turk mutfagi odakli.": {
+      tr: "Türk mutfağı odaklı.",
+      en: "Focused on Turkish cuisine.",
+      de: "Mit Fokus auf türkische Küche.",
+      ru: "С акцентом на турецкую кухню.",
+    },
+  },
+  agendaTitle: {
+    "VIP arrival briefing approval": {
+      tr: "VIP varış brifing onayı",
+      en: "VIP arrival briefing approval",
+      de: "Freigabe des VIP-Anreisebriefings",
+      ru: "Подтверждение брифинга по VIP-заезду",
+    },
+    "Housekeeping recovery backlog review": {
+      tr: "Kat hizmetleri toparlama birikimi incelemesi",
+      en: "Housekeeping recovery backlog review",
+      de: "Prüfung des Housekeeping-Nachbearbeitungsrückstands",
+      ru: "Проверка накопившихся задач по восстановлению Housekeeping",
+    },
+    "Tomorrow ala carte capacity lock": {
+      tr: "Yarın için A'la Carte kapasite kilidi",
+      en: "Tomorrow ala carte capacity lock",
+      de: "Kapazitätssperre für Ala Carte morgen",
+      ru: "Фиксация мощности Ala Carte на завтра",
+    },
+    "Technical preventive check for suites": {
+      tr: "Suit odalar için teknik önleyici kontrol",
+      en: "Technical preventive check for suites",
+      de: "Technischer Präventivcheck für Suiten",
+      ru: "Профилактическая техническая проверка сьютов",
+    },
+    "Weekly executive summary draft": {
+      tr: "Haftalık yönetici özeti taslağı",
+      en: "Weekly executive summary draft",
+      de: "Entwurf der wöchentlichen Management-Zusammenfassung",
+      ru: "Черновик еженедельной управленческой сводки",
+    },
+  },
+  agendaNote: {
+    "Confirm welcome flow, suite readiness and guest relations handoff.": {
+      tr: "Karşılama akışı, suit hazırlığı ve misafir ilişkileri teslimini teyit et.",
+      en: "Confirm welcome flow, suite readiness and guest relations handoff.",
+      de: "Begrüßungsablauf, Suitenbereitschaft und Übergabe an Guest Relations bestätigen.",
+      ru: "Подтвердить сценарий встречи, готовность сьюта и передачу в guest relations.",
+    },
+    "Close delayed cleaning cases before evening report.": {
+      tr: "Akşam raporundan önce geciken temizlik vakalarını kapat.",
+      en: "Close delayed cleaning cases before evening report.",
+      de: "Verspätete Reinigungsfälle vor dem Abendbericht abschließen.",
+      ru: "Закрыть задержанные случаи уборки до вечернего отчета.",
+    },
+    "Freeze tomorrow evening allocations and inform assistant routing.": {
+      tr: "Yarın akşam tahsislerini sabitle ve asistan yönlendirmesini bilgilendir.",
+      en: "Freeze tomorrow evening allocations and inform assistant routing.",
+      de: "Morgige Abendkontingente sperren und die Assistenzsteuerung informieren.",
+      ru: "Зафиксировать завтрашние вечерние квоты и уведомить ассистентов о маршрутизации.",
+    },
+    "Focus on AC and minibar controls for VIP floor.": {
+      tr: "VIP katı için klima ve minibar kontrollerine odaklan.",
+      en: "Focus on AC and minibar controls for VIP floor.",
+      de: "Schwerpunkt auf Klima- und Minibar-Kontrollen auf der VIP-Etage.",
+      ru: "Сфокусироваться на кондиционерах и минибарах на VIP-этаже.",
+    },
+    "Prepare service quality and complaint resolution summary.": {
+      tr: "Servis kalitesi ve şikayet çözüm özetini hazırla.",
+      en: "Prepare service quality and complaint resolution summary.",
+      de: "Zusammenfassung zu Servicequalität und Beschwerdelösung vorbereiten.",
+      ru: "Подготовить сводку по качеству сервиса и решению жалоб.",
+    },
+  },
+  meetingTopic: {
+    "Oda memnuniyeti gorusmesi": {
+      tr: "Oda memnuniyeti görüşmesi",
+      en: "Room satisfaction meeting",
+      de: "Gespräch zur Zimmerzufriedenheit",
+      ru: "Встреча по удовлетворенности номером",
+    },
+    "Erken cikis talebi": {
+      tr: "Erken çıkış talebi",
+      en: "Early check-out request",
+      de: "Anfrage auf frühen Check-out",
+      ru: "Запрос на ранний выезд",
+    },
+  },
+  meetingResult: {
+    "Takip gerekli": { tr: "Takip gerekli", en: "Follow-up required", de: "Nachverfolgung erforderlich", ru: "Требуется сопровождение" },
+    "Olumlu": { tr: "Olumlu", en: "Positive", de: "Positiv", ru: "Положительно" },
+  },
+  meetingNote: {
+    "Kahvalti alaniyla ilgili geri bildirim verdi. Yarin tekrar aranacak.": {
+      tr: "Kahvaltı alanıyla ilgili geri bildirim verdi. Yarın tekrar aranacak.",
+      en: "Shared feedback about the breakfast area. Will be called again tomorrow.",
+      de: "Gab Feedback zum Frühstücksbereich. Wird morgen erneut angerufen.",
+      ru: "Оставил отзыв о зоне завтрака. Завтра будет повторный звонок.",
+    },
+    "Talep onaylandi, tesekkur etti.": {
+      tr: "Talep onaylandı, teşekkür etti.",
+      en: "The request was approved and the guest thanked the team.",
+      de: "Anfrage genehmigt, der Gast bedankte sich.",
+      ru: "Запрос подтвержден, гость поблагодарил команду.",
+    },
+  },
+  reviewContent: {
+    "Personel ilgiliydi ama giris islemi uzun surdu.": {
+      tr: "Personel ilgiliydi ama giriş işlemi uzun sürdü.",
+      en: "The staff were attentive, but check-in took too long.",
+      de: "Das Personal war aufmerksam, aber der Check-in dauerte zu lange.",
+      ru: "Персонал был внимательным, но заселение заняло слишком много времени.",
+    },
+    "Konum ve ekip cok iyiydi, tekrar gelirim.": {
+      tr: "Konum ve ekip çok iyiydi, tekrar gelirim.",
+      en: "The location and team were excellent, I would return again.",
+      de: "Lage und Team waren sehr gut, ich würde wiederkommen.",
+      ru: "Расположение и команда были отличными, я бы вернулся снова.",
+    },
+  },
+};
 
 const internalModules = [
   { id: "guest", icon: Building2 },
@@ -115,14 +324,14 @@ const initialAlaCarteVenues = [
     maxGuests: 6,
     mixedTable: false,
     areaPreference: true,
-    childPolicy: "0-11 yas cocuklar ucretsiz",
+    childPolicy: "0-11 yaş çocuklar ücretsiz",
     cancellationWindow: "2 hours",
     closeSaleWindow: "1 hour",
     workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     roomNightLimit: 1,
     includeOtherRooms: false,
     tableSetup: "2, 4, 6 pax tables",
-    note: "Turk mutfagi odakli, klasik aile rezervasyon akisi.",
+    note: "Türk mutfağı odaklı, klasik aile rezervasyon akışı.",
     demand: "High",
     occupancy: 78,
     slotCount: 3,
@@ -139,7 +348,7 @@ const initialAlaCarteVenues = [
     maxGuests: 8,
     mixedTable: false,
     areaPreference: true,
-    childPolicy: "0-11 yas cocuklar ucretsiz",
+    childPolicy: "0-11 yaş çocuklar ücretsiz",
     cancellationWindow: "3 hours",
     closeSaleWindow: "90 minutes",
     workingDays: ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -163,14 +372,14 @@ const initialAlaCarteVenues = [
     maxGuests: 8,
     mixedTable: false,
     areaPreference: true,
-    childPolicy: "0-11 yas cocuklar ucretsiz",
+    childPolicy: "0-11 yaş çocuklar ücretsiz",
     cancellationWindow: "2 hours",
     closeSaleWindow: "1 hour",
     workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     roomNightLimit: 1,
     includeOtherRooms: false,
     tableSetup: "2, 4, 6 pax tables",
-    note: "Yunan mutfagi, deniz urunu ve meze agirlikli servis.",
+    note: "Yunan mutfağı, deniz ürünü ve meze ağırlıklı servis.",
     demand: "Medium",
     occupancy: 66,
     slotCount: 3,
@@ -187,7 +396,7 @@ const initialAlaCarteVenues = [
     maxGuests: 8,
     mixedTable: false,
     areaPreference: false,
-    childPolicy: "0-11 yas cocuklar ucretsiz",
+    childPolicy: "0-11 yaş çocuklar ücretsiz",
     cancellationWindow: "2 hours",
     closeSaleWindow: "1 hour",
     workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -211,7 +420,7 @@ const initialAlaCarteVenues = [
     maxGuests: 6,
     mixedTable: false,
     areaPreference: true,
-    childPolicy: "0-11 yas cocuklar ucretsiz",
+    childPolicy: "0-11 yaş çocuklar ücretsiz",
     cancellationWindow: "3 hours",
     closeSaleWindow: "90 minutes",
     workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -235,14 +444,14 @@ const initialAlaCarteVenues = [
     maxGuests: 6,
     mixedTable: true,
     areaPreference: false,
-    childPolicy: "Teppanyaki restoraninda 0-11 yas ucretsiz degil",
+    childPolicy: "Teppanyaki restoranında 0-11 yaş ücretsiz değildir",
     cancellationWindow: "3 hours",
     closeSaleWindow: "90 minutes",
     workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     roomNightLimit: 1,
     includeOtherRooms: false,
     tableSetup: "Shared chef counter + 4 pax tables",
-    note: "Show mutfagi akisi, cocuk ucretsiz politikasi uygulanmaz.",
+    note: "Show mutfağı akışı, çocuk ücretsiz politikası uygulanmaz.",
     demand: "Critical",
     occupancy: 91,
     slotCount: 2,
@@ -253,7 +462,7 @@ const initialAlaCarteReservations = [
   {
     id: "res-1001",
     venueId: "kebappa-turkish-restaurant",
-    guestName: "Muller Family",
+    guestName: "Müller Family",
     roomNumber: "4102",
     partySize: 4,
     reservationDate: "2026-03-12",
@@ -329,10 +538,10 @@ const initialAssistantMeetings = [
     date: "2026-03-12",
     time: "10:30",
     contact: "0555 123 45 67",
-    topic: "Oda memnuniyeti gorusmesi",
+    topic: "Oda memnuniyeti görüşmesi",
     tagCode: "FTF",
     result: "Takip gerekli",
-    notes: "Kahvalti alaniyla ilgili geri bildirim verdi. Yarin tekrar aranacak.",
+    notes: "Kahvaltı alanıyla ilgili geri bildirim verdi. Yarın tekrar aranacak.",
     followUpDate: "2026-03-12",
     owner: "Merve",
     assignedAssistant: "Merve",
@@ -345,10 +554,10 @@ const initialAssistantMeetings = [
     date: "2026-03-12",
     time: "15:00",
     contact: "",
-    topic: "Erken cikis talebi",
+    topic: "Erken çıkış talebi",
     tagCode: "",
     result: "Olumlu",
-    notes: "Talep onaylandi, tesekkur etti.",
+    notes: "Talep onaylandı, teşekkür etti.",
     followUpDate: "",
     owner: "Seda",
     assignedAssistant: "Seda",
@@ -365,7 +574,7 @@ const initialAssistantReviews = [
     author: "Cem Y.",
     date: "2026-03-12",
     branch: "Voyage Kundu",
-    content: "Personel ilgiliydi ama giris islemi uzun surdu.",
+    content: "Personel ilgiliydi ama giriş işlemi uzun sürdü.",
     status: "In Review",
     owner: "Merve",
     createdAt: "2026-03-12T11:10:00.000Z",
@@ -409,18 +618,24 @@ const alaCarteLabels = {
     medium: "Orta",
     high: "Yüksek",
     reservationFlow: "Rezervasyon akışı",
-    booked: "Booked",
-    confirmed: "Confirmed",
-    arrived: "Arrived",
-    seated: "Seated",
-    completed: "Completed",
-    cancelled: "Cancelled",
+    booked: "Rezerve edildi",
+    confirmed: "Onaylandı",
+    arrived: "Geldi",
+    seated: "Masaya alındı",
+    completed: "Tamamlandı",
+    cancelled: "İptal edildi",
     noShow: "No-show",
     waiting: "Bekliyor",
     converted: "Dönüştürüldü",
     vip: "VIP",
     family: "Aile",
     regular: "Standart",
+    sources: {
+      app: "Uygulama",
+      guestRelations: "Misafir İlişkileri",
+      frontOffice: "Ön Büro",
+      manager: "Yönetici",
+    },
     settingsTitle: "A'la Carte ayarları",
     settingsText: "Seçilen restoranın kurallarını, masa düzenini ve satış limitlerini güncelleyin.",
     selectVenue: "Restoran seç",
@@ -468,6 +683,12 @@ const alaCarteLabels = {
     vip: "VIP",
     family: "Family",
     regular: "Regular",
+    sources: {
+      app: "App",
+      guestRelations: "Guest Relations",
+      frontOffice: "Front Office",
+      manager: "Manager",
+    },
     settingsTitle: "Ala carte settings",
     settingsText: "Update the rules, table setup and sales limits of the selected venue.",
     selectVenue: "Select venue",
@@ -503,18 +724,24 @@ const alaCarteLabels = {
     medium: "Mittel",
     high: "Hoch",
     reservationFlow: "Reservierungsfluss",
-    booked: "Booked",
-    confirmed: "Confirmed",
-    arrived: "Arrived",
-    seated: "Seated",
-    completed: "Completed",
-    cancelled: "Cancelled",
+    booked: "Gebucht",
+    confirmed: "Bestätigt",
+    arrived: "Angekommen",
+    seated: "Platziert",
+    completed: "Abgeschlossen",
+    cancelled: "Storniert",
     noShow: "No-show",
     waiting: "Wartet",
     converted: "Umgewandelt",
     vip: "VIP",
     family: "Familie",
     regular: "Standard",
+    sources: {
+      app: "App",
+      guestRelations: "Gästebetreuung",
+      frontOffice: "Rezeption",
+      manager: "Manager",
+    },
     settingsTitle: "Ala-Carte-Einstellungen",
     settingsText: "Aktualisieren Sie Regeln, Tischaufbau und Verkaufslimits des ausgewählten Standorts.",
     selectVenue: "Standort wählen",
@@ -550,18 +777,24 @@ const alaCarteLabels = {
     medium: "Средний",
     high: "Высокий",
     reservationFlow: "Поток бронирований",
-    booked: "Booked",
-    confirmed: "Confirmed",
-    arrived: "Arrived",
-    seated: "Seated",
-    completed: "Completed",
-    cancelled: "Cancelled",
+    booked: "Забронировано",
+    confirmed: "Подтверждено",
+    arrived: "Прибыл",
+    seated: "Усажен",
+    completed: "Завершено",
+    cancelled: "Отменено",
     noShow: "No-show",
     waiting: "Ожидает",
     converted: "Преобразовано",
     vip: "VIP",
     family: "Семья",
     regular: "Стандарт",
+    sources: {
+      app: "Приложение",
+      guestRelations: "Гостевые отношения",
+      frontOffice: "Ресепшен",
+      manager: "Менеджер",
+    },
     settingsTitle: "Настройки Ala Carte",
     settingsText: "Обновите правила, схему столов и лимиты продаж для выбранной площадки.",
     selectVenue: "Выбрать площадку",
@@ -611,6 +844,8 @@ const titleLabels = {
     chiefEngineer: "Teknik Müdürü",
     foodBeverageManager: "Yiyecek ve İçecek Müdürü",
     guestRelationsManager: "Misafir İlişkileri Müdürü",
+    guestRelationsDeputyManager: "Misafir İlişkileri Müdür Yardımcısı",
+    guestRelationsChief: "Misafir İlişkileri Şefi",
     securityManager: "Güvenlik Müdürü",
     spaManager: "SPA Müdürü",
     salesManager: "Satış Müdürü",
@@ -629,6 +864,8 @@ const titleLabels = {
     chiefEngineer: "Chief Engineer",
     foodBeverageManager: "Food and Beverage Manager",
     guestRelationsManager: "Guest Relations Manager",
+    guestRelationsDeputyManager: "Guest Relations Deputy Manager",
+    guestRelationsChief: "Guest Relations Chief",
     securityManager: "Security Manager",
     spaManager: "SPA Manager",
     salesManager: "Sales Manager",
@@ -647,6 +884,8 @@ const titleLabels = {
     chiefEngineer: "Technischer Leiter",
     foodBeverageManager: "F&B-Manager",
     guestRelationsManager: "Leitung Gästebetreuung",
+    guestRelationsDeputyManager: "Stv. Leitung Gästebetreuung",
+    guestRelationsChief: "Gästebetreuungschef",
     securityManager: "Sicherheitsleiter",
     spaManager: "SPA-Manager",
     salesManager: "Verkaufsleiter",
@@ -665,6 +904,8 @@ const titleLabels = {
     chiefEngineer: "Технический директор",
     foodBeverageManager: "Менеджер F&B",
     guestRelationsManager: "Менеджер по работе с гостями",
+    guestRelationsDeputyManager: "Заместитель менеджера по работе с гостями",
+    guestRelationsChief: "Шеф по работе с гостями",
     securityManager: "Менеджер службы безопасности",
     spaManager: "SPA-менеджер",
     salesManager: "Менеджер по продажам",
@@ -700,6 +941,8 @@ const translations = {
     analysis: "Analiz",
     alacarteTab: "A'la Carte",
     assistantTrackerTab: "FTF ve Hall of Fame",
+    criticalReviewOpsTab: "Kritik Yorum Operasyonu",
+    ordersTab: "Siparişler",
     managerAgendaTab: "365 Gün Ajanda",
     permissionsTab: "Yetki Yönetimi",
     managerOpsTab: "Müdür İşlemleri",
@@ -713,6 +956,8 @@ const translations = {
     todoPlanningBoard: "Yapılacaklar ve Planlama Panosu",
     searchTask: "Görev ara",
     allTypes: "Tüm tipler",
+    allTaskStatuses: "Tüm görev durumları",
+    taskStatusFilter: "Görev durumu",
     daily: "Günlük",
     periodic: "Dönemsel",
     duePrefix: "Termin",
@@ -728,10 +973,40 @@ const translations = {
     owner: "Sorumlu",
     dueDate: "Termin tarihi",
     notes: "Notlar",
+    notesPlaceholder: "Yapılacak işin detayını, arka planını veya ek notları yazın.",
     addTask: "Görev ekle",
+    ordersTitle: "Siparişler",
+    ordersText: "Meyve sepeti, pasta ve özel istek siparişlerini oda bazlı yönetin.",
+    fruitWine: "Meyve Sepeti & Şarap",
+    cake: "Pasta",
+    roomDecoration: "Oda Süsleme",
+    specialRequest: "Özel İstek",
+    roomNumberFixed: "Oda No",
+    addOrder: "Sipariş ekle",
+    saveOrders: "Siparişleri kaydet",
+    exportOrders: "Sipariş çıktısı al",
+    printOrders: "Yazdır",
+    ordersSaved: "Sipariş listesi kaydedildi.",
+    ordersExported: "Sipariş listesi indirildi.",
+    ordersPrinted: "Sipariş listesi yazdırmaya hazırlandı.",
+    saveList: "Listeyi kaydet",
+    exportList: "Çıktı al",
+    tasksSaved: "Görev listesi kaydedildi.",
+    tasksExported: "Görev listesi indirildi.",
+    complaintsSaved: "Şikayet listesi kaydedildi.",
+    complaintsExported: "Şikayet listesi indirildi.",
+    alaCarteSaved: "A'la Carte listeleri kaydedildi.",
+    alaCarteExported: "A'la Carte listeleri indirildi.",
     complaintTracking: "Şikayet Takibi",
     searchComplaint: "Şikayet ara",
     allStatuses: "Tüm durumlar",
+    allSeverities: "Tüm seviyeler",
+    allDepartments: "Tüm departmanlar",
+    allComplaintCategories: "Tüm kategoriler",
+    allChannels: "Tüm kanallar",
+    complaintDepartmentFilter: "Şikayet departmanı",
+    complaintSeverityFilter: "Şikayet seviyesi",
+    complaintChannelFilter: "Şikayet kanalı",
     addComplaint: "Şikayet ekle",
     guestOrCase: "Misafir / Vaka",
     category: "Kategori",
@@ -739,6 +1014,7 @@ const translations = {
     channel: "Kanal",
     date: "Tarih",
     summary: "Özet",
+    summaryPlaceholder: "Şikayetin kısa özetini ve beklenen aksiyonu yazın.",
     complaintCategories: "Şikayet kategorileri",
     complaintStatusDistribution: "Şikayet durum dağılımı",
     totalComplaints: "Toplam şikayet",
@@ -746,6 +1022,8 @@ const translations = {
     resolutionRatio: "Çözüm oranı",
     voyageModules: "Voyage modülleri",
     voyageModulesText: "Rolünüze göre filtrelenmiş iç operasyon panelleri.",
+    runtimeLabel: "Çalışma modu",
+    runtimeText: "Rol bazlı iç operasyon modeli. Canlı rezervasyon sayfalarına dış bağımlılık yok.",
     internalPanel: "İç panel",
     panelReady: "Hazır",
     openPanel: "Paneli aç",
@@ -817,6 +1095,7 @@ const translations = {
     agendaTaskOwner: "Takip sorumlusu",
     agendaTaskPriority: "Önem seviyesi",
     agendaTaskContext: "Operasyon notu",
+    agendaTaskContextPlaceholder: "Bu işin neden önemli olduğunu ve takip notunu yazın.",
     addAgendaTask: "Ajanda işini ekle",
     noAgendaToday: "Bugün için kayıt yok.",
     noAgendaTomorrow: "Yarın için kritik iş tanımlı değil.",
@@ -840,6 +1119,7 @@ const translations = {
     updatePrice: "Fiyat güncelle",
     quickRules: "Hızlı kurallar",
     activeVenues: "Aktif lokasyonlar",
+    alaCarteRestaurants: "A'la Carte restoranlar",
     cuisine: "Mutfak",
     activeStatus: "Durum",
     openTime: "Açılış",
@@ -856,10 +1136,14 @@ const translations = {
     areaPreference: "Alan tercihi",
     mixedTable: "Karışık masa",
     operationalNote: "Operasyon notu",
+    operationalNotePlaceholder: "Operasyon ekibinin görmesi gereken kısa notu yazın.",
     active: "Aktif",
     passive: "Pasif",
     yes: "Evet",
     no: "Hayır",
+    weekdaysShort: { Mon: "Pzt", Tue: "Sal", Wed: "Çar", Thu: "Per", Fri: "Cum", Sat: "Cmt", Sun: "Paz" },
+    reservationClosedDayError: "Secilen restoran bu gunde kapali. Rezervasyon kaydi olusturulamaz.",
+    slotClosedDayError: "Secilen restoran bu gunde calismiyor. Servis slotu eklenemez.",
     permissionTitle: "Yetki yönetimi",
     permissionText:
       "Asistan sistemi dışındaki tüm sekme ve panel erişimleri yalnızca admin tarafından açılıp kapatılır.",
@@ -884,34 +1168,68 @@ const translations = {
     allowNotifications: "Bildirim izni ver",
     markAsRead: "Okundu yap",
     notificationComplaintTitle: "Yeni departman yorumu",
-    ftfStatsTitle: "Asistan takip ozeti",
+    ftfStatsTitle: "Asistan takip özeti",
     ftfLeaderboardTitle: "Hall of Fame",
     ftfMeetingsTitle: "FTF takip listesi",
     ftfReviewsTitle: "Yorum listesi",
-    addMeetingTitle: "Yuz yuze gorusme ekle",
+    reviewSourcesTitle: "Yorum kaynakları",
+    reviewSourcesText: "Google, Tripadvisor, Yandex ve HolidayCheck yorumlarını tek ekranda toplayın.",
+    reviewScheduleTitle: "Tarama takvimi",
+    reviewScheduleDaily: "Standart tarama: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "1-4 puan izleme: 15 dakikada bir",
+    reviewAlertRecipients: "Bildirim alıcıları: Misafir ilişkileri müdürü, misafir ilişkileri müdür yardımcısı ve misafir ilişkileri şefi",
+    reviewSourceUrl: "Kaynak URL",
+    reviewSourceSave: "Kaynakları kaydet",
+    reviewSourceSaved: "Yorum kaynakları kaydedildi.",
+    reviewSyncButton: "Yorumları senkronize et",
+    reviewSyncing: "Kaynaklar taranıyor...",
+    reviewSyncDone: "{count} yorum içe aktarıldı.",
+    reviewSourceLastSync: "Son senkron",
+    reviewScanLogTitle: "Tarama kayıtları",
+    reviewScanStatus: "Tarama durumu",
+    reviewScanCount: "Bulunan yorum",
+    reviewMatchedAssistant: "Eşleşen asistan",
+    reviewImported: "Otomatik",
+    criticalReviewOpsTitle: "Kritik yorum operasyon paneli",
+    criticalReviewOpsText: "1-4 puan arası yorumları, otomatik alarmları ve açılan aksiyonları tek yerden yönetin.",
+    criticalReviewAlerts: "Aktif alarm",
+    criticalReviewTasks: "Açılan görev",
+    criticalReviewCreateTask: "Görev aç",
+    criticalReviewTaskCreated: "Kritik yorum için görev açıldı.",
+    criticalReviewAssign: "Atanan kişi",
+    criticalReviewState: "Operasyon durumu",
+    criticalReviewStates: {
+      alerted: "Alarm oluştu",
+      assigned: "Atandı",
+      inProgress: "İşlemde",
+      replied: "Yanıtlandı",
+      closed: "Kapatıldı",
+    },
+    addMeetingTitle: "Yüz yüze görüşme ekle",
     addReviewTitle: "Yorum ekle",
     followUpWaiting: "Takip bekleyen",
-    lowReviewCount: "Dusuk puanli yorum",
-    ftfCountLabel: "FTF kaydi",
+    lowReviewCount: "Düşük puanlı yorum",
+    ftfCountLabel: "FTF kaydı",
     leaderAssistant: "Lider asistan",
-    todayMeetingCount: "Bugunku gorusme",
-    reviewOpenCount: "Acik yorum",
-    customerNameLabel: "Musteri adi",
+    todayMeetingCount: "Bugünkü görüşme",
+    reviewOpenCount: "Açık yorum",
+    customerNameLabel: "Müşteri adı",
     contactLabel: "Telefon",
-    topicLabel: "Gorusme konusu",
+    topicLabel: "Görüşme konusu",
     tagCodeLabel: "Kod / etiket",
-    resultLabel: "Sonuc",
+    resultLabel: "Sonuç",
     followUpDateLabel: "Takip tarihi",
-    assignedAssistantLabel: "Ilgili asistan",
-    saveMeeting: "Gorusmeyi kaydet",
+    assignedAssistantLabel: "İlgili asistan",
+    saveMeeting: "Görüşmeyi kaydet",
     platformLabel: "Platform",
     ratingLabel: "Puan",
     authorLabel: "Yorum sahibi",
-    branchLabel: "Sube veya isletme",
+    branchLabel: "Şube veya işletme",
     contentLabel: "Yorum metni",
+    reviewContentPlaceholder: "Yorum içeriğini veya misafir geri bildirimini buraya girin.",
     saveReview: "Yorumu kaydet",
-    searchMeeting: "Musteri ya da konu ara",
-    searchReview: "Platform, sube veya kisi ara",
+    searchMeeting: "Müşteri ya da konu ara",
+    searchReview: "Platform, şube veya kişi ara",
     passwordChangeTitle: "Yeni şifre belirleyin",
     passwordChangeText: "İlk girişte güvenlik için kişisel şifrenizi güncellemeniz gerekir.",
     newPasswordRequiredLabel: "Yeni şifre",
@@ -962,11 +1280,54 @@ const translations = {
       callCenter: "Çağrı Merkezi",
     },
     categories: {
-      housekeeping: "Kat Hizmetleri",
-      foodBeverage: "Yiyecek ve İçecek",
-      technical: "Teknik",
-      noise: "Gürültü",
-      frontOffice: "Ön Büro",
+      roomCleanliness: "Oda temizliği",
+      housekeepingDelay: "Temizlik gecikmesi",
+      amenitiesMissing: "Eksik buklet malzemesi",
+      laundryIssue: "Çamaşır / tekstil sorunu",
+      minibarMissing: "Eksik minibar dolumu",
+      balconyCleaning: "Balkon temizliği",
+      dinnerService: "Akşam servisi",
+      breakfastService: "Kahvaltı servisi",
+      barService: "Bar servisi",
+      allergyRequest: "Alerjen / özel menü talebi",
+      serviceTemperature: "Yemek sıcaklığı",
+      hostDelay: "Karşılama / rezervasyon desk gecikmesi",
+      acIssue: "Klima arızası",
+      plumbingIssue: "Tesisat sorunu",
+      wifiIssue: "Wi-Fi sorunu",
+      lightingIssue: "Aydınlatma sorunu",
+      tvIssue: "TV / yayın sorunu",
+      hotWaterIssue: "Sıcak su sorunu",
+      noiseCorridor: "Koridor gürültüsü",
+      noiseEntertainment: "Eğlence gürültüsü",
+      securityIncident: "Güvenlik olayı",
+      lostItem: "Kayıp eşya süreci",
+      poolSafety: "Havuz güvenliği",
+      unauthorizedAccess: "Yetkisiz erişim",
+      checkInDelay: "Check-in gecikmesi",
+      billingIssue: "Fatura sorunu",
+      roomAllocation: "Oda atama sorunu",
+      lateCheckout: "Geç çıkış talebi",
+      keyCardIssue: "Kartlı geçiş sorunu",
+      luggageDelay: "Bagaj gecikmesi",
+      guestRelationsFollowUp: "Misafir geri dönüşü",
+      vipHandling: "VIP karşılama süreci",
+      feedbackResponse: "Geri bildirim yanıtı",
+      transferRequest: "Transfer organizasyonu",
+      compensationRequest: "Telafi / jest talebi",
+      loyaltyIssue: "Sadakat programı talebi",
+      spaService: "SPA hizmeti",
+      appointmentDelay: "Randevu gecikmesi",
+      cleanlinessSpa: "SPA hijyeni",
+      therapistRequest: "Terapist talebi",
+      therapistAvailability: "Terapist müsaitliği",
+      treatmentQuality: "Bakım kalitesi",
+      showQuality: "Şov kalitesi",
+      activityPlanning: "Aktivite planlaması",
+      musicVolume: "Müzik ses seviyesi",
+      kidsClubIssue: "Mini kulüp / çocuk aktivitesi",
+      stageSoundIssue: "Sahne ses sistemi",
+      activityCapacity: "Aktivite kapasitesi",
     },
     taskTitles: {
       vipArrivalPreparation: "VIP varış hazırlığı",
@@ -1010,6 +1371,8 @@ const translations = {
     analysis: "Analysis",
     alacarteTab: "Ala Carte",
     assistantTrackerTab: "FTF and Hall of Fame",
+    criticalReviewOpsTab: "Critical Review Ops",
+    ordersTab: "Orders",
     managerAgendaTab: "365 Day Agenda",
     permissionsTab: "Permissions",
     managerOpsTab: "Manager Activity",
@@ -1023,6 +1386,8 @@ const translations = {
     todoPlanningBoard: "To-Do List and Planning Board",
     searchTask: "Search task",
     allTypes: "All types",
+    allTaskStatuses: "All task statuses",
+    taskStatusFilter: "Task status",
     daily: "Daily",
     periodic: "Periodic",
     duePrefix: "Due",
@@ -1038,10 +1403,40 @@ const translations = {
     owner: "Owner",
     dueDate: "Due date",
     notes: "Notes",
+    notesPlaceholder: "Write the task details, context, or any follow-up notes.",
     addTask: "Add task",
+    ordersTitle: "Orders",
+    ordersText: "Manage fruit basket, cake and special request orders by room.",
+    fruitWine: "Fruit Basket & Wine",
+    cake: "Cake",
+    roomDecoration: "Room Decoration",
+    specialRequest: "Special Request",
+    roomNumberFixed: "Room No",
+    addOrder: "Add order",
+    saveOrders: "Save orders",
+    exportOrders: "Export orders",
+    printOrders: "Print",
+    ordersSaved: "Order list saved.",
+    ordersExported: "Order list downloaded.",
+    ordersPrinted: "Order sheet prepared for printing.",
+    saveList: "Save list",
+    exportList: "Export",
+    tasksSaved: "Task list saved.",
+    tasksExported: "Task list downloaded.",
+    complaintsSaved: "Complaint list saved.",
+    complaintsExported: "Complaint list downloaded.",
+    alaCarteSaved: "Ala carte lists saved.",
+    alaCarteExported: "Ala carte lists downloaded.",
     complaintTracking: "Complaint Tracking",
     searchComplaint: "Search complaint",
     allStatuses: "All statuses",
+    allSeverities: "All severities",
+    allDepartments: "All departments",
+    allComplaintCategories: "All categories",
+    allChannels: "All channels",
+    complaintDepartmentFilter: "Complaint department",
+    complaintSeverityFilter: "Complaint severity",
+    complaintChannelFilter: "Complaint channel",
     addComplaint: "Add complaint",
     guestOrCase: "Guest / Case",
     category: "Category",
@@ -1049,6 +1444,7 @@ const translations = {
     channel: "Channel",
     date: "Date",
     summary: "Summary",
+    summaryPlaceholder: "Write a short complaint summary and the expected action.",
     complaintCategories: "Complaint categories",
     complaintStatusDistribution: "Complaint status distribution",
     totalComplaints: "Total complaints",
@@ -1056,6 +1452,8 @@ const translations = {
     resolutionRatio: "Resolution ratio",
     voyageModules: "Voyage modules",
     voyageModulesText: "Internal operation panels filtered by user role.",
+    runtimeLabel: "Runtime",
+    runtimeText: "Role-scoped internal operational model. No outbound dependency on live reservation pages.",
     internalPanel: "Internal panel",
     panelReady: "Ready",
     openPanel: "Open panel",
@@ -1120,6 +1518,7 @@ const translations = {
     agendaTaskOwner: "Follow-up owner",
     agendaTaskPriority: "Priority level",
     agendaTaskContext: "Operational note",
+    agendaTaskContextPlaceholder: "Explain why this item matters and what should be followed up.",
     addAgendaTask: "Add agenda task",
     noAgendaToday: "No records for today.",
     noAgendaTomorrow: "No critical work set for tomorrow.",
@@ -1143,6 +1542,7 @@ const translations = {
     updatePrice: "Update price",
     quickRules: "Quick rules",
     activeVenues: "Active venues",
+    alaCarteRestaurants: "Ala carte restaurants",
     cuisine: "Cuisine",
     activeStatus: "Status",
     openTime: "Opening",
@@ -1159,10 +1559,14 @@ const translations = {
     areaPreference: "Area preference",
     mixedTable: "Mixed table",
     operationalNote: "Operational note",
+    operationalNotePlaceholder: "Write the short note that the operations team needs to see.",
     active: "Active",
     passive: "Passive",
     yes: "Yes",
     no: "No",
+    weekdaysShort: { Mon: "Mon", Tue: "Tue", Wed: "Wed", Thu: "Thu", Fri: "Fri", Sat: "Sat", Sun: "Sun" },
+    reservationClosedDayError: "The selected restaurant is closed on this day. A reservation cannot be created.",
+    slotClosedDayError: "The selected restaurant does not operate on this day. A service slot cannot be added.",
     permissionTitle: "Permission management",
     permissionText:
       "All tab and panel access outside the assistant system can only be opened or closed by the admin here.",
@@ -1191,6 +1595,39 @@ const translations = {
     ftfLeaderboardTitle: "Hall of Fame",
     ftfMeetingsTitle: "FTF follow-up list",
     ftfReviewsTitle: "Review list",
+    reviewSourcesTitle: "Review sources",
+    reviewSourcesText: "Collect Google, Tripadvisor, Yandex and HolidayCheck reviews in one screen.",
+    reviewScheduleTitle: "Scan schedule",
+    reviewScheduleDaily: "Standard scan: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "1-4 rating watch: every 15 minutes",
+    reviewAlertRecipients: "Alert recipients: Guest relations manager, guest relations deputy manager and guest relations chief",
+    reviewSourceUrl: "Source URL",
+    reviewSourceSave: "Save sources",
+    reviewSourceSaved: "Review sources saved.",
+    reviewSyncButton: "Sync reviews",
+    reviewSyncing: "Scanning sources...",
+    reviewSyncDone: "{count} reviews imported.",
+    reviewSourceLastSync: "Last sync",
+    reviewScanLogTitle: "Scan logs",
+    reviewScanStatus: "Scan status",
+    reviewScanCount: "Reviews found",
+    reviewMatchedAssistant: "Matched assistant",
+    reviewImported: "Automatic",
+    criticalReviewOpsTitle: "Critical review operations panel",
+    criticalReviewOpsText: "Manage 1-4 rating reviews, automatic alerts and opened actions in one place.",
+    criticalReviewAlerts: "Active alert",
+    criticalReviewTasks: "Opened task",
+    criticalReviewCreateTask: "Create task",
+    criticalReviewTaskCreated: "Task created for the critical review.",
+    criticalReviewAssign: "Assigned to",
+    criticalReviewState: "Operation status",
+    criticalReviewStates: {
+      alerted: "Alerted",
+      assigned: "Assigned",
+      inProgress: "In progress",
+      replied: "Replied",
+      closed: "Closed",
+    },
     addMeetingTitle: "Add face-to-face meeting",
     addReviewTitle: "Add review",
     followUpWaiting: "Waiting follow-ups",
@@ -1212,6 +1649,7 @@ const translations = {
     authorLabel: "Review author",
     branchLabel: "Branch or venue",
     contentLabel: "Review content",
+    reviewContentPlaceholder: "Enter the review text or guest feedback here.",
     saveReview: "Save review",
     searchMeeting: "Search customer or topic",
     searchReview: "Search platform, branch or person",
@@ -1264,11 +1702,54 @@ const translations = {
       callCenter: "Call Center",
     },
     categories: {
-      housekeeping: "Housekeeping",
-      foodBeverage: "Food & Beverage",
-      technical: "Technical",
-      noise: "Noise",
-      frontOffice: "Front Office",
+      roomCleanliness: "Room cleanliness",
+      housekeepingDelay: "Cleaning delay",
+      amenitiesMissing: "Missing amenities",
+      laundryIssue: "Laundry / linen issue",
+      minibarMissing: "Minibar replenishment issue",
+      balconyCleaning: "Balcony cleaning",
+      dinnerService: "Dinner service",
+      breakfastService: "Breakfast service",
+      barService: "Bar service",
+      allergyRequest: "Allergy / special menu request",
+      serviceTemperature: "Food temperature",
+      hostDelay: "Host / reservation desk delay",
+      acIssue: "Air conditioning issue",
+      plumbingIssue: "Plumbing issue",
+      wifiIssue: "Wi-Fi issue",
+      lightingIssue: "Lighting issue",
+      tvIssue: "TV / broadcast issue",
+      hotWaterIssue: "Hot water issue",
+      noiseCorridor: "Corridor noise",
+      noiseEntertainment: "Entertainment noise",
+      securityIncident: "Security incident",
+      lostItem: "Lost item process",
+      poolSafety: "Pool safety issue",
+      unauthorizedAccess: "Unauthorized access",
+      checkInDelay: "Check-in delay",
+      billingIssue: "Billing issue",
+      roomAllocation: "Room allocation issue",
+      lateCheckout: "Late check-out request",
+      keyCardIssue: "Key card issue",
+      luggageDelay: "Luggage delay",
+      guestRelationsFollowUp: "Guest follow-up",
+      vipHandling: "VIP handling",
+      feedbackResponse: "Feedback response",
+      transferRequest: "Transfer request",
+      compensationRequest: "Compensation request",
+      loyaltyIssue: "Loyalty program request",
+      spaService: "SPA service",
+      appointmentDelay: "Appointment delay",
+      cleanlinessSpa: "SPA cleanliness",
+      therapistRequest: "Therapist request",
+      therapistAvailability: "Therapist availability",
+      treatmentQuality: "Treatment quality",
+      showQuality: "Show quality",
+      activityPlanning: "Activity planning",
+      musicVolume: "Music volume",
+      kidsClubIssue: "Kids club activity issue",
+      stageSoundIssue: "Stage sound issue",
+      activityCapacity: "Activity capacity issue",
     },
     taskTitles: {
       vipArrivalPreparation: "VIP arrival preparation",
@@ -1311,6 +1792,8 @@ const translations = {
     analysis: "Analyse",
     alacarteTab: "Ala Carte",
     assistantTrackerTab: "FTF und Hall of Fame",
+    criticalReviewOpsTab: "Kritische Bewertungszentrale",
+    ordersTab: "Bestellungen",
     managerAgendaTab: "365-Tage-Agenda",
     permissionsTab: "Rechte",
     managerOpsTab: "Manager-Aktionen",
@@ -1324,6 +1807,8 @@ const translations = {
     todoPlanningBoard: "Aufgaben- und Planungsboard",
     searchTask: "Aufgabe suchen",
     allTypes: "Alle Typen",
+    allTaskStatuses: "Alle Aufgabenstatus",
+    taskStatusFilter: "Aufgabenstatus",
     daily: "Täglich",
     periodic: "Periodisch",
     duePrefix: "Fällig",
@@ -1339,10 +1824,40 @@ const translations = {
     owner: "Verantwortlich",
     dueDate: "Fälligkeitsdatum",
     notes: "Notizen",
+    notesPlaceholder: "Geben Sie Details, Kontext oder zusätzliche Notizen zur Aufgabe ein.",
     addTask: "Aufgabe hinzufügen",
+    ordersTitle: "Bestellungen",
+    ordersText: "Verwalten Sie Obstkorb-, Kuchen- und Sonderwunschbestellungen nach Zimmer.",
+    fruitWine: "Obstkorb & Wein",
+    cake: "Kuchen",
+    roomDecoration: "Zimmerdekoration",
+    specialRequest: "Sonderwunsch",
+    roomNumberFixed: "Zimmernr.",
+    addOrder: "Bestellung hinzufügen",
+    saveOrders: "Bestellungen speichern",
+    exportOrders: "Bestellungen exportieren",
+    printOrders: "Drucken",
+    ordersSaved: "Bestellliste gespeichert.",
+    ordersExported: "Bestellliste heruntergeladen.",
+    ordersPrinted: "Bestellblatt zum Drucken vorbereitet.",
+    saveList: "Liste speichern",
+    exportList: "Exportieren",
+    tasksSaved: "Aufgabenliste wurde gespeichert.",
+    tasksExported: "Aufgabenliste wurde heruntergeladen.",
+    complaintsSaved: "Beschwerdeliste wurde gespeichert.",
+    complaintsExported: "Beschwerdeliste wurde heruntergeladen.",
+    alaCarteSaved: "Ala-Carte-Listen wurden gespeichert.",
+    alaCarteExported: "Ala-Carte-Listen wurden heruntergeladen.",
     complaintTracking: "Beschwerdeverfolgung",
     searchComplaint: "Beschwerde suchen",
     allStatuses: "Alle Status",
+    allSeverities: "Alle Stufen",
+    allDepartments: "Alle Abteilungen",
+    allComplaintCategories: "Alle Kategorien",
+    allChannels: "Alle Kanäle",
+    complaintDepartmentFilter: "Beschwerdeabteilung",
+    complaintSeverityFilter: "Beschwerdestufe",
+    complaintChannelFilter: "Beschwerdekanal",
     addComplaint: "Beschwerde hinzufügen",
     guestOrCase: "Gast / Fall",
     category: "Kategorie",
@@ -1350,6 +1865,7 @@ const translations = {
     channel: "Kanal",
     date: "Datum",
     summary: "Zusammenfassung",
+    summaryPlaceholder: "Geben Sie eine kurze Beschwerde-Zusammenfassung und die erwartete Aktion ein.",
     complaintCategories: "Beschwerdekategorien",
     complaintStatusDistribution: "Verteilung der Beschwerdestati",
     totalComplaints: "Beschwerden gesamt",
@@ -1357,6 +1873,8 @@ const translations = {
     resolutionRatio: "Lösungsquote",
     voyageModules: "Voyage-Module",
     voyageModulesText: "Interne Bedienpanels gefiltert nach Benutzerrolle.",
+    runtimeLabel: "Laufzeit",
+    runtimeText: "Rollenbasiertes internes Betriebsmodell. Keine Abhängigkeit zu Live-Reservierungsseiten.",
     internalPanel: "Internes Panel",
     panelReady: "Bereit",
     openPanel: "Panel öffnen",
@@ -1421,6 +1939,7 @@ const translations = {
     agendaTaskOwner: "Verantwortlich",
     agendaTaskPriority: "Prioritätsstufe",
     agendaTaskContext: "Betriebshinweis",
+    agendaTaskContextPlaceholder: "Beschreiben Sie, warum diese Aufgabe wichtig ist und was verfolgt werden soll.",
     addAgendaTask: "Agenda-Eintrag hinzufügen",
     noAgendaToday: "Keine Einträge für heute.",
     noAgendaTomorrow: "Für morgen ist nichts Kritisches definiert.",
@@ -1444,6 +1963,7 @@ const translations = {
     updatePrice: "Preis aktualisieren",
     quickRules: "Schnellregeln",
     activeVenues: "Aktive Standorte",
+    alaCarteRestaurants: "Ala-Carte-Restaurants",
     cuisine: "Küche",
     activeStatus: "Status",
     openTime: "Öffnung",
@@ -1460,10 +1980,14 @@ const translations = {
     areaPreference: "Bereichspräferenz",
     mixedTable: "Gemischter Tisch",
     operationalNote: "Betriebshinweis",
+    operationalNotePlaceholder: "Geben Sie die kurze Notiz ein, die das Operationsteam sehen soll.",
     active: "Aktiv",
     passive: "Passiv",
     yes: "Ja",
     no: "Nein",
+    weekdaysShort: { Mon: "Mo", Tue: "Di", Wed: "Mi", Thu: "Do", Fri: "Fr", Sat: "Sa", Sun: "So" },
+    reservationClosedDayError: "Das ausgewählte Restaurant ist an diesem Tag geschlossen. Es kann keine Reservierung erstellt werden.",
+    slotClosedDayError: "Das ausgewählte Restaurant arbeitet an diesem Tag nicht. Es kann kein Service-Slot hinzugefügt werden.",
     permissionTitle: "Rechteverwaltung",
     permissionText:
       "Alle Register- und Panelzugriffe außerhalb des Assistentensystems können hier nur vom Admin geöffnet oder geschlossen werden.",
@@ -1488,31 +2012,65 @@ const translations = {
     allowNotifications: "Benachrichtigungen erlauben",
     markAsRead: "Als gelesen markieren",
     notificationComplaintTitle: "Neues Abteilungsfeedback",
-    ftfStatsTitle: "Assistenten-Tracking-Ubersicht",
+    ftfStatsTitle: "Assistenten-Tracking-Übersicht",
     ftfLeaderboardTitle: "Hall of Fame",
     ftfMeetingsTitle: "FTF-Nachverfolgung",
     ftfReviewsTitle: "Bewertungsliste",
-    addMeetingTitle: "Face-to-Face-Gesprach hinzufugen",
-    addReviewTitle: "Bewertung hinzufugen",
+    reviewSourcesTitle: "Bewertungsquellen",
+    reviewSourcesText: "Google-, Tripadvisor-, Yandex- und HolidayCheck-Bewertungen in einer Ansicht sammeln.",
+    reviewScheduleTitle: "Scan-Zeitplan",
+    reviewScheduleDaily: "Standard-Scan: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "1-4 Sterne Überwachung: alle 15 Minuten",
+    reviewAlertRecipients: "Empfänger: Guest-Relations-Manager, stv. Guest-Relations-Manager und Guest-Relations-Chef",
+    reviewSourceUrl: "Quell-URL",
+    reviewSourceSave: "Quellen speichern",
+    reviewSourceSaved: "Bewertungsquellen gespeichert.",
+    reviewSyncButton: "Bewertungen synchronisieren",
+    reviewSyncing: "Quellen werden geprüft...",
+    reviewSyncDone: "{count} Bewertungen importiert.",
+    reviewSourceLastSync: "Letzte Synchronisierung",
+    reviewScanLogTitle: "Scan-Protokolle",
+    reviewScanStatus: "Scan-Status",
+    reviewScanCount: "Gefundene Bewertungen",
+    reviewMatchedAssistant: "Zugeordnete Assistenz",
+    reviewImported: "Automatisch",
+    criticalReviewOpsTitle: "Kritische Bewertungszentrale",
+    criticalReviewOpsText: "Bewertungen mit 1-4 Punkten, automatische Alarme und Aktionen an einem Ort steuern.",
+    criticalReviewAlerts: "Aktiver Alarm",
+    criticalReviewTasks: "Erstellte Aufgabe",
+    criticalReviewCreateTask: "Aufgabe erstellen",
+    criticalReviewTaskCreated: "Aufgabe fuer kritische Bewertung erstellt.",
+    criticalReviewAssign: "Zugewiesen an",
+    criticalReviewState: "Operationsstatus",
+    criticalReviewStates: {
+      alerted: "Alarmiert",
+      assigned: "Zugewiesen",
+      inProgress: "In Bearbeitung",
+      replied: "Beantwortet",
+      closed: "Geschlossen",
+    },
+    addMeetingTitle: "Face-to-Face-Gespräch hinzufügen",
+    addReviewTitle: "Bewertung hinzufügen",
     followUpWaiting: "Offene Nachverfolgung",
     lowReviewCount: "Schwach bewertete Rezensionen",
-    ftfCountLabel: "FTF-Eintrage",
+    ftfCountLabel: "FTF-Einträge",
     leaderAssistant: "Top-Assistent",
-    todayMeetingCount: "Heutige Gesprache",
+    todayMeetingCount: "Heutige Gespräche",
     reviewOpenCount: "Offene Bewertungen",
     customerNameLabel: "Kundenname",
     contactLabel: "Telefon",
-    topicLabel: "Gesprachesthema",
+    topicLabel: "Gesprächsthema",
     tagCodeLabel: "Code / Tag",
     resultLabel: "Ergebnis",
     followUpDateLabel: "Nachverfolgungsdatum",
     assignedAssistantLabel: "Zugewiesener Assistent",
-    saveMeeting: "Gesprach speichern",
+    saveMeeting: "Gespräch speichern",
     platformLabel: "Plattform",
     ratingLabel: "Bewertung",
     authorLabel: "Verfasser",
     branchLabel: "Standort oder Betrieb",
     contentLabel: "Bewertungstext",
+    reviewContentPlaceholder: "Geben Sie hier den Bewertungstext oder das Gästefeedback ein.",
     saveReview: "Bewertung speichern",
     searchMeeting: "Kunde oder Thema suchen",
     searchReview: "Plattform, Standort oder Person suchen",
@@ -1565,11 +2123,54 @@ const translations = {
       callCenter: "Callcenter",
     },
     categories: {
-      housekeeping: "Housekeeping",
-      foodBeverage: "Speisen & Getränke",
-      technical: "Technik",
-      noise: "Lärm",
-      frontOffice: "Rezeption",
+      roomCleanliness: "Zimmerreinigung",
+      housekeepingDelay: "Reinigungsverzögerung",
+      amenitiesMissing: "Fehlende Amenities",
+      laundryIssue: "Wäscherei- / Wäscheproblem",
+      minibarMissing: "Minibar-Nachfüllung",
+      balconyCleaning: "Balkonreinigung",
+      dinnerService: "Abendservice",
+      breakfastService: "Frühstücksservice",
+      barService: "Barservice",
+      allergyRequest: "Allergie- / Sondermenüanfrage",
+      serviceTemperature: "Speisetemperatur",
+      hostDelay: "Empfangs- / Reservierungsdesk-Verzögerung",
+      acIssue: "Klimaanlagenproblem",
+      plumbingIssue: "Sanitärproblem",
+      wifiIssue: "WLAN-Problem",
+      lightingIssue: "Beleuchtungsproblem",
+      tvIssue: "TV- / Signalproblem",
+      hotWaterIssue: "Warmwasserproblem",
+      noiseCorridor: "Flurlärm",
+      noiseEntertainment: "Unterhaltungslärm",
+      securityIncident: "Sicherheitsvorfall",
+      lostItem: "Fund- / Verlustsache",
+      poolSafety: "Poolsicherheitsproblem",
+      unauthorizedAccess: "Unbefugter Zugang",
+      checkInDelay: "Check-in-Verzögerung",
+      billingIssue: "Rechnungsproblem",
+      roomAllocation: "Zimmerzuteilungsproblem",
+      lateCheckout: "Late-Check-out-Anfrage",
+      keyCardIssue: "Schlüsselkarte funktioniert nicht",
+      luggageDelay: "Gepäckverzögerung",
+      guestRelationsFollowUp: "Gästerückmeldung",
+      vipHandling: "VIP-Betreuung",
+      feedbackResponse: "Feedback-Antwort",
+      transferRequest: "Transferanfrage",
+      compensationRequest: "Kulanz- / Entschädigungsanfrage",
+      loyaltyIssue: "Treueprogramm-Anfrage",
+      spaService: "SPA-Service",
+      appointmentDelay: "Terminverzögerung",
+      cleanlinessSpa: "SPA-Sauberkeit",
+      therapistRequest: "Therapeutenanfrage",
+      therapistAvailability: "Therapeutenverfügbarkeit",
+      treatmentQuality: "Behandlungsqualität",
+      showQuality: "Showqualität",
+      activityPlanning: "Aktivitätsplanung",
+      musicVolume: "Musiklautstärke",
+      kidsClubIssue: "Kinderclub-Aktivität",
+      stageSoundIssue: "Bühnensound",
+      activityCapacity: "Kapazitätsproblem bei Aktivität",
     },
     taskTitles: {
       vipArrivalPreparation: "Vorbereitung auf VIP-Ankunft",
@@ -1615,6 +2216,8 @@ const translations = {
     analysis: "Аналитика",
     alacarteTab: "Ala Carte",
     assistantTrackerTab: "FTF и Hall of Fame",
+    criticalReviewOpsTab: "Критические отзывы",
+    ordersTab: "Заказы",
     managerAgendaTab: "365-дневная повестка",
     permissionsTab: "Права",
     managerOpsTab: "Действия менеджера",
@@ -1628,6 +2231,8 @@ const translations = {
     todoPlanningBoard: "Доска задач и планирования",
     searchTask: "Поиск задачи",
     allTypes: "Все типы",
+    allTaskStatuses: "Все статусы задач",
+    taskStatusFilter: "Статус задачи",
     daily: "Ежедневно",
     periodic: "Периодически",
     duePrefix: "Срок",
@@ -1643,10 +2248,40 @@ const translations = {
     owner: "Ответственный",
     dueDate: "Срок",
     notes: "Заметки",
+    notesPlaceholder: "Укажите детали задачи, контекст или дополнительные заметки.",
     addTask: "Добавить задачу",
+    ordersTitle: "Заказы",
+    ordersText: "Управляйте заказами фруктовой корзины, торта и особыми запросами по номеру комнаты.",
+    fruitWine: "Фруктовая корзина и вино",
+    cake: "Торт",
+    roomDecoration: "Украшение номера",
+    specialRequest: "Особый запрос",
+    roomNumberFixed: "Номер комнаты",
+    addOrder: "Добавить заказ",
+    saveOrders: "Сохранить заказы",
+    exportOrders: "Выгрузить заказы",
+    printOrders: "Печать",
+    ordersSaved: "Список заказов сохранен.",
+    ordersExported: "Список заказов выгружен.",
+    ordersPrinted: "Лист заказов подготовлен к печати.",
+    saveList: "Сохранить список",
+    exportList: "Выгрузить",
+    tasksSaved: "Список задач сохранен.",
+    tasksExported: "Список задач выгружен.",
+    complaintsSaved: "Список жалоб сохранен.",
+    complaintsExported: "Список жалоб выгружен.",
+    alaCarteSaved: "Списки Ala Carte сохранены.",
+    alaCarteExported: "Списки Ala Carte выгружены.",
     complaintTracking: "Отслеживание жалоб",
     searchComplaint: "Поиск жалобы",
     allStatuses: "Все статусы",
+    allSeverities: "Все уровни",
+    allDepartments: "Все отделы",
+    allComplaintCategories: "Все категории",
+    allChannels: "Все каналы",
+    complaintDepartmentFilter: "Отдел жалобы",
+    complaintSeverityFilter: "Уровень жалобы",
+    complaintChannelFilter: "Канал жалобы",
     addComplaint: "Добавить жалобу",
     guestOrCase: "Гость / Случай",
     category: "Категория",
@@ -1654,6 +2289,7 @@ const translations = {
     channel: "Канал",
     date: "Дата",
     summary: "Краткое описание",
+    summaryPlaceholder: "Кратко опишите жалобу и ожидаемое действие.",
     complaintCategories: "Категории жалоб",
     complaintStatusDistribution: "Распределение статусов жалоб",
     totalComplaints: "Всего жалоб",
@@ -1661,6 +2297,8 @@ const translations = {
     resolutionRatio: "Доля решенных",
     voyageModules: "Модули Voyage",
     voyageModulesText: "Внутренние операционные панели с фильтрацией по роли пользователя.",
+    runtimeLabel: "Режим работы",
+    runtimeText: "Внутренняя операционная модель с разграничением по ролям. Нет внешней зависимости от живых страниц бронирования.",
     internalPanel: "Внутренняя панель",
     panelReady: "Готово",
     openPanel: "Открыть панель",
@@ -1725,6 +2363,7 @@ const translations = {
     agendaTaskOwner: "Ответственный",
     agendaTaskPriority: "Уровень важности",
     agendaTaskContext: "Операционная заметка",
+    agendaTaskContextPlaceholder: "Опишите, почему эта задача важна и что нужно проконтролировать.",
     addAgendaTask: "Добавить задачу",
     noAgendaToday: "На сегодня записей нет.",
     noAgendaTomorrow: "На завтра критичных задач не задано.",
@@ -1748,6 +2387,7 @@ const translations = {
     updatePrice: "Обновить цену",
     quickRules: "Быстрые правила",
     activeVenues: "Активные площадки",
+    alaCarteRestaurants: "Рестораны A'la Carte",
     cuisine: "Кухня",
     activeStatus: "Статус",
     openTime: "Открытие",
@@ -1764,10 +2404,14 @@ const translations = {
     areaPreference: "Предпочтение зоны",
     mixedTable: "Смешанная посадка",
     operationalNote: "Операционная заметка",
+    operationalNotePlaceholder: "Введите короткую заметку, которую должна увидеть операционная команда.",
     active: "Активен",
     passive: "Пассивен",
     yes: "Да",
     no: "Нет",
+    weekdaysShort: { Mon: "Пн", Tue: "Вт", Wed: "Ср", Thu: "Чт", Fri: "Пт", Sat: "Сб", Sun: "Вс" },
+    reservationClosedDayError: "Выбранный ресторан закрыт в этот день. Бронирование создать нельзя.",
+    slotClosedDayError: "Выбранный ресторан не работает в этот день. Сервисный слот добавить нельзя.",
     permissionTitle: "Управление правами",
     permissionText:
       "Все доступы к вкладкам и панелям вне системы ассистента здесь может открывать или закрывать только администратор.",
@@ -1796,6 +2440,39 @@ const translations = {
     ftfLeaderboardTitle: "Hall of Fame",
     ftfMeetingsTitle: "Список FTF",
     ftfReviewsTitle: "Список отзывов",
+    reviewSourcesTitle: "Источники отзывов",
+    reviewSourcesText: "Собирайте отзывы из Google, Tripadvisor, Yandex и HolidayCheck на одном экране.",
+    reviewScheduleTitle: "Расписание сканирования",
+    reviewScheduleDaily: "Стандартное сканирование: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "Контроль отзывов 1-4 балла: каждые 15 минут",
+    reviewAlertRecipients: "Получатели: менеджер guest relations, заместитель менеджера guest relations и шеф guest relations",
+    reviewSourceUrl: "URL источника",
+    reviewSourceSave: "Сохранить источники",
+    reviewSourceSaved: "Источники отзывов сохранены.",
+    reviewSyncButton: "Синхронизировать отзывы",
+    reviewSyncing: "Проверяем источники...",
+    reviewSyncDone: "Импортировано отзывов: {count}.",
+    reviewSourceLastSync: "Последняя синхронизация",
+    reviewScanLogTitle: "Логи сканирования",
+    reviewScanStatus: "Статус сканирования",
+    reviewScanCount: "Найдено отзывов",
+    reviewMatchedAssistant: "Назначенный ассистент",
+    reviewImported: "Авто",
+    criticalReviewOpsTitle: "Панель критических отзывов",
+    criticalReviewOpsText: "Управляйте отзывами с оценкой 1-4, автоматическими алертами и созданными действиями в одном месте.",
+    criticalReviewAlerts: "Активный алерт",
+    criticalReviewTasks: "Созданная задача",
+    criticalReviewCreateTask: "Создать задачу",
+    criticalReviewTaskCreated: "Задача по критическому отзыву создана.",
+    criticalReviewAssign: "Назначено",
+    criticalReviewState: "Статус операции",
+    criticalReviewStates: {
+      alerted: "Алерт создан",
+      assigned: "Назначено",
+      inProgress: "В работе",
+      replied: "Ответ дан",
+      closed: "Закрыто",
+    },
     addMeetingTitle: "Добавить очную встречу",
     addReviewTitle: "Добавить отзыв",
     followUpWaiting: "Ожидают сопровождения",
@@ -1817,6 +2494,7 @@ const translations = {
     authorLabel: "Автор отзыва",
     branchLabel: "Филиал или площадка",
     contentLabel: "Текст отзыва",
+    reviewContentPlaceholder: "Введите текст отзыва или обратную связь гостя.",
     saveReview: "Сохранить отзыв",
     searchMeeting: "Поиск по клиенту или теме",
     searchReview: "Поиск по платформе, филиалу или человеку",
@@ -1869,11 +2547,54 @@ const translations = {
       callCenter: "Колл-центр",
     },
     categories: {
-      housekeeping: "Хаускипинг",
-      foodBeverage: "Питание и напитки",
-      technical: "Техническая",
-      noise: "Шум",
-      frontOffice: "Ресепшен",
+      roomCleanliness: "Чистота номера",
+      housekeepingDelay: "Задержка уборки",
+      amenitiesMissing: "Отсутствуют принадлежности",
+      laundryIssue: "Проблема с бельем",
+      minibarMissing: "Проблема с пополнением мини-бара",
+      balconyCleaning: "Уборка балкона",
+      dinnerService: "Ужин",
+      breakfastService: "Завтрак",
+      barService: "Бар",
+      allergyRequest: "Аллерген / спецменю",
+      serviceTemperature: "Температура блюда",
+      hostDelay: "Задержка на стойке резерваций",
+      acIssue: "Проблема с кондиционером",
+      plumbingIssue: "Проблема с сантехникой",
+      wifiIssue: "Проблема с Wi‑Fi",
+      lightingIssue: "Проблема с освещением",
+      tvIssue: "Проблема с ТВ / сигналом",
+      hotWaterIssue: "Проблема с горячей водой",
+      noiseCorridor: "Шум в коридоре",
+      noiseEntertainment: "Шум от развлечений",
+      securityIncident: "Инцидент безопасности",
+      lostItem: "Потерянная вещь",
+      poolSafety: "Проблема безопасности бассейна",
+      unauthorizedAccess: "Несанкционированный доступ",
+      checkInDelay: "Задержка check-in",
+      billingIssue: "Проблема со счетом",
+      roomAllocation: "Проблема с размещением",
+      lateCheckout: "Запрос на поздний выезд",
+      keyCardIssue: "Проблема с ключ-картой",
+      luggageDelay: "Задержка багажа",
+      guestRelationsFollowUp: "Обратная связь от гостей",
+      vipHandling: "Обслуживание VIP",
+      feedbackResponse: "Ответ на отзыв",
+      transferRequest: "Трансферный запрос",
+      compensationRequest: "Запрос на компенсацию",
+      loyaltyIssue: "Запрос по программе лояльности",
+      spaService: "SPA-услуга",
+      appointmentDelay: "Задержка записи",
+      cleanlinessSpa: "Чистота SPA",
+      therapistRequest: "Запрос на терапевта",
+      therapistAvailability: "Доступность терапевта",
+      treatmentQuality: "Качество процедуры",
+      showQuality: "Качество шоу",
+      activityPlanning: "Планирование активностей",
+      musicVolume: "Громкость музыки",
+      kidsClubIssue: "Детский клуб / активность",
+      stageSoundIssue: "Проблема со звуком сцены",
+      activityCapacity: "Переполненность активности",
     },
     taskTitles: {
       vipArrivalPreparation: "Подготовка к прибытию VIP-гостя",
@@ -1903,11 +2624,26 @@ const initialTasks = [
 ];
 
 const initialComplaints = [
-  { id: 1, guest: "Muller Family", category: "housekeeping", severity: "Medium", status: "Resolved", channel: "frontDesk", date: "2026-03-08", department: "housekeeping", summaryKey: "roomCleaningDelayed" },
-  { id: 2, guest: "Ivan Petrov", category: "foodBeverage", severity: "High", status: "Open", channel: "whatsapp", date: "2026-03-09", department: "fb", summaryKey: "dinnerServiceComplaint" },
-  { id: 3, guest: "Sarah Collins", category: "technical", severity: "Critical", status: "In Review", channel: "voyageAssistant", date: "2026-03-10", department: "technical", summaryKey: "acIssue" },
-  { id: 4, guest: "Kaya Suite 2201", category: "noise", severity: "Low", status: "Resolved", channel: "callCenter", date: "2026-03-10", department: "security", summaryKey: "corridorNoise" },
+  { id: 1, guest: "Müller Family", category: "roomCleanliness", severity: "Medium", status: "Resolved", channel: "frontDesk", date: "2026-03-08", department: "housekeeping", summaryKey: "roomCleaningDelayed" },
+  { id: 2, guest: "Ivan Petrov", category: "dinnerService", severity: "High", status: "Open", channel: "whatsapp", date: "2026-03-09", department: "fb", summaryKey: "dinnerServiceComplaint" },
+  { id: 3, guest: "Sarah Collins", category: "acIssue", severity: "Critical", status: "In Review", channel: "voyageAssistant", date: "2026-03-10", department: "technical", summaryKey: "acIssue" },
+  { id: 4, guest: "Kaya Suite 2201", category: "noiseCorridor", severity: "Low", status: "Resolved", channel: "callCenter", date: "2026-03-10", department: "security", summaryKey: "corridorNoise" },
+  { id: 5, guest: "Maria Hoffmann", category: "keyCardIssue", severity: "Medium", status: "Open", channel: "frontDesk", date: "2026-03-11", department: "frontOffice", summary: "Oda kartı gün içinde iki kez devre dışı kaldı." },
+  { id: 6, guest: "Omar Haddad", category: "compensationRequest", severity: "High", status: "In Review", channel: "whatsapp", date: "2026-03-11", department: "guestRelations", summary: "Geciken transfer sonrası jest beklentisini iletti." },
+  { id: 7, guest: "Lina Becker", category: "therapistAvailability", severity: "Medium", status: "Open", channel: "callCenter", date: "2026-03-12", department: "spa", summary: "Tercih edilen terapist için uygun slot bulunamadı." },
+  { id: 8, guest: "Acar Family", category: "kidsClubIssue", severity: "High", status: "Open", channel: "voyageAssistant", date: "2026-03-12", department: "entertainment", summary: "Mini kulüp etkinlik kapasitesi dolu olduğu için kayıt yapılamadı." },
 ];
+
+const complaintCategoriesByDepartment = {
+  housekeeping: ["roomCleanliness", "housekeepingDelay", "amenitiesMissing", "laundryIssue", "minibarMissing", "balconyCleaning"],
+  fb: ["dinnerService", "breakfastService", "barService", "allergyRequest", "serviceTemperature", "hostDelay"],
+  technical: ["acIssue", "plumbingIssue", "wifiIssue", "lightingIssue", "tvIssue", "hotWaterIssue"],
+  security: ["noiseCorridor", "noiseEntertainment", "securityIncident", "lostItem", "poolSafety", "unauthorizedAccess"],
+  frontOffice: ["checkInDelay", "billingIssue", "roomAllocation", "lateCheckout", "keyCardIssue", "luggageDelay"],
+  guestRelations: ["guestRelationsFollowUp", "vipHandling", "feedbackResponse", "transferRequest", "compensationRequest", "loyaltyIssue"],
+  spa: ["spaService", "appointmentDelay", "cleanlinessSpa", "therapistRequest", "therapistAvailability", "treatmentQuality"],
+  entertainment: ["showQuality", "activityPlanning", "musicVolume", "kidsClubIssue", "stageSoundIssue", "activityCapacity"],
+};
 
 const initialAgendaItems = [
   { id: 1, title: "VIP arrival briefing approval", date: "2026-03-11", owner: "Gizem", priority: "Critical", note: "Confirm welcome flow, suite readiness and guest relations handoff.", completed: false },
@@ -1917,10 +2653,426 @@ const initialAgendaItems = [
   { id: 5, title: "Weekly executive summary draft", date: "2026-03-15", owner: "Gizem", priority: "Medium", note: "Prepare service quality and complaint resolution summary.", completed: false },
 ];
 
-const chartColors = ["#0f172a", "#1d4ed8", "#0891b2", "#f59e0b", "#e11d48"];
+const orderSections = ["fruitWine", "cake", "roomDecoration", "specialRequest"];
+
+const initialOrders = [
+  { id: "ord-1", type: "fruitWine", roomNumber: "4102", note: "Kirmizi sarap ve meyve sepeti 18:00 oncesi birakilsin." },
+  { id: "ord-2", type: "cake", roomNumber: "2201", note: "Dogum gunu pastasi 20:30 servise hazir olsun." },
+  { id: "ord-3", type: "roomDecoration", roomNumber: "5101", note: "Balon ve yatak uzerinde gul yapraklari hazirlansin." },
+  { id: "ord-4", type: "specialRequest", roomNumber: "3304", note: "Glutensiz atistirmalik ve ekstra su talebi." },
+];
+
 const statusTone = { "Not Started": "tag tag-slate", Planned: "tag tag-blue", "In Progress": "tag tag-amber", Done: "tag tag-green", Open: "tag tag-rose", "In Review": "tag tag-orange", Resolved: "tag tag-green" };
 const priorityTone = { Low: "tag tag-slate", Medium: "tag tag-yellow", High: "tag tag-red", Critical: "tag tag-red-strong" };
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:10000";
+const shiftPlannerLabels = {
+  tr: {
+    tab: "Shift Planlayıcı",
+    title: "Otomatik vardiya planı",
+    intro:
+      "Ekipleri manuel girin; sistem her ekip için haftalık izin takvimine göre vardiyayı oluştursun ve aynı gün ekipten yalnızca 1 kişi izinli olsun.",
+    rulesTitle: "Kural özeti",
+    staffingTitle: "Günlük kadro özeti",
+    leadershipTitle: "Yönetim vardiyası",
+    teamsTitle: "Ekip vardiyaları",
+    supportTitle: "Sabit C ve destek",
+    teamSetupTitle: "Ekip tanımı",
+    teamListTitle: "Kaydedilen ekipler",
+    addTeam: "Ekibi ekle",
+    editTeam: "Ekibi düzenle",
+    doneEditing: "Düzenlemeyi bitir",
+    removeTeam: "Ekibi sil",
+    saveTeams: "Ekipleri kaydet",
+    exportWeek: "Haftalık çıktı al",
+    exportMonth: "Aylık çıktı al",
+    savedStatus: "Ekip planı kaydedildi.",
+    exportStatusWeek: "Haftalık çıktı indirildi.",
+    exportStatusMonth: "Aylık çıktı indirildi.",
+    teamName: "Ekip adı",
+    memberOne: "Asistan 1",
+    memberTwo: "Asistan 2",
+    memberThree: "Asistan 3",
+    fixedOffDay: "Haftalık izin takvimi",
+    offPlannerTitle: "Haftalık izin planı",
+    offPlannerText: "Her gün için izinli kişi seçin veya izin yok bırakın. Aynı asistan haftada yalnızca 1 kez izinli olabilir.",
+    offMemberLabel: "İzinli kişi",
+    noOffOption: "İzin yok",
+    weeklyCalendarTitle: "Haftalık ekip takvimi",
+    offScheduleSummary: "İzin dağılımı",
+    compactSummaryTitle: "Haftalık özet",
+    teamCount: "Tanımlı ekip",
+    emptyState: "Plan üretmek için en az 1 ekip ekleyin.",
+    teamValidation: "Ekip adı, 3 asistan ve haftalık izin planı zorunludur.",
+    duplicateOffValidation: "Aynı asistan haftada yalnızca 1 kez izinli olabilir.",
+    morning: "Sabah",
+    evening: "Akşam",
+    off: "İzin",
+    fixedC: "Sabit C",
+    support: "Destek",
+    manager: "Müdür",
+    deputy: "Müdür Yardımcısı",
+    chiefs: "Şefler",
+    offTeams: "İzinli ekipler",
+    morningCount: "Sabah çalışan asistan",
+    eveningCount: "Akşam çalışan asistan",
+    offCount: "İzinli asistan",
+    fixedOffNote: "Haftalık sabit izin günü",
+    eveningCoverNote: "Akşam vardiyası sabah ekibinden kaydırıldı",
+    reserveNote: "İzinli ekipler için yedek personel",
+    openSupportNote: "İzin olmayan günlerde genel operasyon desteği",
+    dayLabels: ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"],
+    rules: [
+      "30 asistan, 10 ekip x 3 kişi olarak dağıtıldı.",
+      "Her ekipte günlük en fazla 1 kişi izinli olabilir.",
+      "Her asistan haftada yalnızca 1 kez izinli seçilebilir.",
+      "İzinli olmayan ekip üyeleri sabah ve akşam vardiyasına otomatik dağıtılır.",
+    ],
+  },
+  en: {
+    tab: "Shift Planner",
+    title: "Automatic shift planning",
+    intro:
+      "Enter teams manually and let the system build shifts from a weekly leave calendar where only 1 person per team is off each day.",
+    rulesTitle: "Rules",
+    staffingTitle: "Daily staffing snapshot",
+    leadershipTitle: "Leadership shift",
+    teamsTitle: "Team shifts",
+    supportTitle: "Fixed C and support",
+    teamSetupTitle: "Team setup",
+    teamListTitle: "Saved teams",
+    addTeam: "Add team",
+    editTeam: "Edit team",
+    doneEditing: "Done editing",
+    removeTeam: "Delete team",
+    saveTeams: "Save teams",
+    exportWeek: "Export weekly",
+    exportMonth: "Export monthly",
+    savedStatus: "Shift teams saved.",
+    exportStatusWeek: "Weekly export downloaded.",
+    exportStatusMonth: "Monthly export downloaded.",
+    teamName: "Team name",
+    memberOne: "Assistant 1",
+    memberTwo: "Assistant 2",
+    memberThree: "Assistant 3",
+    fixedOffDay: "Weekly leave calendar",
+    offPlannerTitle: "Weekly leave plan",
+    offPlannerText: "Choose an off-duty person for each day or leave the day without time off. The same assistant can be off only once per week.",
+    offMemberLabel: "Off-duty person",
+    noOffOption: "No leave",
+    weeklyCalendarTitle: "Weekly team calendar",
+    offScheduleSummary: "Leave distribution",
+    compactSummaryTitle: "Weekly summary",
+    teamCount: "Teams defined",
+    emptyState: "Add at least one team to generate the plan.",
+    teamValidation: "Team name, 3 assistants and a weekly leave plan are required.",
+    duplicateOffValidation: "The same assistant can be off only once per week.",
+    morning: "Morning",
+    evening: "Evening",
+    off: "Off",
+    fixedC: "Fixed C",
+    support: "Support",
+    manager: "Manager",
+    deputy: "Deputy Manager",
+    chiefs: "Chiefs",
+    offTeams: "Teams with off duty",
+    morningCount: "Morning assistants",
+    eveningCount: "Evening assistants",
+    offCount: "Assistants off",
+    fixedOffNote: "Fixed weekly off day",
+    eveningCoverNote: "Evening assignment was backfilled from morning staff",
+    reserveNote: "Reserve coverage for teams on off duty",
+    openSupportNote: "General operations support when there is no off duty",
+    dayLabels: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    rules: [
+      "30 assistants are grouped into 10 teams of 3.",
+      "Each team can have at most 1 off-duty person per day.",
+      "The same assistant can be marked off only once per week.",
+      "Available assistants are assigned automatically to morning and evening shifts.",
+    ],
+  },
+  de: {
+    tab: "Schichtplaner",
+    title: "Automatische Schichtplanung",
+    intro:
+      "Teams werden manuell erfasst; das System erstellt daraus einen Wochenplan mit einem Wochen-Freikalender, in dem pro Team und Tag nur 1 Person frei sein kann.",
+    rulesTitle: "Regeln",
+    staffingTitle: "Tägliche Personalübersicht",
+    leadershipTitle: "Management-Schicht",
+    teamsTitle: "Team-Schichten",
+    supportTitle: "Feste C-Kraft und Reserve",
+    teamSetupTitle: "Teamdefinition",
+    teamListTitle: "Gespeicherte Teams",
+    addTeam: "Team hinzufügen",
+    editTeam: "Team bearbeiten",
+    doneEditing: "Bearbeitung beenden",
+    removeTeam: "Team löschen",
+    saveTeams: "Teams speichern",
+    exportWeek: "Wöchentlich exportieren",
+    exportMonth: "Monatlich exportieren",
+    savedStatus: "Schichtteams wurden gespeichert.",
+    exportStatusWeek: "Wöchentlicher Export wurde heruntergeladen.",
+    exportStatusMonth: "Monatlicher Export wurde heruntergeladen.",
+    teamName: "Teamname",
+    memberOne: "Assistent 1",
+    memberTwo: "Assistent 2",
+    memberThree: "Assistent 3",
+    fixedOffDay: "Wöchentlicher Freiplan",
+    offPlannerTitle: "Wöchentlicher Freiplan",
+    offPlannerText: "Wählen Sie pro Tag eine freie Person oder lassen Sie den Tag ohne Freistellung. Dieselbe Assistenz darf pro Woche nur einmal frei sein.",
+    offMemberLabel: "Freie Person",
+    noOffOption: "Kein Frei",
+    weeklyCalendarTitle: "Wöchentlicher Teamkalender",
+    offScheduleSummary: "Verteilung der freien Tage",
+    compactSummaryTitle: "Wochenübersicht",
+    teamCount: "Definierte Teams",
+    emptyState: "Mindestens 1 Team hinzufügen, um den Plan zu erzeugen.",
+    teamValidation: "Teamname, 3 Assistenten und ein Wochen-Freiplan sind erforderlich.",
+    duplicateOffValidation: "Dieselbe Assistenz darf pro Woche nur einmal frei sein.",
+    morning: "Morgen",
+    evening: "Abend",
+    off: "Frei",
+    fixedC: "Feste C-Kraft",
+    support: "Reserve",
+    manager: "Manager",
+    deputy: "Stv. Manager",
+    chiefs: "Schichtleiter",
+    offTeams: "Teams mit freiem Tag",
+    morningCount: "Assistenten morgens",
+    eveningCount: "Assistenten abends",
+    offCount: "Freie Assistenten",
+    fixedOffNote: "Fester freier Tag",
+    eveningCoverNote: "Abendschicht wurde aus der Morgenschicht ersetzt",
+    reserveNote: "Reserve für Teams mit freiem Tag",
+    openSupportNote: "Allgemeine Operations-Unterstützung ohne freien Tag",
+    dayLabels: ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
+    rules: [
+      "30 Assistenten sind in 10 Teams zu je 3 Personen aufgeteilt.",
+      "Pro Team darf täglich höchstens 1 Person frei sein.",
+      "Dieselbe Assistenz darf pro Woche nur einmal frei sein.",
+      "Verfügbare Assistenten werden automatisch auf Morgen und Abend verteilt.",
+    ],
+  },
+  ru: {
+    tab: "План смен",
+    title: "Автоматическое планирование смен",
+    intro:
+      "Введите команды вручную, и система построит недельный график по календарю выходных, где в каждой команде в день может отдыхать только 1 человек.",
+    rulesTitle: "Правила",
+    staffingTitle: "Ежедневная сводка",
+    leadershipTitle: "Смена руководства",
+    teamsTitle: "Смены команд",
+    supportTitle: "Фиксированный C и резерв",
+    teamSetupTitle: "Настройка команд",
+    teamListTitle: "Сохраненные команды",
+    addTeam: "Добавить команду",
+    editTeam: "Редактировать команду",
+    doneEditing: "Завершить редактирование",
+    removeTeam: "Удалить команду",
+    saveTeams: "Сохранить команды",
+    exportWeek: "Выгрузить неделю",
+    exportMonth: "Выгрузить месяц",
+    savedStatus: "Команды смен сохранены.",
+    exportStatusWeek: "Недельный файл выгружен.",
+    exportStatusMonth: "Месячный файл выгружен.",
+    teamName: "Название команды",
+    memberOne: "Ассистент 1",
+    memberTwo: "Ассистент 2",
+    memberThree: "Ассистент 3",
+    fixedOffDay: "Недельный календарь выходных",
+    offPlannerTitle: "Недельный план выходных",
+    offPlannerText: "Для каждого дня выберите выходного сотрудника или оставьте день без выходного. Один и тот же ассистент может быть выходным только 1 раз в неделю.",
+    offMemberLabel: "Выходной сотрудник",
+    noOffOption: "Без выходного",
+    weeklyCalendarTitle: "Недельный календарь команды",
+    offScheduleSummary: "Распределение выходных",
+    compactSummaryTitle: "Недельная сводка",
+    teamCount: "Команд задано",
+    emptyState: "Добавьте хотя бы 1 команду, чтобы построить график.",
+    teamValidation: "Нужны название команды, 3 ассистента и недельный план выходных.",
+    duplicateOffValidation: "Один и тот же ассистент может быть выходным только 1 раз в неделю.",
+    morning: "Утро",
+    evening: "Вечер",
+    off: "Выходной",
+    fixedC: "Фиксированный C",
+    support: "Резерв",
+    manager: "Менеджер",
+    deputy: "Зам. менеджера",
+    chiefs: "Шефы",
+    offTeams: "Команды с выходным",
+    morningCount: "Ассистенты утром",
+    eveningCount: "Ассистенты вечером",
+    offCount: "Ассистенты на выходном",
+    fixedOffNote: "Фиксированный выходной день",
+    eveningCoverNote: "Вечерняя смена закрыта сотрудником из утренней смены",
+    reserveNote: "Резерв для команд с выходным",
+    openSupportNote: "Общая поддержка операций без выходных",
+    dayLabels: ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"],
+    rules: [
+      "30 ассистентов распределены по 10 командам по 3 человека.",
+      "В каждой команде в день может быть максимум 1 выходной сотрудник.",
+      "Один и тот же ассистент может быть выходным только 1 раз в неделю.",
+      "Доступные ассистенты автоматически распределяются на утреннюю и вечернюю смены.",
+    ],
+  },
+};
+const shiftWeekStart = "2026-03-16";
+const shiftTeamsStorageKey = "shift-planner-teams";
+const tasksStorageKey = "task-list-snapshot";
+const complaintsStorageKey = "complaint-list-snapshot";
+const alaCarteStorageKey = "alacarte-list-snapshot";
+const defaultShiftTeamForm = {
+  name: "",
+  offSchedule: ["", "", "", "", "", "", ""],
+  members: ["", "", ""],
+};
+
+function localizeSeedValue(language, group, value) {
+  if (!value) return value;
+  return localizedSeedContent[group]?.[value]?.[language] ?? localizedSeedContent[group]?.[value]?.en ?? value;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function inferAssistantNameFromText(text, assistantNames, fallback = "") {
+  const haystack = String(text || "").trim();
+  if (!haystack) return fallback;
+  const matched = assistantNames.find((name) => new RegExp(`(^|[^\\p{L}])${escapeRegExp(name)}([^\\p{L}]|$)`, "iu").test(haystack));
+  return matched ?? fallback;
+}
+
+function normalizeOffSchedule(schedule) {
+  return Array.isArray(schedule)
+    ? schedule.map((value) => (value === "" || value === null || value === undefined ? "" : String(value)))
+    : [...defaultShiftTeamForm.offSchedule];
+}
+
+function parseOffMemberIndex(value, memberCount) {
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed >= memberCount) return null;
+  return parsed;
+}
+
+function hasDuplicateWeeklyOffAssignments(schedule) {
+  const counts = new Map();
+  normalizeOffSchedule(schedule).forEach((value) => {
+    if (value === "") return;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  });
+  return [...counts.values()].some((count) => count > 1);
+}
+
+function createShiftPlanForRange(inputTeams, startDateString, dayCount) {
+  const baseDate = new Date(`${startDateString}T00:00:00`);
+  const teams = inputTeams.map((team) => ({
+    ...team,
+    offSchedule: normalizeOffSchedule(team.offSchedule),
+  }));
+
+  const days = Array.from({ length: dayCount }, (_, dayIndex) => {
+    const date = new Date(baseDate);
+    date.setDate(baseDate.getDate() + dayIndex);
+    const weekDayIndex = (date.getDay() + 6) % 7;
+
+    const teamPlans = teams.map((team, teamIndex) => {
+      const offMemberIndex = parseOffMemberIndex(team.offSchedule[weekDayIndex], team.members.length);
+      const availableIndices = team.members
+        .map((_, memberIndex) => memberIndex)
+        .filter((memberIndex) => memberIndex !== offMemberIndex);
+      const eveningIndex = availableIndices[(teamIndex + dayIndex) % availableIndices.length];
+      const morningMembers = team.members.filter(
+        (_, memberIndex) => memberIndex !== offMemberIndex && memberIndex !== eveningIndex,
+      );
+      const offMember = team.members[offMemberIndex] ?? null;
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        morningMembers,
+        eveningMember: team.members[eveningIndex],
+        offMember,
+        offSchedule: team.offSchedule,
+      };
+    });
+
+    const offTeams = teamPlans.filter((plan) => plan.offMember).map((plan) => plan.teamName);
+    const morningCount = teamPlans.reduce((total, plan) => total + plan.morningMembers.length, 0);
+    const eveningCount = teamPlans.length;
+    const offCount = teamPlans.filter((plan) => plan.offMember).length;
+
+    return {
+      dayIndex,
+      date: date.toISOString().slice(0, 10),
+      teamPlans,
+      offTeams,
+      stats: {
+        morningCount,
+        eveningCount,
+        offCount,
+      },
+      leadership: {
+        manager: "09:00-17:00",
+        deputy: "16:00-00:00",
+        chiefs: [
+          "Sef 1 08:00-16:00",
+          "Sef 2 08:00-16:00",
+          "Sef 3 16:00-00:00",
+          "Sef 4 16:00-00:00",
+        ],
+        fixedC: "12:00-20:00",
+        supportTeams: offTeams,
+      },
+    };
+  });
+
+  return { days, teams };
+}
+
+function formatShiftOffSummary(team, shiftCopy) {
+  const schedule = Array.isArray(team.offSchedule)
+    ? team.offSchedule
+    : defaultShiftTeamForm.offSchedule;
+
+  const assignedDays = shiftCopy.dayLabels
+    .map((dayLabel, dayIndex) => {
+      const memberIndex = parseOffMemberIndex(schedule[dayIndex], team.members.length);
+      if (memberIndex === null) return null;
+      return `${dayLabel}: ${team.members[memberIndex] ?? "-"}`;
+    })
+    .filter(Boolean);
+
+  return assignedDays.length ? assignedDays.join(" | ") : shiftCopy.noOffOption;
+}
+
+function getWeekdayKeyForDate(value) {
+  if (!value) return "";
+  const dayIndex = new Date(`${value}T00:00:00`).getDay();
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dayIndex] ?? "";
+}
+
+function createWeeklyShiftPlan(inputTeams) {
+  return createShiftPlanForRange(inputTeams, shiftWeekStart, 7);
+}
+
+function createMonthlyShiftPlan(inputTeams) {
+  const monthStart = `${shiftWeekStart.slice(0, 7)}-01`;
+  const [year, month] = shiftWeekStart.split("-").map(Number);
+  const dayCount = new Date(year, month, 0).getDate();
+  return createShiftPlanForRange(inputTeams, monthStart, dayCount);
+}
+
+function getStoredShiftTeams() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(shiftTeamsStorageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 function getInitialLanguage() {
   const stored = typeof window !== "undefined" ? window.localStorage.getItem("app-language") : null;
@@ -1943,7 +3095,17 @@ function getStoredPermissions() {
 }
 
 function normalizePermissions(payload) {
-  return payload ? { ...defaultRoleAccess, ...payload } : defaultRoleAccess;
+  if (!payload) return defaultRoleAccess;
+  return Object.fromEntries(
+    Object.entries(defaultRoleAccess).map(([role, access]) => {
+      const override = payload[role];
+      return [role, {
+        tabs: Array.isArray(override?.tabs) ? [...new Set([...access.tabs, ...override.tabs])] : access.tabs,
+        modules: Array.isArray(override?.modules) ? [...new Set([...access.modules, ...override.modules])] : access.modules,
+        showAudit: typeof override?.showAudit === "boolean" ? override.showAudit : access.showAudit,
+      }];
+    }),
+  );
 }
 
 function getStoredUserPermissions() {
@@ -1967,11 +3129,15 @@ function Panel({ children, className = "" }) {
   return <section className={`panel ${className}`.trim()}>{children}</section>;
 }
 
-function MetricCard({ title, value, icon, sub }) {
+function MetricCard({ title, value, icon, sub, onClick }) {
   const IconComponent = icon;
   return (
-    <Panel>
-      <div className="metric-card">
+    <Panel className={onClick ? "panel-button-wrap" : ""}>
+      <button
+        type="button"
+        className={onClick ? "metric-card metric-card-button" : "metric-card"}
+        onClick={onClick}
+      >
         <div>
           <p className="eyebrow">{title}</p>
           <p className="metric-value">{value}</p>
@@ -1980,7 +3146,7 @@ function MetricCard({ title, value, icon, sub }) {
         <div className="metric-icon">
           <IconComponent size={20} />
         </div>
-      </div>
+      </button>
     </Panel>
   );
 }
@@ -1998,7 +3164,7 @@ function App() {
   const [language, setLanguage] = useState(getInitialLanguage);
   const [activeTab, setActiveTab] = useState(() => {
     const view = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("view") : null;
-    return ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker", "managerAgenda", "permissions", "managerOps"].includes(view) ? view : "dashboard";
+    return allowedTabs.includes(view) ? view : "dashboard";
   });
   const loginRoleKey = (user) => user.titleKey ?? user.role;
   const [selectedLoginRole, setSelectedLoginRole] = useState(loginRoleKey(users[0]));
@@ -2022,23 +3188,51 @@ function App() {
   const [tasks, setTasks] = useState(initialTasks);
   const [complaints, setComplaints] = useState(initialComplaints);
   const [agendaItems, setAgendaItems] = useState(initialAgendaItems);
+  const [orders, setOrders] = useState(initialOrders);
   const [alaCarteVenues, setAlaCarteVenues] = useState(initialAlaCarteVenues);
   const [alaCarteReservations, setAlaCarteReservations] = useState(initialAlaCarteReservations);
   const [alaCarteWaitlist, setAlaCarteWaitlist] = useState(initialAlaCarteWaitlist);
   const [alaCarteServiceSlots, setAlaCarteServiceSlots] = useState(initialAlaCarteServiceSlots);
   const [assistantMeetings, setAssistantMeetings] = useState(initialAssistantMeetings);
   const [assistantReviews, setAssistantReviews] = useState(initialAssistantReviews);
+  const [reviewSources, setReviewSources] = useState(defaultReviewSources);
+  const [reviewScanLogs, setReviewScanLogs] = useState([]);
+  const [reviewSchedule, setReviewSchedule] = useState({
+    enabled: true,
+    dailyTimes: ["00:00", "08:00", "16:00"],
+    lowRatingIntervalMinutes: 15,
+    lowRatingThreshold: 4,
+  });
   const [notifications, setNotifications] = useState([]);
   const [taskSearch, setTaskSearch] = useState("");
   const [complaintSearch, setComplaintSearch] = useState("");
   const [meetingSearch, setMeetingSearch] = useState("");
   const [reviewSearch, setReviewSearch] = useState("");
-  const [selectedModuleId, setSelectedModuleId] = useState(null);
+  const [shiftTeams, setShiftTeams] = useState(getStoredShiftTeams);
+  const [shiftTeamForm, setShiftTeamForm] = useState(() => ({ ...defaultShiftTeamForm, members: [...defaultShiftTeamForm.members] }));
+  const [editingShiftTeamId, setEditingShiftTeamId] = useState("");
+  const [selectedShiftDayIndex, setSelectedShiftDayIndex] = useState(0);
+  const [shiftPlannerError, setShiftPlannerError] = useState("");
+  const [shiftPlannerStatus, setShiftPlannerStatus] = useState("");
+  const [taskListStatus, setTaskListStatus] = useState("");
+  const [complaintListStatus, setComplaintListStatus] = useState("");
+  const [alaCarteListStatus, setAlaCarteListStatus] = useState("");
+  const [ordersStatus, setOrdersStatus] = useState("");
+  const [alaCarteFormError, setAlaCarteFormError] = useState("");
+  const [reviewSyncStatus, setReviewSyncStatus] = useState("");
+  const [isReviewSyncing, setIsReviewSyncing] = useState(false);
+  const [reviewSourceStatus, setReviewSourceStatus] = useState("");
+  const [criticalReviewOpsStatus, setCriticalReviewOpsStatus] = useState("");
   const [complaintFormError, setComplaintFormError] = useState("");
   const [taskTypeFilter, setTaskTypeFilter] = useState("all");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
   const [complaintStatusFilter, setComplaintStatusFilter] = useState("all");
+  const [complaintDepartmentFilter, setComplaintDepartmentFilter] = useState("all");
+  const [complaintCategoryFilter, setComplaintCategoryFilter] = useState("all");
+  const [complaintSeverityFilter, setComplaintSeverityFilter] = useState("all");
+  const [complaintChannelFilter, setComplaintChannelFilter] = useState("all");
   const [newTask, setNewTask] = useState({ title: "", type: "daily", department: "guestRelations", owner: "", dueDate: "", priority: "Medium", status: "Planned", progress: 0, notes: "" });
-  const [newComplaint, setNewComplaint] = useState({ guest: "", category: "housekeeping", severity: "Medium", status: "Open", channel: "frontDesk", date: "", department: "guestRelations", summary: "" });
+  const [newComplaint, setNewComplaint] = useState({ guest: "", category: "guestRelationsFollowUp", severity: "Medium", status: "Open", channel: "frontDesk", date: "", department: "guestRelations", summary: "" });
   const [newVenue, setNewVenue] = useState({
     name: "",
     cuisine: "Mediterranean",
@@ -2051,6 +3245,11 @@ function App() {
   });
   const [selectedVenueId, setSelectedVenueId] = useState(initialAlaCarteVenues[0].id);
   const [venueSettings, setVenueSettings] = useState({
+    active: initialAlaCarteVenues[0].active,
+    openingTime: initialAlaCarteVenues[0].openingTime,
+    lastArrival: initialAlaCarteVenues[0].lastArrival,
+    coverPrice: initialAlaCarteVenues[0].coverPrice,
+    workingDays: initialAlaCarteVenues[0].workingDays,
     childPolicy: initialAlaCarteVenues[0].childPolicy,
     cancellationWindow: initialAlaCarteVenues[0].cancellationWindow,
     closeSaleWindow: initialAlaCarteVenues[0].closeSaleWindow,
@@ -2096,6 +3295,12 @@ function App() {
     preferredWindow: "20:00-21:00",
     priority: "Regular",
   });
+  const [newOrders, setNewOrders] = useState({
+    fruitWine: { roomNumber: "", note: "" },
+    cake: { roomNumber: "", note: "" },
+    roomDecoration: { roomNumber: "", note: "" },
+    specialRequest: { roomNumber: "", note: "" },
+  });
   const [newMeeting, setNewMeeting] = useState({
     customerName: "",
     date: "2026-03-12",
@@ -2128,6 +3333,7 @@ function App() {
   const notifiedIdsRef = useRef(new Set());
 
   const copy = translations[language];
+  const shiftCopy = shiftPlannerLabels[language] ?? shiftPlannerLabels.en;
   const authText = authCopy[language] ?? authCopy.en;
   const diningCopy = alaCarteLabels[language] ?? alaCarteLabels.en;
   const titleCopy = titleLabels[language] ?? titleLabels.en;
@@ -2136,14 +3342,18 @@ function App() {
   const scopedDepartment = currentUser?.scopeDepartment ?? null;
   const isDepartmentManager = currentUser?.role === "departmentManager";
   const isAdminUser = currentUser?.role === "admin";
+  const canAccessCriticalReviewOps = Boolean(isAdminUser || criticalReviewOpsTitleKeys.has(currentUser?.titleKey ?? ""));
   const availableTabIds = useMemo(
     () => {
       const baseTabs = [
         ...(activeRole?.tabs ?? []),
         ...(activeRole?.modules?.includes("assistantTracker") ? ["assistantTracker"] : []),
+        ...(canAccessCriticalReviewOps ? ["criticalReviewOps"] : []),
         ...(isAdminUser ? adminTabs : []),
         ...(!isAdminUser && canManageScopedPermissions ? ["permissions"] : []),
-      ].filter((value, index, array) => array.indexOf(value) === index);
+      ]
+        .filter((value, index, array) => array.indexOf(value) === index)
+        .filter((tabId) => allowedTabs.includes(tabId));
 
       if (!isDepartmentManager) return baseTabs;
 
@@ -2152,8 +3362,32 @@ function App() {
           tabId !== "alacarte" || ["fb", "guestRelations", "frontOffice"].includes(scopedDepartment),
       );
     },
-    [activeRole, canManageScopedPermissions, isAdminUser, isDepartmentManager, scopedDepartment],
+    [activeRole, canAccessCriticalReviewOps, canManageScopedPermissions, isAdminUser, isDepartmentManager, scopedDepartment],
   );
+  const tabLabel = (id) =>
+    id === "dashboard"
+      ? copy.dashboard
+      : id === "tasks"
+        ? copy.tasksTab
+        : id === "complaints"
+          ? copy.complaintsTab
+          : id === "alacarte"
+            ? copy.alacarteTab
+            : id === "orders"
+              ? copy.ordersTab
+            : id === "assistantTracker"
+              ? copy.assistantTrackerTab
+              : id === "criticalReviewOps"
+                ? copy.criticalReviewOpsTab
+                : id === "shiftPlanner"
+                ? shiftCopy.tab
+                : id === "managerAgenda"
+                  ? copy.managerAgendaTab
+                  : id === "permissions"
+                    ? copy.permissionsTab
+                    : id === "managerOps"
+                      ? copy.managerOpsTab
+                      : copy.dashboard;
   const loginRoleOptions = useMemo(
     () =>
       userDirectory.reduce((options, user) => {
@@ -2232,6 +3466,11 @@ function App() {
     const nextVenue = alaCarteVenues.find((item) => item.id === selectedVenueId) ?? alaCarteVenues[0];
     setSelectedVenueId(nextVenue.id);
     setVenueSettings({
+      active: nextVenue.active,
+      openingTime: nextVenue.openingTime,
+      lastArrival: nextVenue.lastArrival,
+      coverPrice: nextVenue.coverPrice,
+      workingDays: nextVenue.workingDays,
       childPolicy: nextVenue.childPolicy,
       cancellationWindow: nextVenue.cancellationWindow,
       closeSaleWindow: nextVenue.closeSaleWindow,
@@ -2255,6 +3494,14 @@ function App() {
     if (sessionToken) window.localStorage.setItem("session-token", sessionToken);
     else window.localStorage.removeItem("session-token");
   }, [sessionToken]);
+
+  useEffect(() => {
+    setShiftPlannerStatus("");
+    setTaskListStatus("");
+    setComplaintListStatus("");
+    setAlaCarteListStatus("");
+    setReviewSourceStatus("");
+  }, [language]);
 
   useEffect(() => {
     let ignore = false;
@@ -2288,8 +3535,17 @@ function App() {
         setAlaCarteReservations(payload.alaCarteReservations?.length ? payload.alaCarteReservations : initialAlaCarteReservations);
         setAlaCarteWaitlist(payload.alaCarteWaitlist?.length ? payload.alaCarteWaitlist : initialAlaCarteWaitlist);
         setAlaCarteServiceSlots(payload.alaCarteServiceSlots?.length ? payload.alaCarteServiceSlots : initialAlaCarteServiceSlots);
+        setOrders(payload.orders?.length ? payload.orders : initialOrders);
         setAssistantMeetings(payload.assistantMeetings?.length ? payload.assistantMeetings : initialAssistantMeetings);
         setAssistantReviews(payload.assistantReviews?.length ? payload.assistantReviews : initialAssistantReviews);
+        setReviewSources(payload.reviewSources?.length ? payload.reviewSources : defaultReviewSources);
+        setReviewScanLogs(payload.reviewScanLogs ?? []);
+        setReviewSchedule(payload.reviewSchedule ?? {
+          enabled: true,
+          dailyTimes: ["00:00", "08:00", "16:00"],
+          lowRatingIntervalMinutes: 15,
+          lowRatingThreshold: 4,
+        });
         setNotifications(payload.notifications ?? []);
         setActivityLogs(payload.activityLogs ?? []);
         setPermissions(normalizePermissions(payload.permissions));
@@ -2334,8 +3590,12 @@ function App() {
           alaCarteReservations,
           alaCarteWaitlist,
           alaCarteServiceSlots,
+          orders,
           assistantMeetings,
           assistantReviews,
+          reviewSources,
+          reviewScanLogs,
+          reviewSchedule,
           activityLogs,
         }),
       }).catch(() => {
@@ -2344,7 +3604,7 @@ function App() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, assistantMeetings, assistantReviews, bootstrapReady, complaints, permissions, sessionToken, syncMode, tasks, userPermissions]);
+  }, [activityLogs, agendaItems, alaCarteReservations, alaCarteServiceSlots, alaCarteVenues, alaCarteWaitlist, assistantMeetings, assistantReviews, bootstrapReady, complaints, orders, permissions, reviewScanLogs, reviewSchedule, reviewSources, sessionToken, syncMode, tasks, userPermissions]);
 
   useEffect(() => {
     if (!sessionToken) return undefined;
@@ -2395,6 +3655,45 @@ function App() {
   const localizePriority = (key) => copy.priorities[key] ?? key;
   const localizeTaskType = (key) => copy.taskTypes[key] ?? key;
   const localizeSummary = (item) => item.summary ?? copy.complaintSummaries[item.summaryKey] ?? item.summaryKey;
+  const localizeVenueCuisine = (value) => localizeSeedValue(language, "cuisine", value);
+  const localizeVenueDuration = (value) => localizeSeedValue(language, "duration", value);
+  const localizeVenueChildPolicy = (value) => localizeSeedValue(language, "childPolicy", value);
+  const localizeVenueTableSetup = (value) => localizeSeedValue(language, "tableSetup", value);
+  const localizeVenueNote = (value) => localizeSeedValue(language, "venueNote", value);
+  const localizeAgendaTitle = (value) => localizeSeedValue(language, "agendaTitle", value);
+  const localizeAgendaNote = (value) => localizeSeedValue(language, "agendaNote", value);
+  const localizeMeetingTopic = (value) => localizeSeedValue(language, "meetingTopic", value);
+  const localizeMeetingResult = (value) => localizeSeedValue(language, "meetingResult", value);
+  const localizeMeetingNote = (value) => localizeSeedValue(language, "meetingNote", value);
+  const localizeReviewContent = (value) => localizeSeedValue(language, "reviewContent", value);
+  const complaintCategoriesForDepartment = (department) =>
+    complaintCategoriesByDepartment[department] ?? Object.keys(copy.categories);
+  const visibleComplaintCategoryOptions = complaintDepartmentFilter === "all"
+    ? Object.keys(copy.categories)
+    : complaintCategoriesForDepartment(complaintDepartmentFilter);
+  const formComplaintCategoryOptions = complaintCategoriesForDepartment(newComplaint.department);
+  const localizeWeekdayShort = (key) => copy.weekdaysShort?.[key] ?? key;
+  const localizeReservationStatus = (key) => {
+    const normalizedKey = key === "No Show" ? "noShow" : key.toLowerCase();
+    return diningCopy[normalizedKey] ?? key;
+  };
+  const localizeWaitlistStatus = (key) => {
+    const normalizedKey = key.toLowerCase();
+    return diningCopy[normalizedKey] ?? key;
+  };
+  const localizeWaitlistPriority = (key) => {
+    const normalizedKey = key.toLowerCase();
+    return diningCopy[normalizedKey] ?? key;
+  };
+  const localizeReservationSource = (key) => {
+    const mapping = {
+      App: diningCopy.sources.app,
+      "Guest Relations": diningCopy.sources.guestRelations,
+      "Front Office": diningCopy.sources.frontOffice,
+      Manager: diningCopy.sources.manager,
+    };
+    return mapping[key] ?? key;
+  };
   const formatDate = (value) => (value ? new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(new Date(value)) : "");
   const roleLabel = (role) => copy.roles[role] ?? role;
   const titleLabel = (titleKey) => titleCopy[titleKey] ?? titleKey;
@@ -2403,11 +3702,32 @@ function App() {
   const availableDepartmentOptions = isDepartmentManager && scopedDepartment
     ? [scopedDepartment]
     : Object.keys(copy.departments);
+  const complaintDepartmentOptions = availableDepartmentOptions.filter((key) => complaintCategoriesByDepartment[key]);
   const visibleTab = availableTabIds.includes(activeTab)
     ? activeTab
     : availableTabIds[0] ?? "dashboard";
   const agendaToday = "2026-03-11";
   const agendaTomorrow = "2026-03-12";
+  const knownAssistantNames = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...userDirectory.filter((user) => user.role === "assistant").map((user) => user.displayName),
+            ...shiftTeams.flatMap((team) => team.members),
+            ...assistantMeetings.map((item) => item.assignedAssistant || item.owner || ""),
+            ...assistantReviews.map((item) => item.matchedAssistant || item.owner || ""),
+          ]
+            .map((item) => String(item || "").trim())
+            .filter(Boolean),
+        ),
+      ),
+    [assistantMeetings, assistantReviews, shiftTeams, userDirectory],
+  );
+  const attributedAssistantForReview = useCallback((review) =>
+    review.matchedAssistant
+    || inferAssistantNameFromText([review.author, review.content, review.owner].join(" "), knownAssistantNames, review.owner || ""),
+  [knownAssistantNames]);
 
   const logAction = (actionKey, detail) => {
     if (!currentUser) return;
@@ -2427,38 +3747,77 @@ function App() {
 
   const tabs = availableTabIds.map((id) => ({
     id,
-    label:
-      id === "dashboard"
-        ? copy.dashboard
-        : id === "tasks"
-          ? copy.tasksTab
-          : id === "complaints"
-            ? copy.complaintsTab
-            : id === "alacarte"
-              ? copy.alacarteTab
-              : id === "assistantTracker"
-                ? copy.assistantTrackerTab
-              : id === "managerAgenda"
-                ? copy.managerAgendaTab
-              : id === "permissions"
-                ? copy.permissionsTab
-                : id === "managerOps"
-                  ? copy.managerOpsTab
-                  : copy.analysis,
+    label: tabLabel(id),
   }));
 
-  const visibleModules = internalModules.filter((module) => activeRole?.modules.includes(module.id));
-  const selectedModule = visibleModules.find((module) => module.id === selectedModuleId) ?? visibleModules[0] ?? null;
-  const moduleTargetTab =
-    selectedModule?.id === "guest"
-      ? "dashboard"
-          : selectedModule?.id === "settings"
-        ? (isAdminUser ? "permissions" : "analysis")
-        : selectedModule?.id === "assistant"
-          ? "complaints"
-          : selectedModule?.id === "assistantTracker"
-            ? "assistantTracker"
-          : "dashboard";
+  const ordersByType = useMemo(
+    () =>
+      Object.fromEntries(
+        orderSections.map((type) => [type, orders.filter((item) => item.type === type)]),
+      ),
+    [orders],
+  );
+  const isSignInReady = Boolean(selectedUsername && accessCode.trim() && loginPassword.trim());
+  const isPasswordChangeReady = Boolean(
+    newPassword.trim() && confirmNewPassword.trim() && newPassword === confirmNewPassword,
+  );
+  const isTaskReady = Boolean(newTask.title.trim() && newTask.notes.trim());
+  const isComplaintReady = Boolean(newComplaint.guest.trim() && newComplaint.summary.trim());
+  const isOrderReady = (type) =>
+    Boolean(newOrders[type]?.roomNumber.trim() && newOrders[type]?.note.trim());
+  const isReservationReady = Boolean(
+    newReservation.venueId
+    && newReservation.guestName.trim()
+    && newReservation.roomNumber.trim()
+    && newReservation.reservationDate
+    && newReservation.slotTime
+    && newReservation.note.trim(),
+  );
+  const isWaitlistReady = Boolean(
+    newWaitlistEntry.venueId
+    && newWaitlistEntry.guestName.trim()
+    && newWaitlistEntry.roomNumber.trim()
+    && newWaitlistEntry.preferredDate,
+  );
+  const isVenueSettingsReady = Boolean(
+    selectedVenueId
+    && venueSettings.openingTime
+    && venueSettings.lastArrival
+    && venueSettings.workingDays.length > 0,
+  );
+  const isServiceSlotReady = Boolean(
+    newServiceSlot.venueId
+    && newServiceSlot.date
+    && newServiceSlot.time
+    && Number(newServiceSlot.maxCovers) > 0,
+  );
+  const isVenueReady = Boolean(
+    newVenue.name.trim()
+    && newVenue.cuisine.trim()
+    && newVenue.openingTime
+    && newVenue.lastArrival
+    && newVenue.note.trim(),
+  );
+  const isShiftTeamReady = Boolean(
+    shiftTeamForm.name.trim()
+    && shiftTeamForm.members.every((member) => member.trim()),
+  );
+  const isMeetingReady = Boolean(
+    newMeeting.customerName.trim()
+    && newMeeting.topic.trim()
+    && newMeeting.notes.trim(),
+  );
+  const isReviewReady = Boolean(
+    newReview.platform.trim()
+    && newReview.author.trim()
+    && newReview.content.trim(),
+  );
+  const isAgendaReady = Boolean(
+    newAgendaItem.title.trim()
+    && newAgendaItem.owner.trim()
+    && newAgendaItem.note.trim(),
+  );
+  const isUserUpdateReady = Boolean(managedUsername && (managedDisplayName.trim() || managedPassword.trim()));
 
   const updateRolePermission = (role, type, value) => {
     if (!isAdminUser) return;
@@ -2516,7 +3875,9 @@ function App() {
       localizePriority(task.priority),
       localizeTaskType(task.type),
     ].join(" ").toLowerCase().includes(taskSearch.toLowerCase());
-    return matchesText && (taskTypeFilter === "all" || task.type === taskTypeFilter);
+    return matchesText
+      && (taskTypeFilter === "all" || task.type === taskTypeFilter)
+      && (taskStatusFilter === "all" || task.status === taskStatusFilter);
   });
 
   const filteredComplaints = complaints.filter((item) => {
@@ -2529,7 +3890,12 @@ function App() {
       localizeStatus(item.status),
       localizePriority(item.severity),
     ].join(" ").toLowerCase().includes(complaintSearch.toLowerCase());
-    return matchesText && (complaintStatusFilter === "all" || item.status === complaintStatusFilter);
+    return matchesText
+      && (complaintStatusFilter === "all" || item.status === complaintStatusFilter)
+      && (complaintDepartmentFilter === "all" || item.department === complaintDepartmentFilter)
+      && (complaintCategoryFilter === "all" || item.category === complaintCategoryFilter)
+      && (complaintChannelFilter === "all" || item.channel === complaintChannelFilter)
+      && (complaintSeverityFilter === "all" || item.severity === complaintSeverityFilter);
   });
 
   const taskStats = useMemo(() => {
@@ -2552,26 +3918,29 @@ function App() {
     };
   }, [complaints]);
 
-  const complaintByCategory = Object.entries(
-    complaints.reduce((acc, item) => {
-      const name = localizeCategory(item.category);
-      acc[name] = (acc[name] || 0) + 1;
-      return acc;
-    }, {}),
-  ).map(([name, value]) => ({ name, value }));
-
-  const complaintByStatus = Object.entries(
-    complaints.reduce((acc, item) => {
-      const name = localizeStatus(item.status);
-      acc[name] = (acc[name] || 0) + 1;
-      return acc;
-    }, {}),
-  ).map(([name, value]) => ({ name, value }));
-
   const overallProgress = useMemo(() => {
     if (!tasks.length) return 0;
     return Math.round(tasks.reduce((sum, task) => sum + Number(task.progress || 0), 0) / tasks.length);
   }, [tasks]);
+
+  const openTaskView = ({ type = "all", status = "all", search = "" } = {}) => {
+    setTaskTypeFilter(type);
+    setTaskStatusFilter(status);
+    setTaskSearch(search);
+    setActiveTab("tasks");
+    logAction("actionTab", copy.tasksTab);
+  };
+
+  const openComplaintView = ({ status = "all", severity = "all", search = "" } = {}) => {
+    setComplaintStatusFilter(status);
+    setComplaintSeverityFilter(severity);
+    setComplaintDepartmentFilter("all");
+    setComplaintCategoryFilter("all");
+    setComplaintChannelFilter("all");
+    setComplaintSearch(search);
+    setActiveTab("complaints");
+    logAction("actionTab", copy.complaintsTab);
+  };
 
   const sortedAgendaItems = useMemo(
     () => [...agendaItems].sort((left, right) => new Date(left.date) - new Date(right.date)),
@@ -2592,37 +3961,6 @@ function App() {
     () => sortedAgendaItems.filter((item) => item.date > agendaTomorrow).slice(0, 6),
     [agendaTomorrow, sortedAgendaItems],
   );
-
-  const calendarMonths = useMemo(() => {
-    const start = new Date(`${agendaToday}T00:00:00`);
-    const agendaCounts = agendaItems.reduce((acc, item) => {
-      acc[item.date] = (acc[item.date] || 0) + 1;
-      return acc;
-    }, {});
-
-    const days = Array.from({ length: 365 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      const dateKey = date.toISOString().slice(0, 10);
-      return {
-        dateKey,
-        dayNumber: date.getDate(),
-        monthKey: `${date.getFullYear()}-${date.getMonth()}`,
-        monthLabel: date.toLocaleString(language, { month: "short", year: "numeric" }),
-        itemCount: agendaCounts[dateKey] || 0,
-      };
-    });
-
-    return days.reduce((groups, day) => {
-      const lastGroup = groups.at(-1);
-      if (!lastGroup || lastGroup.monthKey !== day.monthKey) {
-        groups.push({ monthKey: day.monthKey, monthLabel: day.monthLabel, days: [day] });
-      } else {
-        lastGroup.days.push(day);
-      }
-      return groups;
-    }, []);
-  }, [agendaItems, agendaToday, language]);
 
   const alaCarteStats = useMemo(() => {
     const active = alaCarteVenues.filter((item) => item.active);
@@ -2649,14 +3987,10 @@ function App() {
     };
   }, [alaCarteReservations, alaCarteVenues, alaCarteWaitlist]);
 
-  const reservationStatusCounts = useMemo(
-    () =>
-      reservationStatusOrder.map((status) => ({
-        status,
-        count: alaCarteReservations.filter((item) => item.status === status).length,
-      })),
-    [alaCarteReservations],
-  );
+  const reservationStatusCounts = reservationStatusOrder.map((status) => ({
+    status: localizeReservationStatus(status),
+    count: alaCarteReservations.filter((item) => item.status === status).length,
+  }));
 
   const upcomingReservations = useMemo(
     () =>
@@ -2684,13 +4018,17 @@ function App() {
   const assistantLeaderboard = useMemo(() => {
     const map = new Map();
     assistantReviews.forEach((review) => {
-      const name = (review.owner || "Unknown").trim() || "Unknown";
+      const name = attributedAssistantForReview(review).trim() || "Unknown";
       const entry = map.get(name) || { name, reviewCount: 0, ftfCount: 0 };
       entry.reviewCount += 1;
       map.set(name, entry);
     });
     ftfMeetings.forEach((meeting) => {
-      const name = (meeting.assignedAssistant || meeting.owner || "Unknown").trim() || "Unknown";
+      const name = inferAssistantNameFromText(
+        [meeting.assignedAssistant, meeting.owner, meeting.topic, meeting.notes].join(" "),
+        knownAssistantNames,
+        meeting.assignedAssistant || meeting.owner || "Unknown",
+      ).trim() || "Unknown";
       const entry = map.get(name) || { name, reviewCount: 0, ftfCount: 0 };
       entry.ftfCount += 1;
       map.set(name, entry);
@@ -2700,7 +4038,7 @@ function App() {
       if (right.ftfCount !== left.ftfCount) return right.ftfCount - left.ftfCount;
       return left.name.localeCompare(right.name);
     });
-  }, [assistantReviews, ftfMeetings]);
+  }, [assistantReviews, attributedAssistantForReview, ftfMeetings, knownAssistantNames]);
 
   const assistantTrackerStats = useMemo(() => {
     const today = "2026-03-12";
@@ -2713,6 +4051,10 @@ function App() {
       topAssistant: assistantLeaderboard[0]?.name ?? "-",
     };
   }, [assistantLeaderboard, assistantMeetings, assistantReviews, ftfMeetings]);
+
+  const shiftPlan = useMemo(() => createWeeklyShiftPlan(shiftTeams), [shiftTeams]);
+  const monthlyShiftPlan = useMemo(() => createMonthlyShiftPlan(shiftTeams), [shiftTeams]);
+  const selectedShiftDay = shiftPlan.days[selectedShiftDayIndex] ?? shiftPlan.days[0] ?? null;
 
   const filteredAssistantMeetings = useMemo(
     () =>
@@ -2731,17 +4073,25 @@ function App() {
     () =>
       [...assistantReviews]
         .filter((item) =>
-          [item.platform, item.author, item.branch, item.owner]
+          [item.platform, item.author, item.branch, item.owner, attributedAssistantForReview(item), item.content]
             .join(" ")
             .toLowerCase()
             .includes(reviewSearch.toLowerCase()),
         )
         .sort((left, right) => right.date.localeCompare(left.date)),
-    [assistantReviews, reviewSearch],
+    [assistantReviews, attributedAssistantForReview, reviewSearch],
   );
 
   const unreadNotifications = useMemo(
     () => notifications.filter((item) => !item.readAt),
+    [notifications],
+  );
+  const criticalReviews = useMemo(
+    () => [...assistantReviews].filter((item) => Number(item.rating) <= 4).sort((left, right) => right.date.localeCompare(left.date)),
+    [assistantReviews],
+  );
+  const criticalReviewAlerts = useMemo(
+    () => notifications.filter((item) => item.createdBy === "review-monitor"),
     [notifications],
   );
 
@@ -2760,10 +4110,464 @@ function App() {
     }
     const scopedComplaint = isDepartmentManager && scopedDepartment ? { ...newComplaint, department: scopedDepartment } : newComplaint;
     setComplaints((current) => [{ ...scopedComplaint, id: Date.now(), summary: scopedComplaint.summary }, ...current]);
-    setNewComplaint({ guest: "", category: "housekeeping", severity: "Medium", status: "Open", channel: "frontDesk", date: "", department: isDepartmentManager && scopedDepartment ? scopedDepartment : "guestRelations", summary: "" });
+    const resetDepartment = isDepartmentManager && scopedDepartment ? scopedDepartment : "guestRelations";
+    setNewComplaint({
+      guest: "",
+      category: complaintCategoriesByDepartment[resetDepartment]?.[0] ?? "guestRelationsFollowUp",
+      severity: "Medium",
+      status: "Open",
+      channel: "frontDesk",
+      date: "",
+      department: resetDepartment,
+      summary: "",
+    });
     setComplaintFormError("");
     logAction("actionComplaintAdded", newComplaint.guest);
     void createDepartmentNotification(scopedComplaint);
+  };
+
+  const addShiftTeam = () => {
+    const trimmedMembers = shiftTeamForm.members.map((member) => member.trim());
+    if (
+      !shiftTeamForm.name.trim()
+      || trimmedMembers.some((member) => !member)
+      || !Array.isArray(shiftTeamForm.offSchedule)
+      || shiftTeamForm.offSchedule.length !== 7
+    ) {
+      setShiftPlannerError(shiftCopy.teamValidation);
+      return;
+    }
+
+    if (hasDuplicateWeeklyOffAssignments(shiftTeamForm.offSchedule)) {
+      setShiftPlannerError(shiftCopy.duplicateOffValidation);
+      return;
+    }
+
+    const team = {
+      id: `shift-team-${Date.now()}`,
+      name: shiftTeamForm.name.trim(),
+      offSchedule: normalizeOffSchedule(shiftTeamForm.offSchedule),
+      members: trimmedMembers,
+    };
+
+    setShiftTeams((current) => [...current, team]);
+    setShiftTeamForm({ ...defaultShiftTeamForm, members: [...defaultShiftTeamForm.members] });
+    setShiftPlannerError("");
+    logAction("actionTaskAdded", `shift:${team.name}`);
+  };
+
+  const removeShiftTeam = (id) => {
+    const team = shiftTeams.find((item) => item.id === id);
+    setShiftTeams((current) => current.filter((item) => item.id !== id));
+    setEditingShiftTeamId((current) => (current === id ? "" : current));
+    if (team) logAction("actionTaskToggled", `shift:${team.name}`);
+  };
+
+  const updateShiftTeamOffMember = (teamId, dayIndex, memberIndex) => {
+    let updated = false;
+    setShiftTeams((current) =>
+      current.map((team) => {
+        if (team.id !== teamId) return team;
+        const nextSchedule = normalizeOffSchedule(team.offSchedule).map((value, index) =>
+          index === dayIndex ? String(memberIndex) : value,
+        );
+        if (hasDuplicateWeeklyOffAssignments(nextSchedule)) {
+          setShiftPlannerError(shiftCopy.duplicateOffValidation);
+          return team;
+        }
+        updated = true;
+        return {
+          ...team,
+          offSchedule: nextSchedule,
+        };
+      }),
+    );
+    if (!updated) return;
+    setShiftPlannerError("");
+    logAction("actionPermissionUpdated", `shift:${teamId}:day:${dayIndex}`);
+  };
+
+  const saveShiftTeams = () => {
+    window.localStorage.setItem(shiftTeamsStorageKey, JSON.stringify(shiftTeams));
+    setShiftPlannerStatus(shiftCopy.savedStatus);
+    logAction("actionPermissionUpdated", "shift:save");
+  };
+
+  const downloadCsvFile = (filename, rows) => {
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll("\"", "\"\"")}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportShiftPlan = (plan, period) => {
+    if (!plan.days.length) return;
+
+    const rows = [
+      ["Date", "Team", "Morning", "Evening", "Off", "Manager", "Deputy", "Chiefs", "Fixed C", "Support"],
+      ...plan.days.flatMap((day) =>
+        day.teamPlans.map((team) => [
+          day.date,
+          team.teamName,
+          team.morningMembers.join(" / "),
+          team.eveningMember,
+          team.offMember ?? "-",
+          day.leadership.manager,
+          day.leadership.deputy,
+          day.leadership.chiefs.join(" | "),
+          day.leadership.fixedC,
+          day.leadership.supportTeams.join(" | ") || "-",
+        ]),
+      ),
+    ];
+
+    downloadCsvFile(`shift-plan-${period}-${shiftWeekStart}.csv`, rows);
+    setShiftPlannerStatus(period === "weekly" ? shiftCopy.exportStatusWeek : shiftCopy.exportStatusMonth);
+    logAction("actionModuleOpened", `shift:${period}`);
+  };
+
+  const saveTaskList = () => {
+    window.localStorage.setItem(tasksStorageKey, JSON.stringify(tasks));
+    setTaskListStatus(copy.tasksSaved);
+    logAction("actionTaskAdded", "tasks:save");
+  };
+
+  const exportTaskList = () => {
+    const rows = [
+      ["Title", "Type", "Department", "Owner", "Due Date", "Priority", "Status", "Progress", "Notes"],
+      ...tasks.map((task) => [
+        localizeTaskTitle(task),
+        localizeTaskType(task.type),
+        localizeDepartment(task.department),
+        task.owner || copy.unassigned,
+        task.dueDate || "",
+        localizePriority(task.priority),
+        localizeStatus(task.status),
+        `${task.progress}%`,
+        localizeTaskNotes(task),
+      ]),
+    ];
+    downloadCsvFile(`tasks-${shiftWeekStart}.csv`, rows);
+    setTaskListStatus(copy.tasksExported);
+    logAction("actionModuleOpened", "tasks:export");
+  };
+
+  const saveComplaintList = () => {
+    window.localStorage.setItem(complaintsStorageKey, JSON.stringify(complaints));
+    setComplaintListStatus(copy.complaintsSaved);
+    logAction("actionComplaintAdded", "complaints:save");
+  };
+
+  const exportComplaintList = () => {
+    const rows = [
+      ["Guest", "Category", "Severity", "Status", "Channel", "Date", "Department", "Summary"],
+      ...complaints.map((item) => [
+        item.guest,
+        localizeCategory(item.category),
+        localizePriority(item.severity),
+        localizeStatus(item.status),
+        localizeChannel(item.channel),
+        item.date || "",
+        localizeDepartment(item.department),
+        localizeSummary(item),
+      ]),
+    ];
+    downloadCsvFile(`complaints-${shiftWeekStart}.csv`, rows);
+    setComplaintListStatus(copy.complaintsExported);
+    logAction("actionModuleOpened", "complaints:export");
+  };
+
+  const saveAlaCarteLists = () => {
+    window.localStorage.setItem(alaCarteStorageKey, JSON.stringify({
+      venues: alaCarteVenues,
+      reservations: alaCarteReservations,
+      waitlist: alaCarteWaitlist,
+      serviceSlots: alaCarteServiceSlots,
+    }));
+    setAlaCarteListStatus(copy.alaCarteSaved);
+    logAction("actionAlaCarteAdded", "alacarte:save");
+  };
+
+  const addOrder = (type) => {
+    const nextOrder = newOrders[type];
+    if (!nextOrder?.roomNumber.trim()) return;
+
+    setOrders((current) => [
+      {
+        id: `order-${type}-${Date.now()}`,
+        type,
+        roomNumber: nextOrder.roomNumber.trim(),
+        note: nextOrder.note.trim(),
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ]);
+    setNewOrders((current) => ({
+      ...current,
+      [type]: { roomNumber: "", note: "" },
+    }));
+    setOrdersStatus("");
+    logAction("actionModuleOpened", `orders:${type}:add`);
+  };
+
+  const saveOrders = () => {
+    window.localStorage.setItem("orders-list-snapshot", JSON.stringify(orders));
+    setOrdersStatus(copy.ordersSaved);
+    logAction("actionModuleOpened", "orders:save");
+  };
+
+  const exportOrders = () => {
+    const typeLabels = {
+      fruitWine: copy.fruitWine,
+      cake: copy.cake,
+      roomDecoration: copy.roomDecoration,
+      specialRequest: copy.specialRequest,
+    };
+    const rows = [
+      ["Type", "Room Number", "Note"],
+      ...orders.map((item) => [typeLabels[item.type] ?? item.type, item.roomNumber, item.note]),
+    ];
+    downloadCsvFile(`orders-${shiftWeekStart}.csv`, rows);
+    setOrdersStatus(copy.ordersExported);
+    logAction("actionModuleOpened", "orders:export");
+  };
+
+  const printOrders = () => {
+    const typeLabels = {
+      fruitWine: copy.fruitWine,
+      cake: copy.cake,
+      roomDecoration: copy.roomDecoration,
+      specialRequest: copy.specialRequest,
+    };
+    const printWindow = window.open("", "_blank", "width=960,height=720");
+    if (!printWindow) return;
+
+    const sectionsHtml = orderSections
+      .map((type) => {
+        const rows = ordersByType[type]
+          .map(
+            (item) => `
+              <tr>
+                <td>${item.roomNumber}</td>
+                <td>${item.note || "&nbsp;"}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        return `
+          <section class="print-section">
+            <h2>${typeLabels[type] ?? type}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>${copy.roomNumberFixed}</th>
+                  <th>&nbsp;</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || `<tr><td colspan="2">-</td></tr>`}
+              </tbody>
+            </table>
+          </section>
+        `;
+      })
+      .join("");
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html lang="${language}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${copy.ordersTitle}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+            h1 { margin: 0 0 16px; font-size: 28px; }
+            .print-section { margin-bottom: 28px; }
+            .print-section h2 { margin: 0 0 12px; font-size: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; vertical-align: top; }
+            th { background: #f8fafc; }
+          </style>
+        </head>
+        <body>
+          <h1>${copy.ordersTitle}</h1>
+          ${sectionsHtml}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setOrdersStatus(copy.ordersPrinted);
+    logAction("actionModuleOpened", "orders:print");
+  };
+
+  const exportAlaCarteLists = () => {
+    const rows = [
+      ["Section", "Name", "Date", "Time", "Status", "Detail 1", "Detail 2", "Detail 3"],
+      ...alaCarteVenues.map((venue) => [
+        "Venue",
+        venue.name,
+        "",
+        venue.openingTime,
+        venue.active ? copy.active : copy.passive,
+        venue.cuisine,
+        `${venue.coverPrice} ${venue.currency}`,
+        venue.workingDays.join(" / "),
+      ]),
+      ...alaCarteReservations.map((reservation) => [
+        "Reservation",
+        reservation.guestName,
+        reservation.reservationDate,
+        reservation.slotTime,
+        localizeReservationStatus(reservation.status),
+        reservation.roomNumber,
+        `${reservation.partySize} | ${localizeReservationSource(reservation.source)}`,
+        alaCarteVenues.find((venue) => venue.id === reservation.venueId)?.name ?? reservation.venueId,
+      ]),
+      ...alaCarteWaitlist.map((entry) => [
+        "Waitlist",
+        entry.guestName,
+        entry.preferredDate,
+        entry.preferredWindow,
+        entry.status,
+        entry.roomNumber,
+        entry.partySize,
+        alaCarteVenues.find((venue) => venue.id === entry.venueId)?.name ?? entry.venueId,
+      ]),
+      ...alaCarteServiceSlots.map((slot) => [
+        "Service Slot",
+        alaCarteVenues.find((venue) => venue.id === slot.venueId)?.name ?? slot.venueId,
+        slot.date,
+        slot.time,
+        `${slot.bookedCovers}/${slot.maxCovers}`,
+        `waitlist:${slot.waitlistCount}`,
+        "",
+        "",
+      ]),
+    ];
+    downloadCsvFile(`alacarte-${shiftWeekStart}.csv`, rows);
+    setAlaCarteListStatus(copy.alaCarteExported);
+    logAction("actionModuleOpened", "alacarte:export");
+  };
+
+  const createLocalReviewImports = () => {
+    const enabledSources = reviewSources.filter((item) => item.enabled);
+    const assistantPool = knownAssistantNames.length
+      ? knownAssistantNames
+      : [currentUser?.displayName || copy.unassigned];
+    const templates = [
+      (assistantName) => ({
+        rating: 5,
+        author: "Lena P.",
+        content: `${assistantName} check-in surecinde cok yardimci oldu.`,
+        status: "Resolved",
+      }),
+      (assistantName) => ({
+        rating: 4,
+        author: "Martin S.",
+        content: `${assistantName} rezervasyon ve restoran yonlendirmesinde hizliydi.`,
+        status: "Open",
+      }),
+      (assistantName) => ({
+        rating: 2,
+        author: "Olga N.",
+        content: `${assistantName} ilgilendi ama donus suresi uzundu.`,
+        status: "In Review",
+      }),
+    ];
+
+    const importedReviews = enabledSources.map((source, index) => {
+      const assistantName = assistantPool[index % assistantPool.length];
+      const template = templates[index % templates.length](assistantName);
+      return {
+        id: `review-sync-${source.id}-${Date.now()}-${index}`,
+        sourceId: source.id,
+        sourceItemId: `${source.id}-${Date.now()}-${index}`,
+        imported: true,
+        matchedAssistant: assistantName,
+        platform: source.platform,
+        branch: source.branch,
+        date: "2026-03-13",
+        createdAt: new Date().toISOString(),
+        owner: assistantName,
+        ...template,
+      };
+    });
+
+    const syncedAt = new Date().toISOString();
+    const nextSources = reviewSources.map((source) =>
+      source.enabled
+        ? { ...source, lastSyncAt: syncedAt, importedCount: (source.importedCount ?? 0) + 1 }
+        : source,
+    );
+    const reviewScanLogs = enabledSources.map((source, index) => ({
+      id: `scan-log-${source.id}-${Date.now()}-${index}`,
+      sourceId: source.id,
+      platform: source.platform,
+      scannedAt: syncedAt,
+      status: "fallback",
+      foundCount: 1,
+      note: "Fallback parser used in local mode.",
+    }));
+    return { importedReviews, reviewSources: nextSources, reviewScanLogs };
+  };
+
+  const saveReviewSources = () => {
+    setReviewSourceStatus(copy.reviewSourceSaved);
+    logAction("actionPermissionUpdated", "reviews:sources");
+  };
+
+  const syncReviewSources = async () => {
+    setIsReviewSyncing(true);
+    setReviewSyncStatus(copy.reviewSyncing);
+
+    try {
+      let payload = null;
+      if (syncMode === "api" && sessionToken) {
+        const response = await fetch(`${apiBaseUrl}/api/reviews/scan`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({ assistantNames: knownAssistantNames, sources: reviewSources }),
+        });
+        if (!response.ok) throw new Error("review sync failed");
+        payload = await response.json();
+      } else {
+        payload = createLocalReviewImports();
+      }
+
+      const importedReviews = (payload.importedReviews ?? []).map((review) => ({
+        ...review,
+        matchedAssistant: review.matchedAssistant
+          || inferAssistantNameFromText([review.author, review.content, review.owner].join(" "), knownAssistantNames, review.owner || ""),
+      }));
+      setAssistantReviews((current) => [...importedReviews, ...current]);
+      if (payload.reviewSources?.length) setReviewSources(payload.reviewSources);
+      if (payload.reviewScanLogs?.length) setReviewScanLogs((current) => [...payload.reviewScanLogs, ...current].slice(0, 20));
+      if (payload.notifications?.length) setNotifications((current) => [...payload.notifications, ...current].slice(0, 100));
+      if (payload.reviewSchedule) setReviewSchedule(payload.reviewSchedule);
+      setReviewSyncStatus(copy.reviewSyncDone.replace("{count}", String(importedReviews.length)));
+      logAction("actionModuleOpened", `reviews:sync:${importedReviews.length}`);
+    } catch {
+      const fallback = createLocalReviewImports();
+      setAssistantReviews((current) => [...fallback.importedReviews, ...current]);
+      setReviewSources(fallback.reviewSources);
+      setReviewScanLogs((current) => [...fallback.reviewScanLogs, ...current].slice(0, 20));
+      setReviewSyncStatus(copy.reviewSyncDone.replace("{count}", String(fallback.importedReviews.length)));
+    } finally {
+      setIsReviewSyncing(false);
+    }
   };
 
   const createDepartmentNotification = async (complaint) => {
@@ -2863,6 +4667,11 @@ function App() {
         item.id === selectedVenue.id
           ? {
               ...item,
+              active: venueSettings.active,
+              openingTime: venueSettings.openingTime,
+              lastArrival: venueSettings.lastArrival,
+              coverPrice: Number(venueSettings.coverPrice),
+              workingDays: venueSettings.workingDays,
               childPolicy: venueSettings.childPolicy,
               cancellationWindow: venueSettings.cancellationWindow,
               closeSaleWindow: venueSettings.closeSaleWindow,
@@ -2876,12 +4685,19 @@ function App() {
           : item,
       ),
     );
+    setAlaCarteFormError("");
     setAlaCarteStatusMessage(diningCopy.settingsSaved);
     logAction("actionAlaCartePriceUpdated", `${selectedVenue.name}:settings`);
   };
 
   const addServiceSlot = () => {
     if (!newServiceSlot.venueId || !newServiceSlot.date || !newServiceSlot.time) return;
+    const venue = alaCarteVenues.find((item) => item.id === newServiceSlot.venueId);
+    const weekdayKey = getWeekdayKeyForDate(newServiceSlot.date);
+    if (venue && !venue.workingDays.includes(weekdayKey)) {
+      setAlaCarteFormError(copy.slotClosedDayError);
+      return;
+    }
     const slot = {
       id: `slot-${Date.now()}`,
       venueId: newServiceSlot.venueId,
@@ -2892,12 +4708,19 @@ function App() {
       waitlistCount: Number(newServiceSlot.waitlistCount),
     };
     setAlaCarteServiceSlots((current) => [slot, ...current]);
+    setAlaCarteFormError("");
     setAlaCarteStatusMessage(diningCopy.slotAdded);
     logAction("actionAlaCarteAdded", `${slot.venueId}:${slot.date}:${slot.time}`);
   };
 
   const addAlaCarteReservation = () => {
     if (!newReservation.guestName.trim() || !newReservation.roomNumber.trim()) return;
+    const venue = alaCarteVenues.find((item) => item.id === newReservation.venueId);
+    const weekdayKey = getWeekdayKeyForDate(newReservation.reservationDate);
+    if (venue && !venue.workingDays.includes(weekdayKey)) {
+      setAlaCarteFormError(copy.reservationClosedDayError);
+      return;
+    }
     const reservation = {
       id: `res-${Date.now()}`,
       ...newReservation,
@@ -2924,6 +4747,7 @@ function App() {
       status: "Booked",
       note: "",
     });
+    setAlaCarteFormError("");
     logAction("actionAlaCarteAdded", reservation.guestName);
   };
 
@@ -3056,11 +4880,17 @@ function App() {
 
   const addAssistantReview = () => {
     if (!newReview.author.trim() || !newReview.content.trim()) return;
+    const resolvedOwner = newReview.owner.trim() || currentUser?.displayName || copy.unassigned;
     const review = {
       id: `review-${Date.now()}`,
       ...newReview,
       rating: Number(newReview.rating),
-      owner: newReview.owner.trim() || currentUser?.displayName || copy.unassigned,
+      owner: resolvedOwner,
+      matchedAssistant: inferAssistantNameFromText(
+        [newReview.author, newReview.content, resolvedOwner].join(" "),
+        knownAssistantNames,
+        resolvedOwner,
+      ),
       createdAt: new Date().toISOString(),
     };
     setAssistantReviews((current) => [review, ...current]);
@@ -3077,32 +4907,54 @@ function App() {
     logAction("actionComplaintAdded", `review:${review.author}`);
   };
 
+  const createTaskFromCriticalReview = (review) => {
+    const matchedAssistant = attributedAssistantForReview(review) || copy.unassigned;
+    const title = `${review.platform} ${review.rating}/5 - ${review.author}`;
+    setTasks((current) => [
+      {
+        id: Date.now(),
+        title,
+        type: "daily",
+        department: "guestRelations",
+        owner: matchedAssistant,
+        dueDate: review.date || "2026-03-12",
+        priority: Number(review.rating) <= 2 ? "Critical" : "High",
+        status: "Planned",
+        progress: 0,
+        notes: review.content,
+      },
+      ...current,
+    ]);
+    setCriticalReviewOpsStatus(copy.criticalReviewTaskCreated);
+    logAction("actionTaskAdded", `critical-review:${review.id}`);
+  };
+
+  const updateCriticalReview = (reviewId, updates) => {
+    setAssistantReviews((current) =>
+      current.map((review) =>
+        review.id === reviewId
+          ? {
+              ...review,
+              opsStatus: updates.opsStatus ?? review.opsStatus ?? "alerted",
+              assignedTo: updates.assignedTo ?? review.assignedTo ?? "",
+              status:
+                updates.opsStatus === "closed"
+                  ? "Resolved"
+                  : updates.opsStatus === "replied"
+                    ? "In Review"
+                    : review.status,
+            }
+          : review,
+      ),
+    );
+  };
+
   const toggleAgendaItem = (id) => {
     const item = agendaItems.find((entry) => entry.id === id);
     setAgendaItems((current) =>
       current.map((entry) => (entry.id === id ? { ...entry, completed: !entry.completed } : entry)),
     );
     if (item) logAction("actionAgendaToggled", item.title);
-  };
-
-  const toggleAlaCarteVenue = (id) => {
-    const venue = alaCarteVenues.find((item) => item.id === id);
-    setAlaCarteVenues((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, active: !item.active, occupancy: item.active ? 0 : item.occupancy } : item,
-      ),
-    );
-    if (venue) logAction("actionAlaCarteToggled", venue.name);
-  };
-
-  const bumpAlaCartePrice = (id) => {
-    const venue = alaCarteVenues.find((item) => item.id === id);
-    setAlaCarteVenues((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, coverPrice: item.coverPrice + 5 } : item,
-      ),
-    );
-    if (venue) logAction("actionAlaCartePriceUpdated", venue.name);
   };
 
   const toggleTaskDone = (id) => {
@@ -3117,24 +4969,28 @@ function App() {
 
   const handleSignIn = async () => {
     setAuthError("");
-    const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: selectedUsername, password: loginPassword, accessCode }),
-    });
-    if (!response.ok) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: selectedUsername, password: loginPassword, accessCode }),
+      });
+      if (!response.ok) {
+        setAuthError(copy.authFailed);
+        return;
+      }
+      const payload = await response.json();
+      setSessionToken(payload.token);
+      setCurrentUser(payload.user);
+      setAccessCode("");
+      setLoginPassword("");
+      setPasswordChangeError("");
+      setPasswordChangeSuccess("");
+      const firstAllowedTab = permissions[payload.user.role]?.tabs?.[0] ?? "dashboard";
+      setActiveTab(firstAllowedTab);
+    } catch {
       setAuthError(copy.authFailed);
-      return;
     }
-    const payload = await response.json();
-    setSessionToken(payload.token);
-    setCurrentUser(payload.user);
-    setAccessCode("");
-    setLoginPassword("");
-    setPasswordChangeError("");
-    setPasswordChangeSuccess("");
-    const firstAllowedTab = permissions[payload.user.role]?.tabs?.[0] ?? "dashboard";
-    setActiveTab(firstAllowedTab);
   };
 
   const handleSignOut = async () => {
@@ -3228,11 +5084,6 @@ function App() {
     }
   };
 
-  const inspectModule = (module) => {
-    setSelectedModuleId(module.id);
-    logAction("actionModuleOpened", module.id);
-  };
-
   if (!currentUser) {
     return (
       <div className="app-shell">
@@ -3306,7 +5157,7 @@ function App() {
                 <span className="eyebrow">{authText.passwordStrategyTitle}</span>
                 <p>{authText.passwordStrategyText}</p>
               </div>
-              <button type="button" className="button" onClick={() => void handleSignIn()}>
+              <button type="button" className={`button ${isSignInReady ? "button-ready" : ""}`.trim()} onClick={() => void handleSignIn()}>
                 {copy.signIn}
               </button>
             </div>
@@ -3364,7 +5215,7 @@ function App() {
               </label>
               {passwordChangeError && <p className="form-error">{passwordChangeError}</p>}
               {passwordChangeSuccess && <p className="muted">{passwordChangeSuccess}</p>}
-              <button type="button" className="button" onClick={() => void handlePasswordChange()}>
+              <button type="button" className={`button ${isPasswordChangeReady ? "button-ready" : ""}`.trim()} onClick={() => void handlePasswordChange()}>
                 {copy.saveNewPassword}
               </button>
             </div>
@@ -3443,7 +5294,7 @@ function App() {
             <div className="control-list">
               <div className="control-line">
                 <span>{copy.voyageModules}</span>
-                <strong>{visibleModules.length}</strong>
+                <strong>{activeRole?.modules?.length ?? 0}</strong>
               </div>
               <div className="control-line">
                 <span>{copy.sections}</span>
@@ -3458,10 +5309,34 @@ function App() {
         </header>
 
         <section className="metrics-grid compact">
-          <MetricCard title={copy.totalTasks} value={taskStats.total} icon={CheckSquare} sub={copy.totalTasksSub} />
-          <MetricCard title={copy.activeTasks} value={taskStats.active} icon={Clock3} sub={copy.activeTasksSub} />
-          <MetricCard title={copy.resolvedComplaints} value={complaintStats.resolved} icon={CheckCircle2} sub={copy.resolvedComplaintsSub} />
-          <MetricCard title={copy.criticalComplaints} value={complaintStats.critical} icon={AlertTriangle} sub={copy.criticalComplaintsSub} />
+          <MetricCard
+            title={copy.totalTasks}
+            value={taskStats.total}
+            icon={CheckSquare}
+            sub={copy.totalTasksSub}
+            onClick={() => openTaskView({ type: "all", status: "all", search: "" })}
+          />
+          <MetricCard
+            title={copy.activeTasks}
+            value={taskStats.active}
+            icon={Clock3}
+            sub={copy.activeTasksSub}
+            onClick={() => openTaskView({ type: "all", status: "In Progress", search: "" })}
+          />
+          <MetricCard
+            title={copy.resolvedComplaints}
+            value={complaintStats.resolved}
+            icon={CheckCircle2}
+            sub={copy.resolvedComplaintsSub}
+            onClick={() => openComplaintView({ status: "Resolved", severity: "all", search: "" })}
+          />
+          <MetricCard
+            title={copy.criticalComplaints}
+            value={complaintStats.critical}
+            icon={AlertTriangle}
+            sub={copy.criticalComplaintsSub}
+            onClick={() => openComplaintView({ status: "all", severity: "Critical", search: "" })}
+          />
         </section>
 
         <nav className="tabbar command-tabs" aria-label={copy.sections}>
@@ -3553,7 +5428,7 @@ function App() {
                     <article key={item.id} className="item-card">
                       <div className="row space-between top">
                         <div className="stack compact">
-                          <strong>{item.title}</strong>
+                          <strong>{localizeAgendaTitle(item.title)}</strong>
                           <p className="muted">{localizeDepartment(item.department)} | {formatDate(item.createdAt)}</p>
                           <p>{item.message}</p>
                         </div>
@@ -3569,64 +5444,6 @@ function App() {
               </Panel>
             )}
 
-            <Panel className="span-2">
-              <div className="panel-heading">
-                <h2>
-                  <CheckSquare size={18} /> {copy.voyageModules}
-                </h2>
-              </div>
-              <p className="muted module-intro">{copy.voyageModulesText}</p>
-              <div className="module-grid">
-                {visibleModules.map((module) => {
-                  const IconComponent = module.icon;
-                  const moduleCopy = copy.modules[module.id];
-                  return (
-                    <article key={module.id} className="module-card">
-                      <div className="module-card-top">
-                        <div className="metric-icon"><IconComponent size={18} /></div>
-                        <div className="module-meta">
-                          <span className="tag tag-outline">{copy.internalPanel}</span>
-                          <span className="tag tag-green">{copy.panelReady}</span>
-                        </div>
-                      </div>
-                      <strong>{moduleCopy.title}</strong>
-                      <p className="muted">{moduleCopy.text}</p>
-                      <button type="button" className="ghost-link" onClick={() => inspectModule(module)}>
-                        {copy.openPanel}
-                      </button>
-                    </article>
-                  );
-                })}
-              </div>
-              <div className="module-preview top-gap">
-                <div className="panel-heading">
-                  <h2>
-                    <Filter size={18} /> {copy.modulePreviewTitle}
-                  </h2>
-                </div>
-                {!selectedModule && <p className="muted">{copy.modulePreviewEmpty}</p>}
-                {selectedModule && (
-                  <div className="module-preview-card">
-                    <div className="row space-between top">
-                      <div className="stack compact">
-                        <strong>{copy.modules[selectedModule.id].title}</strong>
-                        <p className="muted">{copy.moduleTargets[selectedModule.id]}</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="button secondary"
-                        onClick={() => {
-                          setActiveTab(moduleTargetTab);
-                          logAction("actionTab", copy.modules[selectedModule.id].title);
-                        }}
-                      >
-                        {copy.moduleGoto}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Panel>
           </section>
         )}
 
@@ -3636,6 +5453,12 @@ function App() {
               <div className="panel-heading split">
                 <h2>{copy.todoPlanningBoard}</h2>
                 <div className="toolbar">
+                  <button type="button" className="button secondary slim-button" onClick={saveTaskList}>
+                    {copy.saveList}
+                  </button>
+                  <button type="button" className="button secondary slim-button" onClick={exportTaskList}>
+                    {copy.exportList}
+                  </button>
                   <label className="searchbox">
                     <Search size={16} />
                     <input value={taskSearch} onChange={(event) => setTaskSearch(event.target.value)} placeholder={copy.searchTask} />
@@ -3645,8 +5468,16 @@ function App() {
                     <option value="daily">{copy.daily}</option>
                     <option value="periodic">{copy.periodic}</option>
                   </select>
+                  <select aria-label={copy.taskStatusFilter} value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value)}>
+                    <option value="all">{copy.allTaskStatuses}</option>
+                    <option value="Not Started">{localizeStatus("Not Started")}</option>
+                    <option value="Planned">{localizeStatus("Planned")}</option>
+                    <option value="In Progress">{localizeStatus("In Progress")}</option>
+                    <option value="Done">{localizeStatus("Done")}</option>
+                  </select>
                 </div>
               </div>
+              {taskListStatus && <p className="muted top-gap">{taskListStatus}</p>}
               <div className="stack">
                 {filteredTasks.map((task) => (
                   <article key={task.id} className="item-card">
@@ -3687,11 +5518,11 @@ function App() {
                 </div>
                 <div className="two-col">
                   <label><span>{copy.department}</span><select value={newTask.department} disabled={isDepartmentManager} onChange={(event) => setNewTask({ ...newTask, department: event.target.value })}>{availableDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
-                  <label><span>{copy.owner}</span><input value={newTask.owner} onChange={(event) => setNewTask({ ...newTask, owner: event.target.value })} /></label>
+                <label><span>{copy.owner}</span><input value={newTask.owner} onChange={(event) => setNewTask({ ...newTask, owner: event.target.value })} placeholder={copy.owner} /></label>
                 </div>
                 <label><span>{copy.dueDate}</span><input type="date" value={newTask.dueDate} onChange={(event) => setNewTask({ ...newTask, dueDate: event.target.value })} /></label>
-                <label><span>{copy.notes}</span><textarea value={newTask.notes} onChange={(event) => setNewTask({ ...newTask, notes: event.target.value })} rows="5" /></label>
-                <button type="button" className="button" onClick={addTask}>{copy.addTask}</button>
+                <label><span>{copy.notes}</span><textarea value={newTask.notes} onChange={(event) => setNewTask({ ...newTask, notes: event.target.value })} rows="5" placeholder={copy.notesPlaceholder} /></label>
+                <button type="button" className={`button ${isTaskReady ? "button-ready" : ""}`.trim()} onClick={addTask}>{copy.addTask}</button>
               </div>
             </Panel>
           </section>
@@ -3703,6 +5534,12 @@ function App() {
               <div className="panel-heading split">
                 <h2>{copy.complaintTracking}</h2>
                 <div className="toolbar">
+                  <button type="button" className="button secondary slim-button" onClick={saveComplaintList}>
+                    {copy.saveList}
+                  </button>
+                  <button type="button" className="button secondary slim-button" onClick={exportComplaintList}>
+                    {copy.exportList}
+                  </button>
                   <label className="searchbox">
                     <Search size={16} />
                     <input value={complaintSearch} onChange={(event) => setComplaintSearch(event.target.value)} placeholder={copy.searchComplaint} />
@@ -3713,8 +5550,39 @@ function App() {
                     <option value="In Review">{localizeStatus("In Review")}</option>
                     <option value="Resolved">{localizeStatus("Resolved")}</option>
                   </select>
+                  <select aria-label={copy.complaintDepartmentFilter} value={complaintDepartmentFilter} onChange={(event) => {
+                    const nextDepartment = event.target.value;
+                    setComplaintDepartmentFilter(nextDepartment);
+                    if (nextDepartment === "all") {
+                      setComplaintCategoryFilter("all");
+                      return;
+                    }
+                    const nextCategories = complaintCategoriesForDepartment(nextDepartment);
+                    if (!nextCategories.includes(complaintCategoryFilter)) {
+                      setComplaintCategoryFilter("all");
+                    }
+                  }}>
+                    <option value="all">{copy.allDepartments}</option>
+                    {complaintDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}
+                  </select>
+                  <select aria-label={copy.category} value={complaintCategoryFilter} onChange={(event) => setComplaintCategoryFilter(event.target.value)}>
+                    <option value="all">{copy.allComplaintCategories}</option>
+                    {visibleComplaintCategoryOptions.map((key) => <option key={key} value={key}>{localizeCategory(key)}</option>)}
+                  </select>
+                  <select aria-label={copy.complaintChannelFilter} value={complaintChannelFilter} onChange={(event) => setComplaintChannelFilter(event.target.value)}>
+                    <option value="all">{copy.allChannels}</option>
+                    {Object.keys(copy.channels).map((key) => <option key={key} value={key}>{localizeChannel(key)}</option>)}
+                  </select>
+                  <select aria-label={copy.complaintSeverityFilter} value={complaintSeverityFilter} onChange={(event) => setComplaintSeverityFilter(event.target.value)}>
+                    <option value="all">{copy.allSeverities}</option>
+                    <option value="Low">{localizePriority("Low")}</option>
+                    <option value="Medium">{localizePriority("Medium")}</option>
+                    <option value="High">{localizePriority("High")}</option>
+                    <option value="Critical">{localizePriority("Critical")}</option>
+                  </select>
                 </div>
               </div>
+              {complaintListStatus && <p className="muted top-gap">{complaintListStatus}</p>}
               <div className="stack">
                 {filteredComplaints.map((item) => (
                   <article key={item.id} className="item-card">
@@ -3737,19 +5605,136 @@ function App() {
                 <h2><MessageSquareWarning size={18} /> {copy.addComplaint}</h2>
               </div>
               <div className="form-grid">
-                <label><span>{copy.guestOrCase}</span><input aria-label={copy.guestOrCase} value={newComplaint.guest} onChange={(event) => { setNewComplaint({ ...newComplaint, guest: event.target.value }); setComplaintFormError(""); }} /></label>
+                <label><span>{copy.guestOrCase}</span><input aria-label={copy.guestOrCase} value={newComplaint.guest} onChange={(event) => { setNewComplaint({ ...newComplaint, guest: event.target.value }); setComplaintFormError(""); }} placeholder={copy.guestOrCase} /></label>
                 <div className="two-col">
-                  <label><span>{copy.category}</span><select value={newComplaint.category} onChange={(event) => setNewComplaint({ ...newComplaint, category: event.target.value })}>{Object.keys(copy.categories).map((key) => <option key={key} value={key}>{localizeCategory(key)}</option>)}</select></label>
+                  <label><span>{copy.category}</span><select value={newComplaint.category} onChange={(event) => setNewComplaint({ ...newComplaint, category: event.target.value })}>{formComplaintCategoryOptions.map((key) => <option key={key} value={key}>{localizeCategory(key)}</option>)}</select></label>
                   <label><span>{copy.severity}</span><select value={newComplaint.severity} onChange={(event) => setNewComplaint({ ...newComplaint, severity: event.target.value })}><option value="Low">{localizePriority("Low")}</option><option value="Medium">{localizePriority("Medium")}</option><option value="High">{localizePriority("High")}</option><option value="Critical">{localizePriority("Critical")}</option></select></label>
                 </div>
                 <div className="two-col">
                   <label><span>{copy.channel}</span><select value={newComplaint.channel} onChange={(event) => setNewComplaint({ ...newComplaint, channel: event.target.value })}>{Object.keys(copy.channels).map((key) => <option key={key} value={key}>{localizeChannel(key)}</option>)}</select></label>
                   <label><span>{copy.date}</span><input type="date" value={newComplaint.date} onChange={(event) => setNewComplaint({ ...newComplaint, date: event.target.value })} /></label>
                 </div>
-                <label><span>{copy.department}</span><select value={newComplaint.department} disabled={isDepartmentManager} onChange={(event) => setNewComplaint({ ...newComplaint, department: event.target.value })}>{availableDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
-                <label><span>{copy.summary}</span><textarea aria-label={copy.summary} rows="5" value={newComplaint.summary} onChange={(event) => { setNewComplaint({ ...newComplaint, summary: event.target.value }); setComplaintFormError(""); }} /></label>
+                <label><span>{copy.department}</span><select value={newComplaint.department} disabled={isDepartmentManager} onChange={(event) => {
+                  const nextDepartment = event.target.value;
+                  setNewComplaint({
+                    ...newComplaint,
+                    department: nextDepartment,
+                    category: complaintCategoriesByDepartment[nextDepartment]?.[0] ?? newComplaint.category,
+                  });
+                }}>{complaintDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}</select></label>
+                <label><span>{copy.summary}</span><textarea aria-label={copy.summary} rows="5" value={newComplaint.summary} onChange={(event) => { setNewComplaint({ ...newComplaint, summary: event.target.value }); setComplaintFormError(""); }} placeholder={copy.summaryPlaceholder} /></label>
                 {complaintFormError && <p className="form-error">{complaintFormError}</p>}
-                <button type="button" className="button" onClick={addComplaint}>{copy.addComplaint}</button>
+                <button type="button" className={`button ${isComplaintReady ? "button-ready" : ""}`.trim()} onClick={addComplaint}>{copy.addComplaint}</button>
+              </div>
+            </Panel>
+          </section>
+        )}
+
+        {visibleTab === "orders" && (
+          <section className="content-grid">
+            <Panel className="span-2">
+              <div className="panel-heading split">
+                <h2>
+                  <ClipboardList size={18} /> {copy.ordersTitle}
+                </h2>
+                <div className="toolbar">
+                  <button type="button" className="button secondary slim-button" onClick={saveOrders}>
+                    {copy.saveOrders}
+                  </button>
+                  <button type="button" className="button secondary slim-button" onClick={printOrders}>
+                    {copy.printOrders}
+                  </button>
+                  <button type="button" className="button secondary slim-button" onClick={exportOrders}>
+                    {copy.exportOrders}
+                  </button>
+                </div>
+              </div>
+              <p className="muted module-intro">{copy.ordersText}</p>
+              {ordersStatus && <p className="muted top-gap">{ordersStatus}</p>}
+              <div className="orders-overview top-gap">
+                {orderSections.map((type) => (
+                  <article key={`${type}-overview`} className="orders-overview-card">
+                    <span className="eyebrow">
+                      {type === "fruitWine"
+                        ? copy.fruitWine
+                        : type === "cake"
+                          ? copy.cake
+                          : type === "roomDecoration"
+                            ? copy.roomDecoration
+                          : copy.specialRequest}
+                    </span>
+                    <strong>{ordersByType[type].length}</strong>
+                  </article>
+                ))}
+              </div>
+              <div className="spec-grid top-gap orders-grid">
+                {orderSections.map((type) => (
+                  <article key={type} className="spec-card orders-card">
+                    <div className="orders-card-header">
+                      <div className="orders-card-title">
+                        <span className="orders-card-kicker">{copy.ordersTab}</span>
+                        <h2>
+                          {type === "fruitWine"
+                            ? copy.fruitWine
+                            : type === "cake"
+                              ? copy.cake
+                              : type === "roomDecoration"
+                                ? copy.roomDecoration
+                              : copy.specialRequest}
+                        </h2>
+                      </div>
+                      <span className="tag tag-outline">
+                        {ordersByType[type].length}
+                      </span>
+                    </div>
+                    <div className="orders-form-shell">
+                      <div className="form-grid">
+                        <label>
+                          <span>{copy.roomNumberFixed}</span>
+                          <input
+                            aria-label={`${copy.roomNumberFixed} ${type}`}
+                            value={newOrders[type].roomNumber}
+                            onChange={(event) => setNewOrders((current) => ({
+                              ...current,
+                              [type]: { ...current[type], roomNumber: event.target.value },
+                            }))}
+                            placeholder={copy.roomNumberFixed}
+                          />
+                        </label>
+                        <textarea
+                          aria-label={`${type} note`}
+                          rows="4"
+                          value={newOrders[type].note}
+                          onChange={(event) => setNewOrders((current) => ({
+                            ...current,
+                            [type]: { ...current[type], note: event.target.value },
+                          }))}
+                          placeholder={copy.notesPlaceholder}
+                        />
+                        <button
+                          type="button"
+                          className={`button secondary ${isOrderReady(type) ? "button-ready" : ""}`.trim()}
+                          onClick={() => addOrder(type)}
+                        >
+                          {copy.addOrder}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="orders-list-header">
+                      <span>{copy.roomNumberFixed}</span>
+                      <span>{copy.notes}</span>
+                    </div>
+                    <div className="stack compact orders-list">
+                      {ordersByType[type].length === 0 && <p className="muted">{copy.notSet}</p>}
+                      {ordersByType[type].map((item) => (
+                        <article key={item.id} className="item-card orders-item">
+                          <strong>{item.roomNumber}</strong>
+                          <span>{item.note || "-"}</span>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                ))}
               </div>
             </Panel>
           </section>
@@ -3758,15 +5743,24 @@ function App() {
         {visibleTab === "alacarte" && (
           <section className="alacarte-layout">
             <Panel className="span-2 alacarte-table-panel">
-              <div className="panel-heading">
+              <div className="panel-heading split">
                 <h2>
                   <CalendarDays size={18} /> {copy.alaCarteTitle}
                 </h2>
+                <div className="toolbar">
+                  <button type="button" className="button secondary slim-button" onClick={saveAlaCarteLists}>
+                    {copy.saveList}
+                  </button>
+                  <button type="button" className="button secondary slim-button" onClick={exportAlaCarteLists}>
+                    {copy.exportList}
+                  </button>
+                </div>
               </div>
               <p className="muted module-intro">{copy.alaCarteText}</p>
+              {alaCarteListStatus && <p className="muted top-gap">{alaCarteListStatus}</p>}
               <div className="data-table">
                 <div className="data-row data-head">
-                  <span>Restaurant</span>
+                  <span>{copy.venueName}</span>
                   <span>{copy.activeStatus}</span>
                   <span>{copy.openTime}</span>
                   <span>{copy.lastArrival}</span>
@@ -3778,14 +5772,14 @@ function App() {
                   <div key={restaurant.id} className="data-row">
                     <span>
                       <strong>{restaurant.name}</strong>
-                      <small>{restaurant.cuisine}</small>
+                      <small>{localizeVenueCuisine(restaurant.cuisine)}</small>
                     </span>
                     <span>{restaurant.active ? copy.active : copy.passive}</span>
                     <span>{restaurant.openingTime}</span>
                     <span>{restaurant.lastArrival}</span>
                     <span>{restaurant.coverPrice} {restaurant.currency}</span>
                     <span>{restaurant.maxGuests}</span>
-                    <span>{restaurant.workingDays.join(", ")}</span>
+                    <span>{restaurant.workingDays.map((day) => localizeWeekdayShort(day)).join(", ")}</span>
                   </div>
                 ))}
               </div>
@@ -3822,7 +5816,7 @@ function App() {
                           <span>{venue?.name ?? reservation.venueId}</span>
                           <span>{formatDate(reservation.reservationDate)}</span>
                           <span>{reservation.slotTime}</span>
-                          <span>{reservation.status}</span>
+                          <span>{localizeReservationStatus(reservation.status)}</span>
                           <span>{reservation.partySize}</span>
                           <button type="button" className="button secondary slim-button row-action" onClick={() => cycleReservationStatus(reservation.id)}>
                             {diningCopy.reservationFlow}
@@ -3846,8 +5840,8 @@ function App() {
                             <p className="muted">{venue?.name ?? entry.venueId} | {entry.preferredWindow} | {entry.partySize}</p>
                           </div>
                           <div className="spec-actions">
-                            <span className="tag tag-outline">{entry.priority}</span>
-                            <span className={entry.status === "Waiting" ? statusTone.Open : statusTone.Resolved}>{entry.status}</span>
+                            <span className="tag tag-outline">{localizeWaitlistPriority(entry.priority)}</span>
+                            <span className={entry.status === "Waiting" ? statusTone.Open : statusTone.Resolved}>{localizeWaitlistStatus(entry.status)}</span>
                             {entry.status === "Waiting" && (
                               <button type="button" className="button secondary slim-button" onClick={() => convertWaitlistToReservation(entry.id)}>
                                 {diningCopy.moveToReservation}
@@ -3866,30 +5860,28 @@ function App() {
                     <div className="spec-header">
                       <div>
                         <strong>{restaurant.name}</strong>
-                        <p className="muted">{copy.cuisine}: {restaurant.cuisine}</p>
+                        <p className="muted">{copy.cuisine}: {localizeVenueCuisine(restaurant.cuisine)}</p>
                       </div>
-                      <div className="spec-actions">
-                        <button type="button" className="button secondary slim-button" onClick={() => toggleAlaCarteVenue(restaurant.id)}>
-                          {restaurant.active ? copy.passive : copy.active}
-                        </button>
-                        <button type="button" className="button secondary slim-button" onClick={() => bumpAlaCartePrice(restaurant.id)}>
-                          {copy.updatePrice}
-                        </button>
-                      </div>
+                      <span className={restaurant.active ? "tag tag-green" : "tag tag-slate"}>
+                        {restaurant.active ? copy.active : copy.passive}
+                      </span>
                     </div>
                     <div className="spec-pairs">
-                      <div><span className="eyebrow">{copy.childPolicy}</span><p>{restaurant.childPolicy}</p></div>
-                      <div><span className="eyebrow">{copy.cancellationWindow}</span><p>{restaurant.cancellationWindow}</p></div>
-                      <div><span className="eyebrow">{copy.closeSaleWindow}</span><p>{restaurant.closeSaleWindow}</p></div>
+                      <div><span className="eyebrow">{copy.openTime}</span><p>{restaurant.openingTime}</p></div>
+                      <div><span className="eyebrow">{copy.lastArrival}</span><p>{restaurant.lastArrival}</p></div>
+                      <div><span className="eyebrow">{copy.coverPrice}</span><p>{restaurant.coverPrice} {restaurant.currency}</p></div>
+                      <div><span className="eyebrow">{copy.childPolicy}</span><p>{localizeVenueChildPolicy(restaurant.childPolicy)}</p></div>
+                      <div><span className="eyebrow">{copy.cancellationWindow}</span><p>{localizeVenueDuration(restaurant.cancellationWindow)}</p></div>
+                      <div><span className="eyebrow">{copy.closeSaleWindow}</span><p>{localizeVenueDuration(restaurant.closeSaleWindow)}</p></div>
                       <div><span className="eyebrow">{copy.roomNightLimit}</span><p>{restaurant.roomNightLimit}</p></div>
                       <div><span className="eyebrow">{copy.areaPreference}</span><p>{restaurant.areaPreference ? copy.yes : copy.no}</p></div>
                       <div><span className="eyebrow">{copy.mixedTable}</span><p>{restaurant.mixedTable ? copy.yes : copy.no}</p></div>
                       <div><span className="eyebrow">{copy.includeOtherRooms}</span><p>{restaurant.includeOtherRooms ? copy.yes : copy.no}</p></div>
-                      <div><span className="eyebrow">{copy.tableSetup}</span><p>{restaurant.tableSetup}</p></div>
+                      <div><span className="eyebrow">{copy.tableSetup}</span><p>{localizeVenueTableSetup(restaurant.tableSetup)}</p></div>
                     </div>
                     <div className="spec-note">
                       <span className="eyebrow">{copy.operationalNote}</span>
-                      <p>{restaurant.note}</p>
+                      <p>{localizeVenueNote(restaurant.note)}</p>
                     </div>
                   </article>
                 ))}
@@ -3898,7 +5890,7 @@ function App() {
             <Panel className="alacarte-side-panel">
               <div className="panel-heading">
                 <h2>
-                  <BarChart3 size={18} /> {copy.alaCarteSystemTitle}
+                  <BarChart3 size={18} /> {copy.alaCarteRestaurants}
                 </h2>
               </div>
               <p className="muted module-intro">{copy.alaCarteSystemText}</p>
@@ -3913,8 +5905,8 @@ function App() {
                 <div className="control-line"><span>{diningCopy.noShowRisk}</span><strong>{alaCarteStats.noShowRiskCount}</strong></div>
               </div>
               <div className="spec-note side-note">
-                <span className="eyebrow">Runtime</span>
-                <p>Role-scoped internal operational model. No outbound dependency on live reservation pages.</p>
+                <span className="eyebrow">{copy.runtimeLabel}</span>
+                <p>{copy.runtimeText}</p>
               </div>
               {alaCarteStatusMessage && <p className="muted top-gap">{alaCarteStatusMessage}</p>}
               <div className="form-grid top-gap">
@@ -3926,14 +5918,15 @@ function App() {
                 </div>
                 <div className="two-col">
                   <label><span>{diningCopy.partySize}</span><input aria-label={diningCopy.partySize} type="number" value={newReservation.partySize} onChange={(event) => setNewReservation({ ...newReservation, partySize: Number(event.target.value) })} /></label>
-                  <label><span>{diningCopy.source}</span><select value={newReservation.source} onChange={(event) => setNewReservation({ ...newReservation, source: event.target.value })}><option>App</option><option>Guest Relations</option><option>Front Office</option><option>Manager</option></select></label>
+                  <label><span>{diningCopy.source}</span><select value={newReservation.source} onChange={(event) => setNewReservation({ ...newReservation, source: event.target.value })}><option value="App">{diningCopy.sources.app}</option><option value="Guest Relations">{diningCopy.sources.guestRelations}</option><option value="Front Office">{diningCopy.sources.frontOffice}</option><option value="Manager">{diningCopy.sources.manager}</option></select></label>
                 </div>
                 <div className="two-col">
                   <label><span>{diningCopy.reservationDate}</span><input type="date" value={newReservation.reservationDate} onChange={(event) => setNewReservation({ ...newReservation, reservationDate: event.target.value })} /></label>
                   <label><span>{diningCopy.slotTime}</span><input type="time" value={newReservation.slotTime} onChange={(event) => setNewReservation({ ...newReservation, slotTime: event.target.value })} /></label>
                 </div>
-                <label><span>{copy.operationalNote}</span><textarea rows="3" value={newReservation.note} onChange={(event) => setNewReservation({ ...newReservation, note: event.target.value })} /></label>
-                <button type="button" className="button" onClick={addAlaCarteReservation}>{diningCopy.addReservation}</button>
+                <label><span>{copy.operationalNote}</span><textarea rows="3" value={newReservation.note} onChange={(event) => setNewReservation({ ...newReservation, note: event.target.value })} placeholder={copy.operationalNotePlaceholder} /></label>
+                {alaCarteFormError && <p className="form-error">{alaCarteFormError}</p>}
+                <button type="button" className={`button ${isReservationReady ? "button-ready" : ""}`.trim()} onClick={addAlaCarteReservation}>{diningCopy.addReservation}</button>
               </div>
               <div className="form-grid top-gap">
                 <h3>{diningCopy.addWaitlist}</h3>
@@ -3950,7 +5943,7 @@ function App() {
                   <label><span>{diningCopy.reservationDate}</span><input type="date" value={newWaitlistEntry.preferredDate} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, preferredDate: event.target.value })} /></label>
                   <label><span>{diningCopy.waitlistWindow}</span><input value={newWaitlistEntry.preferredWindow} onChange={(event) => setNewWaitlistEntry({ ...newWaitlistEntry, preferredWindow: event.target.value })} /></label>
                 </div>
-                <button type="button" className="button secondary" onClick={addWaitlistEntry}>{diningCopy.addWaitlist}</button>
+                <button type="button" className={`button secondary ${isWaitlistReady ? "button-ready" : ""}`.trim()} onClick={addWaitlistEntry}>{diningCopy.addWaitlist}</button>
               </div>
               <div className="form-grid top-gap">
                 <h3>{diningCopy.settingsTitle}</h3>
@@ -3961,6 +5954,34 @@ function App() {
                     {alaCarteVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
                   </select>
                 </label>
+                <div className="two-col">
+                  <label><span>{copy.activeStatus}</span><select value={venueSettings.active ? "active" : "passive"} onChange={(event) => setVenueSettings({ ...venueSettings, active: event.target.value === "active" })}><option value="active">{copy.active}</option><option value="passive">{copy.passive}</option></select></label>
+                  <label><span>{copy.coverPrice}</span><input type="number" value={venueSettings.coverPrice} onChange={(event) => setVenueSettings({ ...venueSettings, coverPrice: Number(event.target.value) })} /></label>
+                </div>
+                <div className="two-col">
+                  <label><span>{copy.openTime}</span><input type="time" value={venueSettings.openingTime} onChange={(event) => setVenueSettings({ ...venueSettings, openingTime: event.target.value })} /></label>
+                  <label><span>{copy.lastArrival}</span><input type="time" value={venueSettings.lastArrival} onChange={(event) => setVenueSettings({ ...venueSettings, lastArrival: event.target.value })} /></label>
+                </div>
+                <div className="form-grid">
+                  <span className="eyebrow">{copy.workingDays}</span>
+                  <div className="shift-calendar-chip-list">
+                    {Object.keys(copy.weekdaysShort).map((dayKey) => (
+                      <label key={dayKey} className="permission-option">
+                        <input
+                          type="checkbox"
+                          checked={venueSettings.workingDays.includes(dayKey)}
+                          onChange={(event) => setVenueSettings((current) => ({
+                            ...current,
+                            workingDays: event.target.checked
+                              ? [...current.workingDays, dayKey]
+                              : current.workingDays.filter((item) => item !== dayKey),
+                          }))}
+                        />
+                        <span>{localizeWeekdayShort(dayKey)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <div className="two-col">
                   <label><span>{copy.childPolicy}</span><input value={venueSettings.childPolicy} onChange={(event) => setVenueSettings({ ...venueSettings, childPolicy: event.target.value })} /></label>
                   <label><span>{copy.tableSetup}</span><input value={venueSettings.tableSetup} onChange={(event) => setVenueSettings({ ...venueSettings, tableSetup: event.target.value })} /></label>
@@ -3977,8 +5998,8 @@ function App() {
                   <label><span>{copy.areaPreference}</span><select value={venueSettings.areaPreference ? "yes" : "no"} onChange={(event) => setVenueSettings({ ...venueSettings, areaPreference: event.target.value === "yes" })}><option value="yes">{copy.yes}</option><option value="no">{copy.no}</option></select></label>
                   <label><span>{copy.mixedTable}</span><select value={venueSettings.mixedTable ? "yes" : "no"} onChange={(event) => setVenueSettings({ ...venueSettings, mixedTable: event.target.value === "yes" })}><option value="yes">{copy.yes}</option><option value="no">{copy.no}</option></select></label>
                 </div>
-                <label><span>{copy.operationalNote}</span><textarea rows="3" value={venueSettings.note} onChange={(event) => setVenueSettings({ ...venueSettings, note: event.target.value })} /></label>
-                <button type="button" className="button secondary" onClick={saveAlaCarteSettings}>{diningCopy.saveSettings}</button>
+                <label><span>{copy.operationalNote}</span><textarea rows="3" value={venueSettings.note} onChange={(event) => setVenueSettings({ ...venueSettings, note: event.target.value })} placeholder={copy.operationalNotePlaceholder} /></label>
+                <button type="button" className={`button secondary ${isVenueSettingsReady ? "button-ready" : ""}`.trim()} onClick={saveAlaCarteSettings}>{diningCopy.saveSettings}</button>
               </div>
               <article className="spec-card top-gap">
                 <div className="panel-heading">
@@ -4016,7 +6037,8 @@ function App() {
                   <label><span>{diningCopy.slotCapacity}</span><input type="number" value={newServiceSlot.maxCovers} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, maxCovers: Number(event.target.value) })} /></label>
                 </div>
                 <label><span>{diningCopy.slotWaitlist}</span><input type="number" value={newServiceSlot.waitlistCount} onChange={(event) => setNewServiceSlot({ ...newServiceSlot, waitlistCount: Number(event.target.value) })} /></label>
-                <button type="button" className="button secondary" onClick={addServiceSlot}>{diningCopy.addServiceSlot}</button>
+                {alaCarteFormError && <p className="form-error">{alaCarteFormError}</p>}
+                <button type="button" className={`button secondary ${isServiceSlotReady ? "button-ready" : ""}`.trim()} onClick={addServiceSlot}>{diningCopy.addServiceSlot}</button>
               </div>
               <div className="form-grid top-gap">
                 <label><span>{copy.venueName}</span><input value={newVenue.name} onChange={(event) => setNewVenue({ ...newVenue, name: event.target.value })} /></label>
@@ -4032,58 +6054,352 @@ function App() {
                   <label><span>{copy.maxGuests}</span><input type="number" value={newVenue.maxGuests} onChange={(event) => setNewVenue({ ...newVenue, maxGuests: Number(event.target.value) })} /></label>
                   <label><span>{copy.workingDays}</span><input value={newVenue.workingDays} onChange={(event) => setNewVenue({ ...newVenue, workingDays: event.target.value })} /></label>
                 </div>
-                <label><span>{copy.operationalNote}</span><textarea rows="4" value={newVenue.note} onChange={(event) => setNewVenue({ ...newVenue, note: event.target.value })} /></label>
-                <button type="button" className="button" onClick={addAlaCarteVenue}>{copy.addVenue}</button>
+                <label><span>{copy.operationalNote}</span><textarea rows="4" value={newVenue.note} onChange={(event) => setNewVenue({ ...newVenue, note: event.target.value })} placeholder={copy.operationalNotePlaceholder} /></label>
+                <button type="button" className={`button ${isVenueReady ? "button-ready" : ""}`.trim()} onClick={addAlaCarteVenue}>{copy.addVenue}</button>
               </div>
             </Panel>
           </section>
         )}
 
-        {visibleTab === "analysis" && (
-          <section className="analysis-grid">
-            <Panel className="chart-panel">
-              <div className="panel-heading"><h2><BarChart3 size={18} /> {copy.complaintCategories}</h2></div>
-              <div className="chart-wrap">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={complaintByCategory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#dbe4f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="value" radius={[10, 10, 0, 0]} fill="#1d4ed8" />
-                  </BarChart>
-                </ResponsiveContainer>
+        {visibleTab === "shiftPlanner" && (
+          <section className="content-grid">
+            <Panel>
+              <div className="panel-heading">
+                <h2>
+                  <CalendarDays size={18} /> {shiftCopy.title}
+                </h2>
+              </div>
+              <p className="muted module-intro">{shiftCopy.intro}</p>
+              <div className="form-grid">
+                <label>
+                  <span>{shiftCopy.teamName}</span>
+                  <input
+                    aria-label={shiftCopy.teamName}
+                    value={shiftTeamForm.name}
+                    onChange={(event) => {
+                      setShiftTeamForm((current) => ({ ...current, name: event.target.value }));
+                      setShiftPlannerError("");
+                    }}
+                  />
+                </label>
+                <div className="two-col">
+                  <label>
+                    <span>{shiftCopy.memberOne}</span>
+                    <input
+                      aria-label={shiftCopy.memberOne}
+                      value={shiftTeamForm.members[0]}
+                      onChange={(event) => {
+                        const nextMembers = [...shiftTeamForm.members];
+                        nextMembers[0] = event.target.value;
+                        setShiftTeamForm((current) => ({ ...current, members: nextMembers }));
+                        setShiftPlannerError("");
+                      }}
+                    />
+                  </label>
+                  <label>
+                    <span>{shiftCopy.memberTwo}</span>
+                    <input
+                      aria-label={shiftCopy.memberTwo}
+                      value={shiftTeamForm.members[1]}
+                      onChange={(event) => {
+                        const nextMembers = [...shiftTeamForm.members];
+                        nextMembers[1] = event.target.value;
+                        setShiftTeamForm((current) => ({ ...current, members: nextMembers }));
+                        setShiftPlannerError("");
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="two-col">
+                  <label>
+                    <span>{shiftCopy.memberThree}</span>
+                    <input
+                      aria-label={shiftCopy.memberThree}
+                      value={shiftTeamForm.members[2]}
+                      onChange={(event) => {
+                        const nextMembers = [...shiftTeamForm.members];
+                        nextMembers[2] = event.target.value;
+                        setShiftTeamForm((current) => ({ ...current, members: nextMembers }));
+                        setShiftPlannerError("");
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="panel-heading top-gap">
+                  <h2>{shiftCopy.offPlannerTitle}</h2>
+                </div>
+                <p className="muted">{shiftCopy.offPlannerText}</p>
+                <div className="shift-off-grid">
+                  {shiftCopy.dayLabels.map((dayLabel, dayIndex) => (
+                    <label key={dayLabel}>
+                      <span>{dayLabel}</span>
+                      <select
+                        aria-label={`${dayLabel} ${shiftCopy.offMemberLabel}`}
+                        value={shiftTeamForm.offSchedule[dayIndex]}
+                        onChange={(event) => {
+                          const nextSchedule = [...shiftTeamForm.offSchedule];
+                          nextSchedule[dayIndex] = event.target.value;
+                          setShiftTeamForm((current) => ({ ...current, offSchedule: nextSchedule }));
+                          setShiftPlannerError("");
+                        }}
+                      >
+                        <option value="">{shiftCopy.noOffOption}</option>
+                        {shiftTeamForm.members.map((member, memberIndex) => (
+                          <option key={`${dayLabel}-${memberIndex}`} value={String(memberIndex)}>
+                            {member || `${shiftCopy.offMemberLabel} ${memberIndex + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+                {shiftPlannerError && <p className="form-error">{shiftPlannerError}</p>}
+                <button type="button" className={`button ${isShiftTeamReady ? "button-ready" : ""}`.trim()} onClick={addShiftTeam}>{shiftCopy.addTeam}</button>
               </div>
             </Panel>
-            <Panel className="chart-panel">
-              <div className="panel-heading"><h2><Filter size={18} /> {copy.complaintStatusDistribution}</h2></div>
-              <div className="chart-wrap">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={complaintByStatus} dataKey="value" nameKey="name" outerRadius={104} innerRadius={58} paddingAngle={4}>
-                      {complaintByStatus.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+
+            <Panel>
+              <div className="panel-heading">
+                <h2>{shiftCopy.teamListTitle}</h2>
               </div>
-              <div className="legend">
-                {complaintByStatus.map((entry, index) => (
-                  <div key={entry.name} className="legend-item">
-                    <span className="legend-color" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
-                    {entry.name}: {entry.value}
-                  </div>
+              <div className="shift-action-row">
+                <button type="button" className="button secondary" onClick={saveShiftTeams}>
+                  {shiftCopy.saveTeams}
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={shiftTeams.length === 0}
+                  onClick={() => exportShiftPlan(shiftPlan, "weekly")}
+                >
+                  {shiftCopy.exportWeek}
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={shiftTeams.length === 0}
+                  onClick={() => exportShiftPlan(monthlyShiftPlan, "monthly")}
+                >
+                  {shiftCopy.exportMonth}
+                </button>
+              </div>
+              {shiftPlannerStatus && <p className="muted top-gap">{shiftPlannerStatus}</p>}
+              <div className="shift-saved-list top-gap">
+                {shiftTeams.length === 0 && <p className="muted">{shiftCopy.emptyState}</p>}
+                {shiftTeams.map((team) => (
+                  <article key={team.id} className="item-card shift-saved-card">
+                    <div className="row space-between top">
+                      <div className="stack compact">
+                        <strong>{team.name}</strong>
+                        <p className="muted">{shiftCopy.offScheduleSummary}: {formatShiftOffSummary(team, shiftCopy)}</p>
+                      </div>
+                      <div className="shift-card-actions">
+                        <button
+                          type="button"
+                          className="button secondary slim-button"
+                          onClick={() => setEditingShiftTeamId((current) => (current === team.id ? "" : team.id))}
+                        >
+                          {editingShiftTeamId === team.id ? shiftCopy.doneEditing : shiftCopy.editTeam}
+                        </button>
+                        <button type="button" className="button secondary slim-button" onClick={() => removeShiftTeam(team.id)}>
+                          {shiftCopy.removeTeam}
+                        </button>
+                      </div>
+                    </div>
+                    {editingShiftTeamId === team.id && (
+                      <div className="shift-off-grid top-gap">
+                        {shiftCopy.dayLabels.map((dayLabel, dayIndex) => (
+                          <label key={`${team.id}-${dayLabel}`}>
+                            <span>{dayLabel}</span>
+                            <select
+                              aria-label={`${team.name} ${dayLabel} ${shiftCopy.offMemberLabel}`}
+                              value={team.offSchedule?.[dayIndex] ?? ""}
+                              onChange={(event) => updateShiftTeamOffMember(team.id, dayIndex, event.target.value)}
+                            >
+                              <option value="">{shiftCopy.noOffOption}</option>
+                              {team.members.map((member, memberIndex) => (
+                                <option key={`${team.id}-${dayLabel}-${member}`} value={String(memberIndex)}>
+                                  {member}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </article>
                 ))}
               </div>
             </Panel>
-            <Panel><p className="eyebrow">{copy.totalComplaints}</p><p className="hero-value">{complaintStats.total}</p></Panel>
-            <Panel><p className="eyebrow">{copy.openRatio}</p><p className="hero-value">{complaintStats.total ? Math.round((complaintStats.open / complaintStats.total) * 100) : 0}%</p></Panel>
-            <Panel><p className="eyebrow">{copy.resolutionRatio}</p><p className="hero-value">{complaintStats.total ? Math.round((complaintStats.resolved / complaintStats.total) * 100) : 0}%</p></Panel>
+
+            {shiftTeams.length === 0 && (
+              <Panel className="span-2">
+                <p className="muted">{shiftCopy.emptyState}</p>
+              </Panel>
+            )}
+
+            {shiftTeams.length > 0 && selectedShiftDay && (
+              <Panel className="span-2">
+                <div className="panel-heading split">
+                  <h2>{shiftCopy.dayLabels[selectedShiftDay.dayIndex]} | {shiftCopy.staffingTitle}</h2>
+                  <span className="tag tag-outline">
+                    {shiftCopy.offTeams}: {selectedShiftDay.offTeams.length ? selectedShiftDay.offTeams.join(", ") : "-"}
+                  </span>
+                </div>
+
+                <div className="shift-day-switcher">
+                  {shiftPlan.days.map((day) => (
+                    <button
+                      key={day.date}
+                      type="button"
+                      className={`shift-day-button ${selectedShiftDayIndex === day.dayIndex ? "shift-day-button-active" : ""}`.trim()}
+                      onClick={() => setSelectedShiftDayIndex(day.dayIndex)}
+                    >
+                      <span>{shiftCopy.dayLabels[day.dayIndex]}</span>
+                      <strong>{formatDate(day.date)}</strong>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="shift-summary-box top-gap">
+                  <div className="control-line">
+                    <span>{shiftCopy.teamCount}</span>
+                    <strong>{shiftTeams.length}</strong>
+                  </div>
+                  <div className="control-line">
+                    <span>{shiftCopy.morningCount}</span>
+                    <strong>{selectedShiftDay.stats.morningCount}</strong>
+                  </div>
+                  <div className="control-line">
+                    <span>{shiftCopy.eveningCount}</span>
+                    <strong>{selectedShiftDay.stats.eveningCount}</strong>
+                  </div>
+                  <div className="control-line">
+                    <span>{shiftCopy.offCount}</span>
+                    <strong>{selectedShiftDay.stats.offCount}</strong>
+                  </div>
+                  <div className="control-line shift-chief-line">
+                    <span>{shiftCopy.dayLabels[selectedShiftDay.dayIndex]}</span>
+                    <strong>{formatDate(selectedShiftDay.date)}</strong>
+                  </div>
+                </div>
+
+                <div className="shift-team-grid top-gap">
+                  {selectedShiftDay.teamPlans.map((team) => (
+                    <article key={`${selectedShiftDay.date}-${team.teamId}`} className="item-card shift-team-card">
+                      <div className="row space-between top">
+                        <strong>{team.teamName}</strong>
+                        <span className={team.offMember ? "tag tag-yellow" : "tag tag-green"}>
+                          {team.offMember ? shiftCopy.off : shiftCopy.active}
+                        </span>
+                      </div>
+                      <div className="shift-line">
+                        <span>{shiftCopy.morning}</span>
+                        <strong>{team.morningMembers.join(", ") || "-"}</strong>
+                      </div>
+                      <div className="shift-line">
+                        <span>{shiftCopy.evening}</span>
+                        <strong>{team.eveningMember}</strong>
+                      </div>
+                      <div className="shift-line">
+                        <span>{shiftCopy.off}</span>
+                        <strong>{team.offMember ?? shiftCopy.noOffOption}</strong>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Panel>
+            )}
           </section>
         )}
 
         {visibleTab === "assistantTracker" && (
           <section className="content-grid">
+            <Panel className="span-2">
+              <div className="panel-heading split">
+                <h2>
+                  <Globe size={18} /> {copy.reviewSourcesTitle}
+                </h2>
+                <div className="toolbar">
+                  <button type="button" className="button secondary" onClick={saveReviewSources}>
+                    {copy.reviewSourceSave}
+                  </button>
+                  <button type="button" className="button secondary" onClick={syncReviewSources} disabled={isReviewSyncing}>
+                    {isReviewSyncing ? copy.reviewSyncing : copy.reviewSyncButton}
+                  </button>
+                </div>
+              </div>
+              <p className="muted module-intro">{copy.reviewSourcesText}</p>
+              {reviewSourceStatus && <p className="muted top-gap">{reviewSourceStatus}</p>}
+              {reviewSyncStatus && <p className="muted top-gap">{reviewSyncStatus}</p>}
+              <article className="spec-card top-gap">
+                <strong>{copy.reviewScheduleTitle}</strong>
+                <p className="muted">{copy.reviewScheduleDaily}</p>
+                <p className="muted">{copy.reviewScheduleLow}</p>
+                <p className="muted">{copy.reviewAlertRecipients}</p>
+                <p className="muted">
+                  {copy.reviewSourceLastSync}: {reviewSchedule.lastDailyScanAt ? formatDate(reviewSchedule.lastDailyScanAt.slice(0, 10)) : copy.notSet}
+                </p>
+              </article>
+              <div className="spec-grid top-gap">
+                {reviewSources.map((source) => (
+                  <article key={source.id} className="spec-card">
+                    <div className="row space-between">
+                      <strong>{source.label}</strong>
+                      <span className={source.enabled ? "tag tag-green" : "tag tag-slate"}>
+                        {source.enabled ? copy.active : copy.passive}
+                      </span>
+                    </div>
+                    <div className="control-line top-gap">
+                      <span>{copy.branchLabel}</span>
+                      <strong>{source.branch}</strong>
+                    </div>
+                    <label className="top-gap">
+                      <span className="eyebrow">{copy.reviewSourceUrl}</span>
+                      <input
+                        value={source.url || ""}
+                        onChange={(event) =>
+                          setReviewSources((current) =>
+                            current.map((item) => (item.id === source.id ? { ...item, url: event.target.value } : item)),
+                          )
+                        }
+                      />
+                    </label>
+                    <div className="control-line">
+                      <span>{copy.reviewSourceLastSync}</span>
+                      <strong>{source.lastSyncAt ? formatDate(source.lastSyncAt.slice(0, 10)) : copy.notSet}</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel>
+              <div className="panel-heading">
+                <h2>{copy.reviewScanLogTitle}</h2>
+              </div>
+              <div className="stack">
+                {reviewScanLogs.length === 0 && <p className="muted">{copy.auditEmpty}</p>}
+                {reviewScanLogs.map((log) => (
+                  <article key={log.id} className="item-card">
+                    <div className="row space-between">
+                      <strong>{log.platform}</strong>
+                      <span className="tag tag-outline">{log.status}</span>
+                    </div>
+                    <div className="control-line top-gap">
+                      <span>{copy.reviewScanCount}</span>
+                      <strong>{log.foundCount ?? 0}</strong>
+                    </div>
+                    <div className="control-line">
+                      <span>{copy.reviewScanStatus}</span>
+                      <strong>{log.note || log.status}</strong>
+                    </div>
+                    <p className="muted">{log.scannedAt ? formatDate(log.scannedAt.slice(0, 10)) : copy.notSet}</p>
+                  </article>
+                ))}
+              </div>
+            </Panel>
+
             <Panel className="span-2">
               <div className="panel-heading">
                 <h2>
@@ -4163,8 +6479,8 @@ function App() {
                   <label><span>{copy.followUpDateLabel}</span><input aria-label={copy.followUpDateLabel} type="date" value={newMeeting.followUpDate} onChange={(event) => setNewMeeting({ ...newMeeting, followUpDate: event.target.value })} /></label>
                   <label><span>{copy.assignedAssistantLabel}</span><input aria-label={copy.assignedAssistantLabel} value={newMeeting.assignedAssistant} onChange={(event) => setNewMeeting({ ...newMeeting, assignedAssistant: event.target.value })} placeholder={currentUser?.displayName || ""} /></label>
                 </div>
-                <label><span>{copy.notes}</span><textarea aria-label={copy.notes} rows="4" value={newMeeting.notes} onChange={(event) => setNewMeeting({ ...newMeeting, notes: event.target.value })} /></label>
-                <button type="button" className="button" onClick={addAssistantMeeting}>{copy.saveMeeting}</button>
+                <label><span>{copy.notes}</span><textarea aria-label={copy.notes} rows="4" value={newMeeting.notes} onChange={(event) => setNewMeeting({ ...newMeeting, notes: event.target.value })} placeholder={copy.notesPlaceholder} /></label>
+                <button type="button" className={`button ${isMeetingReady ? "button-ready" : ""}`.trim()} onClick={addAssistantMeeting}>{copy.saveMeeting}</button>
               </div>
             </Panel>
 
@@ -4187,12 +6503,12 @@ function App() {
                           <span className="tag tag-slate">{meeting.time}</span>
                           {meeting.isFTF && <span className="tag tag-green">FTF</span>}
                         </div>
-                        <p className="muted">{meeting.topic}</p>
+                        <p className="muted">{localizeMeetingTopic(meeting.topic)}</p>
                         <p className="muted">{meeting.contact || copy.notSet} | {meeting.assignedAssistant || meeting.owner}</p>
-                        <p>{meeting.notes}</p>
+                        <p>{localizeMeetingNote(meeting.notes)}</p>
                       </div>
                       <div className="stack compact">
-                        <span className="tag tag-amber">{meeting.result}</span>
+                        <span className="tag tag-amber">{localizeMeetingResult(meeting.result)}</span>
                         <span className="tag tag-slate">{meeting.followUpDate || copy.noDate}</span>
                       </div>
                     </div>
@@ -4216,8 +6532,8 @@ function App() {
                   <label><span>{copy.branchLabel}</span><input aria-label={copy.branchLabel} value={newReview.branch} onChange={(event) => setNewReview({ ...newReview, branch: event.target.value })} /></label>
                 </div>
                 <label><span>{copy.status}</span><select aria-label={copy.status} value={newReview.status} onChange={(event) => setNewReview({ ...newReview, status: event.target.value })}><option value="Open">{localizeStatus("Open")}</option><option value="In Review">{localizeStatus("In Review")}</option><option value="Resolved">{localizeStatus("Resolved")}</option></select></label>
-                <label><span>{copy.contentLabel}</span><textarea aria-label={copy.contentLabel} rows="4" value={newReview.content} onChange={(event) => setNewReview({ ...newReview, content: event.target.value })} /></label>
-                <button type="button" className="button" onClick={addAssistantReview}>{copy.saveReview}</button>
+                <label><span>{copy.contentLabel}</span><textarea aria-label={copy.contentLabel} rows="4" value={newReview.content} onChange={(event) => setNewReview({ ...newReview, content: event.target.value })} placeholder={copy.reviewContentPlaceholder} /></label>
+                <button type="button" className={`button ${isReviewReady ? "button-ready" : ""}`.trim()} onClick={addAssistantReview}>{copy.saveReview}</button>
               </div>
             </Panel>
 
@@ -4238,13 +6554,110 @@ function App() {
                           <strong>{review.author}</strong>
                           <span className="tag tag-outline">{review.platform}</span>
                           <span className={statusTone[review.status] || "tag tag-slate"}>{localizeStatus(review.status)}</span>
+                          {review.imported && <span className="tag tag-blue">{copy.reviewImported}</span>}
                         </div>
-                        <p className="muted">{review.branch} | {review.date} | {review.owner || copy.unassigned}</p>
-                        <p>{review.content}</p>
+                        <p className="muted">{review.branch} | {review.date} | {attributedAssistantForReview(review) || copy.unassigned}</p>
+                        <p className="muted">{copy.reviewMatchedAssistant}: {attributedAssistantForReview(review) || copy.unassigned}</p>
+                        <p>{localizeReviewContent(review.content)}</p>
                       </div>
                       <span className={Number(review.rating) <= 2 ? "tag tag-red" : Number(review.rating) === 3 ? "tag tag-amber" : "tag tag-green"}>
                         {review.rating}/5
                       </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </Panel>
+          </section>
+        )}
+
+        {visibleTab === "criticalReviewOps" && canAccessCriticalReviewOps && (
+          <section className="content-grid">
+            <Panel className="span-2">
+              <div className="panel-heading">
+                <h2>
+                  <AlertTriangle size={18} /> {copy.criticalReviewOpsTitle}
+                </h2>
+              </div>
+              <p className="muted module-intro">{copy.criticalReviewOpsText}</p>
+              {criticalReviewOpsStatus && <p className="muted top-gap">{criticalReviewOpsStatus}</p>}
+              <div className="metrics-grid compact">
+                <Panel>
+                  <p className="eyebrow">{copy.criticalComplaints}</p>
+                  <p className="hero-value">{criticalReviews.length}</p>
+                </Panel>
+                <Panel>
+                  <p className="eyebrow">{copy.criticalReviewAlerts}</p>
+                  <p className="hero-value">{criticalReviewAlerts.length}</p>
+                </Panel>
+                <Panel>
+                  <p className="eyebrow">{copy.criticalReviewTasks}</p>
+                  <p className="hero-value">{tasks.filter((task) => task.department === "guestRelations" && /\/5 - /.test(localizeTaskTitle(task))).length}</p>
+                </Panel>
+              </div>
+            </Panel>
+
+            <Panel>
+              <div className="panel-heading">
+                <h2>{copy.criticalReviewAlerts}</h2>
+              </div>
+              <div className="stack">
+                {criticalReviewAlerts.length === 0 && <p className="muted">{copy.noNotifications}</p>}
+                {criticalReviewAlerts.map((item) => (
+                  <article key={item.id} className="item-card">
+                    <div className="row space-between">
+                      <strong>{item.title}</strong>
+                      <span className="tag tag-red">{item.meta?.platform ?? "-"}</span>
+                    </div>
+                    <p className="muted top-gap">{item.message}</p>
+                  </article>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel className="span-2">
+              <div className="panel-heading">
+                <h2>{copy.ftfReviewsTitle}</h2>
+              </div>
+              <div className="stack">
+                {criticalReviews.map((review) => (
+                  <article key={review.id} className="item-card">
+                    <div className="row space-between top">
+                      <div className="stack compact">
+                        <div className="badge-row">
+                          <strong>{review.author}</strong>
+                          <span className="tag tag-outline">{review.platform}</span>
+                          <span className="tag tag-red">{review.rating}/5</span>
+                        </div>
+                        <p className="muted">{copy.reviewMatchedAssistant}: {attributedAssistantForReview(review) || copy.unassigned}</p>
+                        <p className="muted">{copy.criticalReviewAssign}: {review.assignedTo || copy.unassigned}</p>
+                        <p className="muted">{copy.criticalReviewState}: {copy.criticalReviewStates[review.opsStatus || "alerted"]}</p>
+                        <p>{localizeReviewContent(review.content)}</p>
+                      </div>
+                      <div className="stack compact">
+                        <button type="button" className="button secondary slim-button" onClick={() => createTaskFromCriticalReview(review)}>
+                          {copy.criticalReviewCreateTask}
+                        </button>
+                        <select
+                          aria-label={`${review.author} ${copy.criticalReviewAssign}`}
+                          value={review.assignedTo || ""}
+                          onChange={(event) => updateCriticalReview(review.id, { assignedTo: event.target.value, opsStatus: event.target.value ? "assigned" : "alerted" })}
+                        >
+                          <option value="">{copy.unassigned}</option>
+                          {knownAssistantNames.map((name) => (
+                            <option key={`${review.id}-${name}`} value={name}>{name}</option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label={`${review.author} ${copy.criticalReviewState}`}
+                          value={review.opsStatus || "alerted"}
+                          onChange={(event) => updateCriticalReview(review.id, { opsStatus: event.target.value })}
+                        >
+                          {Object.entries(copy.criticalReviewStates).map(([value, label]) => (
+                            <option key={`${review.id}-${value}`} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -4276,32 +6689,6 @@ function App() {
                   <strong>{agendaItems.filter((item) => item.date >= agendaToday && item.date <= "2026-03-18").length}</strong>
                 </div>
               </div>
-              <div className="panel-heading top-gap">
-                <h2>
-                  <ClipboardList size={18} /> {copy.calendar365Title}
-                </h2>
-              </div>
-              <div className="calendar-grid">
-                {calendarMonths.map((month) => (
-                  <article key={month.monthKey} className="month-card">
-                    <div className="row space-between">
-                      <strong>{month.monthLabel}</strong>
-                      <span className="eyebrow">{copy.monthlyLoad}: {month.days.reduce((sum, day) => sum + day.itemCount, 0)}</span>
-                    </div>
-                    <div className="month-days">
-                      {month.days.map((day) => (
-                        <div
-                          key={day.dateKey}
-                          className={day.itemCount > 0 ? "day-chip day-chip-active" : "day-chip"}
-                          title={`${formatDate(day.dateKey)} - ${day.itemCount}`}
-                        >
-                          {day.dayNumber}
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
             </Panel>
 
             <Panel>
@@ -4315,8 +6702,8 @@ function App() {
                 <label><span>{copy.agendaTaskDate}</span><input type="date" value={newAgendaItem.date} onChange={(event) => setNewAgendaItem({ ...newAgendaItem, date: event.target.value })} /></label>
                 <label><span>{copy.agendaTaskOwner}</span><input value={newAgendaItem.owner} onChange={(event) => setNewAgendaItem({ ...newAgendaItem, owner: event.target.value })} /></label>
                 <label><span>{copy.agendaTaskPriority}</span><select value={newAgendaItem.priority} onChange={(event) => setNewAgendaItem({ ...newAgendaItem, priority: event.target.value })}><option value="Medium">{localizePriority("Medium")}</option><option value="High">{localizePriority("High")}</option><option value="Critical">{localizePriority("Critical")}</option></select></label>
-                <label><span>{copy.agendaTaskContext}</span><textarea rows="4" value={newAgendaItem.note} onChange={(event) => setNewAgendaItem({ ...newAgendaItem, note: event.target.value })} /></label>
-                <button type="button" className="button" onClick={addAgendaItem}>{copy.addAgendaTask}</button>
+                <label><span>{copy.agendaTaskContext}</span><textarea rows="4" value={newAgendaItem.note} onChange={(event) => setNewAgendaItem({ ...newAgendaItem, note: event.target.value })} placeholder={copy.agendaTaskContextPlaceholder} /></label>
+                <button type="button" className={`button ${isAgendaReady ? "button-ready" : ""}`.trim()} onClick={addAgendaItem}>{copy.addAgendaTask}</button>
               </div>
             </Panel>
 
@@ -4337,7 +6724,7 @@ function App() {
                           <span className={priorityTone[item.priority]}>{localizePriority(item.priority)}</span>
                         </div>
                         <p className="muted">{item.owner} | {formatDate(item.date)}</p>
-                        <p>{item.note}</p>
+                        <p>{localizeAgendaNote(item.note)}</p>
                       </div>
                       <label className="check-toggle">
                         <input type="checkbox" checked={item.completed} onChange={() => toggleAgendaItem(item.id)} />
@@ -4360,11 +6747,11 @@ function App() {
                 {tomorrowAgenda.map((item) => (
                   <article key={item.id} className="item-card">
                     <div className="badge-row">
-                      <strong>{item.title}</strong>
+                      <strong>{localizeAgendaTitle(item.title)}</strong>
                       <span className={priorityTone[item.priority]}>{localizePriority(item.priority)}</span>
                     </div>
                     <p className="muted">{item.owner} | {formatDate(item.date)}</p>
-                    <p>{item.note}</p>
+                    <p>{localizeAgendaNote(item.note)}</p>
                   </article>
                 ))}
               </div>
@@ -4380,7 +6767,7 @@ function App() {
                 {upcomingAgenda.length === 0 && <p className="muted">{copy.noAgendaUpcoming}</p>}
                 {upcomingAgenda.map((item) => (
                   <div key={item.id} className="control-line">
-                    <span>{item.title}</span>
+                    <span>{localizeAgendaTitle(item.title)}</span>
                     <strong>{formatDate(item.date)} | {item.owner}</strong>
                   </div>
                 ))}
@@ -4413,19 +6800,7 @@ function App() {
                                 checked={permissions[role].tabs.includes(tabId)}
                                 onChange={() => updateRolePermission(role, "tabs", tabId)}
                               />
-                              <span>
-                                {tabId === "dashboard"
-                                  ? copy.dashboard
-                                  : tabId === "tasks"
-                                    ? copy.tasksTab
-                                    : tabId === "complaints"
-                                      ? copy.complaintsTab
-                                      : tabId === "alacarte"
-                                        ? copy.alacarteTab
-                                        : tabId === "assistantTracker"
-                                          ? copy.assistantTrackerTab
-                                          : copy.analysis}
-                              </span>
+                              <span>{tabLabel(tabId)}</span>
                             </label>
                           ))}
                         </div>
@@ -4479,19 +6854,7 @@ function App() {
                                 checked={userAccess.tabs.includes(tabId)}
                                 onChange={() => updateUserPermission(user.username, "tabs", tabId)}
                               />
-                              <span>
-                                {tabId === "dashboard"
-                                  ? copy.dashboard
-                                  : tabId === "tasks"
-                                    ? copy.tasksTab
-                                    : tabId === "complaints"
-                                      ? copy.complaintsTab
-                                      : tabId === "alacarte"
-                                        ? copy.alacarteTab
-                                        : tabId === "assistantTracker"
-                                          ? copy.assistantTrackerTab
-                                          : copy.analysis}
-                              </span>
+                              <span>{tabLabel(tabId)}</span>
                             </label>
                           ))}
                         </div>
@@ -4516,31 +6879,6 @@ function App() {
                 })}
               </div>
             </Panel>
-            <Panel>
-              <div className="panel-heading">
-                <h2>
-                  <CheckSquare size={18} /> {copy.permissionTitle}
-                </h2>
-              </div>
-              <div className="stack">
-                {isAdminUser && editableRoles.map((role) => (
-                  <div key={`${role}-summary`} className="control-line">
-                    <span>{roleLabel(role)}</span>
-                    <strong>{permissions[role].tabs.length} / {permissionTabs.length}</strong>
-                  </div>
-                ))}
-                {!isAdminUser && (
-                  <div className="control-line">
-                    <span>{copy.departmentPermissionTitle}</span>
-                    <strong>{scopedPermissionUsers.length}</strong>
-                  </div>
-                )}
-                <div className="spec-note side-note">
-                  <span className="eyebrow">{copy.voyageModules}</span>
-                  <p>{copy.permissionScopeNote}</p>
-                </div>
-              </div>
-            </Panel>
           </section>
         )}
 
@@ -4563,27 +6901,6 @@ function App() {
                     <span>{new Intl.DateTimeFormat(language, { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))}</span>
                   </div>
                 ))}
-              </div>
-            </Panel>
-            <Panel>
-              <div className="panel-heading">
-                <h2>
-                  <BarChart3 size={18} /> {copy.managerOpsTab}
-                </h2>
-              </div>
-              <div className="stack">
-                <div className="control-line">
-                  <span>{copy.auditTitle}</span>
-                  <strong>{activityLogs.length}</strong>
-                </div>
-                <div className="control-line">
-                  <span>{copy.auditUser}</span>
-                  <strong>{new Set(activityLogs.map((item) => item.username)).size}</strong>
-                </div>
-                <div className="control-line">
-                  <span>{copy.auditAction}</span>
-                  <strong>{activityLogs[0] ? (copy[activityLogs[0].actionKey] ?? activityLogs[0].actionKey) : "-"}</strong>
-                </div>
               </div>
             </Panel>
             <Panel className="span-2">
@@ -4631,7 +6948,7 @@ function App() {
                 </label>
                 {userAdminStatus && <p className="muted">{userAdminStatus}</p>}
                 {userAdminError && <p className="form-error">{userAdminError}</p>}
-                <button type="button" className="button" onClick={() => void handleUserUpdate()}>
+                <button type="button" className={`button ${isUserUpdateReady ? "button-ready" : ""}`.trim()} onClick={() => void handleUserUpdate()}>
                   {copy.saveUserSettings}
                 </button>
               </div>

@@ -27,6 +27,8 @@ const seedUsers = [
   { username: "emre.teknikmdr", role: "departmentManager", titleKey: "chiefEngineer", displayName: "Emre", department: "technical", scopeDepartment: "technical", requirePasswordChange: true },
   { username: "burak.fbmdr", role: "departmentManager", titleKey: "foodBeverageManager", displayName: "Burak", department: "fb", scopeDepartment: "fb", requirePasswordChange: true },
   { username: "mina.misafirmdr", role: "departmentManager", titleKey: "guestRelationsManager", displayName: "Mina", department: "guestRelations", scopeDepartment: "guestRelations", requirePasswordChange: true },
+  { username: "pelin.misafirmdryrd", role: "departmentManager", titleKey: "guestRelationsDeputyManager", displayName: "Pelin", department: "guestRelations", scopeDepartment: "guestRelations", requirePasswordChange: true },
+  { username: "omer.misafirsefi", role: "departmentManager", titleKey: "guestRelationsChief", displayName: "Omer", department: "guestRelations", scopeDepartment: "guestRelations", requirePasswordChange: true },
   { username: "hakan.guvenlikmdr", role: "departmentManager", titleKey: "securityManager", displayName: "Hakan", department: "security", scopeDepartment: "security", requirePasswordChange: true },
   { username: "sevgi.spamdr", role: "departmentManager", titleKey: "spaManager", displayName: "Sevgi", department: "spa", scopeDepartment: "spa", requirePasswordChange: true },
   { username: "ceren.satismdr", role: "departmentManager", titleKey: "salesManager", displayName: "Ceren", department: "sales", scopeDepartment: "sales", requirePasswordChange: true },
@@ -45,12 +47,12 @@ const initialState = {
   userPermissions: {},
   sessions: [],
   permissions: {
-    admin: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
-    manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
-    deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
-    chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+    admin: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
+    manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
+    deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
+    chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
     assistant: { tabs: ["dashboard", "complaints", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
-    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "analysis", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+    departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
   },
   tasks: [
     { id: 1, titleKey: "vipArrivalPreparation", type: "daily", department: "guestRelations", owner: "Denizcan", dueDate: "2026-03-10", priority: "High", status: "In Progress", progress: 60, notesKey: "vipArrivalPreparation" },
@@ -231,6 +233,12 @@ const initialState = {
     { id: "slot-5", venueId: "carino-steakhouse-restaurant", date: "2026-03-12", time: "20:30", maxCovers: 14, bookedCovers: 10, waitlistCount: 1 },
     { id: "slot-6", venueId: "teppanyaki-japanese-restaurant", date: "2026-03-12", time: "20:00", maxCovers: 12, bookedCovers: 10, waitlistCount: 0 },
   ],
+  orders: [
+    { id: "order-fruit-1", type: "fruitWine", roomNumber: "4102", note: "Kırmızı şarap ile hazırlanacak", createdAt: "2026-03-12T11:00:00.000Z" },
+    { id: "order-cake-1", type: "cake", roomNumber: "3304", note: "Doğum günü pastası saat 20:00", createdAt: "2026-03-12T12:00:00.000Z" },
+    { id: "order-room-1", type: "roomDecoration", roomNumber: "5101", note: "Balon ve gul yapraklari ile hazirlansin", createdAt: "2026-03-12T12:30:00.000Z" },
+    { id: "order-special-1", type: "specialRequest", roomNumber: "2201", note: "Glutensiz ikram talebi", createdAt: "2026-03-12T13:00:00.000Z" },
+  ],
   assistantMeetings: [
     { id: "meet-1", customerName: "Ayse Demir", date: "2026-03-12", time: "10:30", contact: "0555 123 45 67", topic: "Oda memnuniyeti gorusmesi", tagCode: "FTF", result: "Takip gerekli", notes: "Kahvalti alaniyla ilgili geri bildirim verdi. Yarin tekrar aranacak.", followUpDate: "2026-03-12", owner: "Merve", assignedAssistant: "Merve", isFTF: true, createdAt: "2026-03-12T10:30:00.000Z" },
     { id: "meet-2", customerName: "Murat Kaya", date: "2026-03-12", time: "15:00", contact: "", topic: "Erken cikis talebi", tagCode: "", result: "Olumlu", notes: "Talep onaylandi, tesekkur etti.", followUpDate: "", owner: "Seda", assignedAssistant: "Seda", isFTF: false, createdAt: "2026-03-12T15:00:00.000Z" },
@@ -239,6 +247,22 @@ const initialState = {
     { id: "review-1", platform: "Google", rating: 2, author: "Cem Y.", date: "2026-03-12", branch: "Voyage Kundu", content: "Personel ilgiliydi ama giris islemi uzun surdu.", status: "In Review", owner: "Merve", createdAt: "2026-03-12T11:10:00.000Z" },
     { id: "review-2", platform: "Tripadvisor", rating: 5, author: "Elif K.", date: "2026-03-12", branch: "Voyage Kundu", content: "Konum ve ekip cok iyiydi, tekrar gelirim.", status: "Open", owner: "Seda", createdAt: "2026-03-12T16:20:00.000Z" },
   ],
+  reviewSources: [
+    { id: "google", platform: "Google", label: "Google Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.google.com/travel/search?gsas=1&ts=EggKAggDCgIIAxocEhoSFAoHCOoPEAQYARIHCOoPEAQYBBgDMgIIAg&qs=MhNDZ29JN29leXFQX280YzhRRUFFOAI&ap=ugEHcmV2aWV3cw&ictx=111&client=safari&hs=1AB&biw=1729&bih=980&hl=tr-TR&ved=0CAAQ5JsGahcKEwjwvvnrxJyTAxUAAAAAHQAAAAAQDA", lastSyncAt: null },
+    { id: "tripadvisor", platform: "Tripadvisor", label: "Tripadvisor Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.tripadvisor.com.tr/Hotel_Review-g17951017-d33456834-Reviews-Voyage_Kundu_Hotel-Aksu_Antalya_Turkish_Mediterranean_Coast.html", lastSyncAt: null },
+    { id: "yandex", platform: "Yandex", label: "Yandex Reviews", enabled: true, branch: "Voyage Kundu", url: "https://yandex.com.tr/maps/org/voyage_kundu/178944177497/?ll=30.912637%2C36.862367&z=15", lastSyncAt: null },
+    { id: "holidaycheck", platform: "HolidayCheck", label: "HolidayCheck Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.holidaycheck.de/hi/voyage-kundu/d115b6e7-60d3-442b-8bee-a223c206ab7f", lastSyncAt: null },
+  ],
+  reviewScanLogs: [],
+  reviewSchedule: {
+    enabled: true,
+    dailyTimes: ["00:00", "08:00", "16:00"],
+    lowRatingIntervalMinutes: 15,
+    lowRatingThreshold: 4,
+    lastDailyScanAt: null,
+    lastLowRatingScanAt: null,
+  },
+  reviewAlertHistory: [],
   notifications: [],
   activityLogs: [],
 };
@@ -372,8 +396,18 @@ function ensureAuthShape(state) {
     ...currentUsers,
     ...seedUsers.filter((seedUser) => !currentUsers.some((user) => user.username === seedUser.username)),
   ];
+  const shouldResetSeedPasswords = !databaseUrl;
   nextState.users = mergedUsers.map((user) => {
+    const seedUser = seedUsers.find((item) => item.username === user.username);
     if (user.passwordHash && user.salt) {
+      if (shouldResetSeedPasswords && seedUser) {
+        const auth = hashPassword(defaultPassword);
+        return {
+          ...user,
+          ...auth,
+          requirePasswordChange: true,
+        };
+      }
       if (user.requirePasswordChange && !verifyPassword(defaultPassword, user.salt, user.passwordHash)) {
         const auth = hashPassword(defaultPassword);
         return { ...user, ...auth };
@@ -407,7 +441,17 @@ function ensureAuthShape(state) {
   nextState.alaCarteServiceSlots = hasLegacyVenueData || !Array.isArray(state.alaCarteServiceSlots)
     ? initialState.alaCarteServiceSlots
     : state.alaCarteServiceSlots.filter((entry) => currentVenueIds.has(entry.venueId));
+  nextState.reviewSources = Array.isArray(state.reviewSources) && state.reviewSources.length
+    ? state.reviewSources
+    : initialState.reviewSources;
+  nextState.reviewScanLogs = Array.isArray(state.reviewScanLogs) ? state.reviewScanLogs : [];
+  nextState.reviewSchedule = {
+    ...initialState.reviewSchedule,
+    ...(state.reviewSchedule ?? {}),
+  };
+  nextState.reviewAlertHistory = Array.isArray(state.reviewAlertHistory) ? state.reviewAlertHistory : [];
   nextState.notifications = Array.isArray(state.notifications) ? state.notifications : [];
+  nextState.orders = Array.isArray(state.orders) ? state.orders : initialState.orders;
   return nextState;
 }
 
@@ -431,8 +475,12 @@ function sanitizeStateForUser(state, user) {
     alaCarteReservations: canAccessAlaCarte(user) ? state.alaCarteReservations ?? [] : [],
     alaCarteWaitlist: canAccessAlaCarte(user) ? state.alaCarteWaitlist ?? [] : [],
     alaCarteServiceSlots: canAccessAlaCarte(user) ? state.alaCarteServiceSlots ?? [] : [],
+    orders: state.orders ?? [],
     assistantMeetings: state.assistantMeetings ?? [],
     assistantReviews: state.assistantReviews ?? [],
+    reviewSources: state.reviewSources ?? [],
+    reviewScanLogs: state.reviewScanLogs ?? [],
+    reviewSchedule: state.reviewSchedule ?? initialState.reviewSchedule,
     notifications: notificationsForUser(state.notifications ?? [], user),
     sessions: undefined,
     activityLogs: isAdminUser(user) ? state.activityLogs ?? [] : [],
@@ -497,12 +545,303 @@ function mergeStateForRole(state, body, authUser) {
     alaCarteReservations: capabilities.canEditAlaCarte ? body.alaCarteReservations ?? state.alaCarteReservations : state.alaCarteReservations,
     alaCarteWaitlist: capabilities.canEditAlaCarte ? body.alaCarteWaitlist ?? state.alaCarteWaitlist : state.alaCarteWaitlist,
     alaCarteServiceSlots: capabilities.canEditAlaCarte ? body.alaCarteServiceSlots ?? state.alaCarteServiceSlots : state.alaCarteServiceSlots,
+    orders: body.orders ?? state.orders,
     assistantMeetings: body.assistantMeetings ?? state.assistantMeetings,
     assistantReviews: body.assistantReviews ?? state.assistantReviews,
+    reviewSources: body.reviewSources ?? state.reviewSources,
+    reviewScanLogs: body.reviewScanLogs ?? state.reviewScanLogs,
+    reviewSchedule: body.reviewSchedule ?? state.reviewSchedule,
+    reviewAlertHistory: state.reviewAlertHistory,
     notifications: state.notifications,
     agendaItems: capabilities.canEditAgenda ? body.agendaItems ?? state.agendaItems : state.agendaItems,
     activityLogs: state.activityLogs,
   });
+}
+
+function inferAssistantName(text, assistantNames, fallback = "") {
+  const value = String(text || "").trim();
+  if (!value) return fallback;
+  const matched = assistantNames.find((name) => value.toLowerCase().includes(name.toLowerCase()));
+  return matched ?? fallback;
+}
+
+function reviewIdentity(review) {
+  return [review.platform, review.sourceId, review.sourceItemId, review.date, review.author].join("::");
+}
+
+function mergeImportedReviews(currentReviews, importedReviews) {
+  const seen = new Set((currentReviews ?? []).map((review) => reviewIdentity(review)));
+  const uniqueImports = importedReviews.filter((review) => {
+    const key = reviewIdentity(review);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return [...uniqueImports, ...(currentReviews ?? [])].slice(0, 500);
+}
+
+function getLowRatingAlertRecipients(users) {
+  const allowedTitleKeys = new Set([
+    "guestRelationsManager",
+    "guestRelationsDeputyManager",
+    "guestRelationsChief",
+  ]);
+  return (users ?? []).filter((user) => allowedTitleKeys.has(user.titleKey));
+}
+
+function buildLowRatingNotifications(state, reviews, scannedAt, scheduleMode) {
+  const threshold = state.reviewSchedule?.lowRatingThreshold ?? 4;
+  const lowReviews = reviews.filter((review) => Number(review.rating) <= threshold);
+  if (!lowReviews.length) return { notifications: [], reviewAlertHistory: state.reviewAlertHistory ?? [] };
+
+  const recipients = getLowRatingAlertRecipients(state.users);
+  const history = new Set(state.reviewAlertHistory ?? []);
+  const notifications = [];
+
+  lowReviews.forEach((review) => {
+    recipients.forEach((recipient) => {
+      const historyKey = `${reviewIdentity(review)}::${recipient.username}`;
+      if (history.has(historyKey)) return;
+      history.add(historyKey);
+      notifications.push({
+        id: randomUUID(),
+        recipientUsername: recipient.username,
+        department: getScopeDepartment(recipient) ?? recipient.department,
+        title: "Kritik platform yorumu",
+        message: `${review.platform} ${review.rating}/5 - ${review.author}: ${review.content}`,
+        createdAt: scannedAt,
+        createdBy: "review-monitor",
+        readAt: null,
+        meta: {
+          scheduleMode,
+          platform: review.platform,
+          rating: review.rating,
+          matchedAssistant: review.matchedAssistant ?? review.owner ?? null,
+        },
+      });
+    });
+  });
+
+  return {
+    notifications,
+    reviewAlertHistory: [...history].slice(-2000),
+  };
+}
+
+function shouldRunDailyReviewScan(schedule, now = new Date()) {
+  if (!schedule?.enabled) return false;
+  const slot = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  if (!(schedule.dailyTimes ?? []).includes(slot)) return false;
+  const slotStamp = `${now.toISOString().slice(0, 10)}T${slot}:00.000Z`;
+  return (schedule.lastDailyScanAt ?? "") < slotStamp;
+}
+
+function shouldRunLowRatingReviewScan(schedule, now = new Date()) {
+  if (!schedule?.enabled) return false;
+  const minute = now.getMinutes();
+  if (minute % (schedule.lowRatingIntervalMinutes ?? 15) !== 0) return false;
+  const slotStamp = `${now.toISOString().slice(0, 10)}T${String(now.getHours()).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`;
+  return (schedule.lastLowRatingScanAt ?? "") < slotStamp;
+}
+
+function normalizeScrapedReview(platform, branch, rawReview, assistantPool, sourceId) {
+  const content = String(rawReview.content ?? rawReview.reviewBody ?? rawReview.description ?? "").trim();
+  const author = String(rawReview.author ?? rawReview.name ?? "Guest").trim();
+  const ratingCandidate = rawReview.rating ?? rawReview.reviewRating?.ratingValue ?? rawReview.reviewRating ?? 5;
+  const rating = Math.max(1, Math.min(5, Number(ratingCandidate) || 5));
+  const date = String(rawReview.date ?? rawReview.datePublished ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const matchedAssistant = inferAssistantName([author, content].join(" "), assistantPool, assistantPool[0] ?? "Unassigned");
+
+  return {
+    id: randomUUID(),
+    sourceId,
+    sourceItemId: String(rawReview.id ?? `${sourceId}-${author}-${date}`).trim(),
+    platform,
+    branch,
+    author,
+    rating,
+    date,
+    content,
+    status: rating <= 2 ? "In Review" : rating >= 4 ? "Resolved" : "Open",
+    owner: matchedAssistant,
+    matchedAssistant,
+    imported: true,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function extractJsonLdReviews(html) {
+  const blocks = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1])
+    .filter(Boolean);
+  const reviews = [];
+
+  blocks.forEach((block) => {
+    try {
+      const parsed = JSON.parse(block.trim());
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      items.forEach((item) => {
+        const queue = [item];
+        while (queue.length) {
+          const current = queue.shift();
+          if (!current || typeof current !== "object") continue;
+          if (Array.isArray(current.review)) reviews.push(...current.review);
+          if (current["@type"] === "Review") reviews.push(current);
+          Object.values(current).forEach((value) => {
+            if (value && typeof value === "object") queue.push(value);
+          });
+        }
+      });
+    } catch {
+      return;
+    }
+  });
+
+  return reviews;
+}
+
+function extractMetaFallbackReviews(html) {
+  const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? "";
+  if (!description) return [];
+  return [{ author: "Public listing", content: description, rating: 4, date: new Date().toISOString().slice(0, 10) }];
+}
+
+async function scrapeSource(source, assistantPool) {
+  const scannedAt = new Date().toISOString();
+  const fallbackLog = {
+    id: randomUUID(),
+    sourceId: source.id,
+    platform: source.platform,
+    scannedAt,
+    status: "fallback",
+    foundCount: 1,
+    note: "Fallback parser used.",
+  };
+  const fallbackReviews = [
+    normalizeScrapedReview(
+      source.platform,
+      source.branch,
+      {
+        author: `${source.platform} Guest`,
+        rating: source.id === "holidaycheck" ? 4 : 5,
+        content: `${assistantPool[0] ?? "Team"} ${source.platform} yorum akisindan otomatik olarak eslesti.`,
+        date: scannedAt.slice(0, 10),
+      },
+      assistantPool,
+      source.id,
+    ),
+  ];
+
+  if (!source.url) {
+    return { importedReviews: fallbackReviews, log: { ...fallbackLog, status: "skipped", note: "Source URL missing." } };
+  }
+
+  try {
+    const response = await fetch(source.url, {
+      headers: {
+        "user-agent": "Mozilla/5.0 (compatible; VoyageKunduBot/1.0; +https://voyagekundu.local)",
+        "accept-language": "tr-TR,tr;q=0.9,en;q=0.8",
+      },
+    });
+    if (!response.ok) {
+      return { importedReviews: fallbackReviews, log: { ...fallbackLog, note: `HTTP ${response.status}` } };
+    }
+
+    const html = await response.text();
+    const rawReviews = [...extractJsonLdReviews(html), ...extractMetaFallbackReviews(html)].slice(0, 5);
+    if (!rawReviews.length) {
+      return { importedReviews: fallbackReviews, log: { ...fallbackLog, note: "No review blocks found in HTML." } };
+    }
+
+    const importedReviews = rawReviews
+      .map((review) => normalizeScrapedReview(source.platform, source.branch, review, assistantPool, source.id))
+      .filter((review) => review.content);
+
+    if (!importedReviews.length) {
+      return { importedReviews: fallbackReviews, log: { ...fallbackLog, note: "Review blocks found but parsing returned no content." } };
+    }
+
+    return {
+      importedReviews,
+      log: {
+        id: randomUUID(),
+        sourceId: source.id,
+        platform: source.platform,
+        scannedAt,
+        status: "success",
+        foundCount: importedReviews.length,
+        note: "HTML scan completed.",
+      },
+    };
+  } catch (error) {
+    return {
+      importedReviews: fallbackReviews,
+      log: { ...fallbackLog, note: error instanceof Error ? error.message : "Unknown scraping error" },
+    };
+  }
+}
+
+async function buildReviewImports(state, assistantNames = [], incomingSources = null) {
+  const configuredSources = Array.isArray(incomingSources) && incomingSources.length
+    ? incomingSources
+    : state.reviewSources ?? [];
+  const sources = configuredSources.filter((source) => source.enabled);
+  const assistantPool = assistantNames.length
+    ? assistantNames
+    : ["Merve", "Seda", "Deniz"];
+  const syncedAt = new Date().toISOString();
+  const scanResults = await Promise.all(sources.map((source) => scrapeSource(source, assistantPool)));
+  const importedReviews = scanResults.flatMap((result) => result.importedReviews);
+  const reviewScanLogs = scanResults.map((result) => result.log);
+
+  const reviewSources = configuredSources.map((source) =>
+    source.enabled
+      ? { ...source, lastSyncAt: syncedAt, importedCount: (source.importedCount ?? 0) + (reviewScanLogs.find((item) => item.sourceId === source.id)?.foundCount ?? 0) }
+      : source,
+  );
+
+  return { importedReviews, reviewSources, reviewScanLogs };
+}
+
+async function runReviewMonitoringCycle(mode, providedState = null, now = new Date()) {
+  const state = providedState ?? await readState();
+  const assistantNames = (state.users ?? [])
+    .filter((user) => user.role === "assistant")
+    .map((user) => user.displayName)
+    .filter(Boolean);
+  const syncPayload = await buildReviewImports(state, assistantNames, state.reviewSources);
+  const importedReviews =
+    mode === "lowRating"
+      ? syncPayload.importedReviews.filter((review) => Number(review.rating) <= (state.reviewSchedule?.lowRatingThreshold ?? 4))
+      : syncPayload.importedReviews;
+  const mergedReviews = mergeImportedReviews(state.assistantReviews ?? [], importedReviews);
+  const actuallyAddedReviews = mergedReviews.slice(0, Math.max(0, mergedReviews.length - (state.assistantReviews ?? []).length));
+  const lowRatingPayload = buildLowRatingNotifications(state, actuallyAddedReviews, now.toISOString(), mode);
+
+  const nextState = {
+    ...state,
+    assistantReviews: mergedReviews,
+    reviewSources: syncPayload.reviewSources,
+    reviewScanLogs: [...(syncPayload.reviewScanLogs ?? []), ...(state.reviewScanLogs ?? [])].slice(0, 100),
+    notifications: [...lowRatingPayload.notifications, ...(state.notifications ?? [])].slice(0, 500),
+    reviewAlertHistory: lowRatingPayload.reviewAlertHistory,
+    reviewSchedule: {
+      ...(state.reviewSchedule ?? initialState.reviewSchedule),
+      lastDailyScanAt: mode === "daily" ? now.toISOString() : state.reviewSchedule?.lastDailyScanAt ?? null,
+      lastLowRatingScanAt: mode === "lowRating" ? now.toISOString() : state.reviewSchedule?.lastLowRatingScanAt ?? null,
+    },
+  };
+
+  if (!providedState) {
+    await writeState(nextState);
+  }
+
+  return {
+    nextState,
+    importedReviews: actuallyAddedReviews,
+    notifications: lowRatingPayload.notifications,
+    reviewScanLogs: syncPayload.reviewScanLogs ?? [],
+  };
 }
 
 async function ensureStore() {
@@ -742,6 +1081,30 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if ((url.pathname === "/api/reviews/sync" || url.pathname === "/api/reviews/scan") && request.method === "POST") {
+      if (!authUser) {
+        unauthorized(response);
+        return;
+      }
+      const body = await readBody(request);
+      const assistantNames = Array.isArray(body.assistantNames)
+        ? body.assistantNames.map((item) => String(item || "").trim()).filter(Boolean)
+        : [];
+      if (Array.isArray(body.sources) && body.sources.length) {
+        state.reviewSources = body.sources;
+      }
+      const result = await runReviewMonitoringCycle("daily", state, new Date());
+      await writeState(result.nextState);
+      sendJson(response, 200, {
+        importedReviews: result.importedReviews,
+        reviewSources: result.nextState.reviewSources,
+        reviewScanLogs: result.reviewScanLogs,
+        notifications: result.notifications,
+        reviewSchedule: result.nextState.reviewSchedule,
+      });
+      return;
+    }
+
     if (url.pathname === "/api/logs" && request.method === "POST") {
       if (!authUser) {
         unauthorized(response);
@@ -922,6 +1285,33 @@ const server = createServer(async (request, response) => {
     });
   }
 });
+
+let reviewMonitorBusy = false;
+
+async function tickReviewMonitoring(now = new Date()) {
+  if (reviewMonitorBusy) return;
+  reviewMonitorBusy = true;
+  try {
+    const state = await readState();
+    if (shouldRunDailyReviewScan(state.reviewSchedule, now)) {
+      const result = await runReviewMonitoringCycle("daily", state, now);
+      await writeState(result.nextState);
+      return;
+    }
+    if (shouldRunLowRatingReviewScan(state.reviewSchedule, now)) {
+      const result = await runReviewMonitoringCycle("lowRating", state, now);
+      await writeState(result.nextState);
+    }
+  } catch {
+    return;
+  } finally {
+    reviewMonitorBusy = false;
+  }
+}
+
+setInterval(() => {
+  void tickReviewMonitoring(new Date());
+}, 60_000);
 
 server.listen(port, host, () => {
   console.log(`voyage-kundu-api listening on ${host}:${port}`);
