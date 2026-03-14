@@ -87,6 +87,7 @@ async function signInAs(username, password = "1234") {
 describe("Voyage Kundu control panel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    let reviewSyncCounter = 0;
 
     const seededUsers = demoUsers.map((user) => ({ ...user, requirePasswordChange: false }));
     let serverState = {
@@ -97,7 +98,7 @@ describe("Voyage Kundu control panel", () => {
         manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
         deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
         chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
-        assistant: { tabs: ["dashboard", "complaints", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+        assistant: { tabs: ["dashboard", "complaints", "orders", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
         departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
       },
       tasks: [
@@ -361,13 +362,14 @@ describe("Voyage Kundu control panel", () => {
         if (!authedUser) {
           return { ok: false, status: 401, json: async () => ({ error: "Unauthorized" }) };
         }
+        reviewSyncCounter += 1;
         const syncedAt = "2026-03-13T08:00:00.000Z";
         const importedReviews = (serverState.reviewSources ?? [])
           .filter((source) => source.enabled)
           .map((source, index) => ({
-            id: `review-sync-${index}`,
+            id: `review-sync-${reviewSyncCounter}-${index}`,
             sourceId: source.id,
-            sourceItemId: `${source.id}-seed-${index}`,
+            sourceItemId: `${source.id}-seed-${reviewSyncCounter}-${index}`,
             platform: source.platform,
             rating: index === 0 ? 5 : 4,
             author: `Guest ${index + 1}`,
@@ -383,7 +385,7 @@ describe("Voyage Kundu control panel", () => {
         serverState.assistantReviews = [...importedReviews, ...serverState.assistantReviews];
         serverState.reviewSources = serverState.reviewSources.map((source) => ({ ...source, lastSyncAt: syncedAt }));
         const reviewScanLogs = serverState.reviewSources.map((source, index) => ({
-          id: `log-${source.id}`,
+          id: `log-${reviewSyncCounter}-${source.id}`,
           sourceId: source.id,
           platform: source.platform,
           scannedAt: syncedAt,
@@ -946,12 +948,21 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getByText("Lina S.")).toBeInTheDocument();
   });
 
+  it("starts hall of fame scan automatically when the tracker tab opens", async () => {
+    render(<App />);
+
+    await signInAs("admin.voyage");
+    await userEvent.click(screen.getByRole("button", { name: "FTF ve Hall of Fame" }));
+
+    expect(await screen.findByText("4 yorum içe aktarıldı.")).toBeInTheDocument();
+    expect(screen.getAllByText("HTML scan completed.").length).toBeGreaterThan(0);
+  });
+
   it("syncs review sources and assigns imported reviews to the matched assistant", async () => {
     render(<App />);
 
     await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "FTF ve Hall of Fame" }));
-    await userEvent.click(screen.getByRole("button", { name: "Yorumları senkronize et" }));
 
     expect(await screen.findByText("4 yorum içe aktarıldı.")).toBeInTheDocument();
     expect(screen.getAllByText(/Eşleşen asistan: Deniz|Eşleşen asistan: Merve/).length).toBeGreaterThan(0);
@@ -1004,7 +1015,12 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getByText("Kritik yorum için görev açıldı.")).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText(/Guest 1 Atanan kişi|Cem Y. Atanan kişi|Guest 1 Assigned to/), "Deniz");
     await userEvent.selectOptions(screen.getByLabelText(/Guest 1 Operasyon durumu|Cem Y. Operasyon durumu|Guest 1 Operation status/), "closed");
+    await userEvent.type(screen.getByLabelText(/Guest 1 Cevap verilen kişi|Cem Y. Cevap verilen kişi|Guest 1 Replied to/), "Cem Y.");
+    await userEvent.type(screen.getByLabelText(/Guest 1 Termin|Cem Y. Termin|Guest 1 Deadline/), "2026-03-15");
+    await userEvent.type(screen.getByLabelText(/Guest 1 İç not|Cem Y. İç not|Guest 1 Internal note/), "Misafir arandı ve kayıt açıldı.");
+    await userEvent.type(screen.getByLabelText(/Guest 1 Çözüm özeti|Cem Y. Çözüm özeti|Guest 1 Resolution summary/), "Transfer telafisi planlandı.");
     expect(screen.getAllByText(/Atanan kişi: Deniz|Assigned to: Deniz/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Cevap verilen kişi: Cem Y.|Replied to: Cem Y./).length).toBeGreaterThan(0);
   });
 
   it("lets a department manager manage permissions only for users in the same department", async () => {
@@ -1116,9 +1132,11 @@ describe("Voyage Kundu control panel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Siparişler" }));
 
     expect(screen.getAllByText("Meyve Sepeti & Şarap").length).toBeGreaterThan(0);
-    await userEvent.type(screen.getByLabelText("Oda No fruitWine"), "5501");
+    const fruitWineInput = screen.getByLabelText("Oda No fruitWine");
+    const fruitWineCard = fruitWineInput.closest(".orders-card");
+    await userEvent.type(fruitWineInput, "5501");
     await userEvent.type(screen.getByLabelText("fruitWine note"), "Beyaz şarap ile hazırlanacak");
-    await userEvent.click(screen.getAllByRole("button", { name: "Sipariş ekle" })[0]);
+    await userEvent.click(within(fruitWineCard).getByRole("button", { name: "Sipariş ekle" }));
 
     expect(screen.getByText("5501")).toBeInTheDocument();
     expect(screen.getByText("Beyaz şarap ile hazırlanacak")).toBeInTheDocument();
@@ -1130,5 +1148,21 @@ describe("Voyage Kundu control panel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Sipariş çıktısı al" }));
     expect(screen.getByText("Sipariş listesi indirildi.")).toBeInTheDocument();
     expect(window.URL.createObjectURL).toHaveBeenCalled();
+  });
+
+  it("lets assistant access orders and add a new order", async () => {
+    render(<App />);
+
+    await signInAs("deniz.asistan");
+    await userEvent.click(screen.getByRole("button", { name: "Siparişler" }));
+
+    const fruitWineInput = screen.getByLabelText("Oda No fruitWine");
+    const fruitWineCard = fruitWineInput.closest(".orders-card");
+    await userEvent.type(fruitWineInput, "6602");
+    await userEvent.type(screen.getByLabelText("fruitWine note"), "Kontrol icin ikinci kayit");
+    await userEvent.click(within(fruitWineCard).getByRole("button", { name: "Sipariş ekle" }));
+
+    expect(screen.getByText("6602")).toBeInTheDocument();
+    expect(screen.getByText("Kontrol icin ikinci kayit")).toBeInTheDocument();
   });
 });

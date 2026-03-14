@@ -2,18 +2,31 @@ import { createServer } from "node:http";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import pg from "pg";
 
 const port = Number(process.env.PORT || 10000);
 const host = process.env.HOST || "0.0.0.0";
 const dataDir = process.env.DATA_DIR || join(process.cwd(), "server-data");
 const dataFile = join(dataDir, "state.json");
+const distDir = join(process.cwd(), "dist");
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl }) : null;
 const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "1234";
 const mainAccessCode = process.env.MAIN_ACCESS_CODE || "1234";
 const adminResetKey = process.env.ADMIN_RESET_KEY || "1234-admin-reset";
+const staticContentTypes = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+};
 
 const seedUsers = [
   { username: "admin.voyage", role: "admin", displayName: "Admin", department: "management", requirePasswordChange: true },
@@ -51,7 +64,7 @@ const initialState = {
     manager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: true },
     deputy: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
     chief: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "settings", "assistant", "assistantTracker"], showAudit: false },
-    assistant: { tabs: ["dashboard", "complaints", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
+    assistant: { tabs: ["dashboard", "complaints", "orders", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
     departmentManager: { tabs: ["dashboard", "tasks", "complaints", "alacarte", "orders", "assistantTracker"], modules: ["guest", "assistant", "assistantTracker"], showAudit: false },
   },
   tasks: [
@@ -243,10 +256,7 @@ const initialState = {
     { id: "meet-1", customerName: "Ayse Demir", date: "2026-03-12", time: "10:30", contact: "0555 123 45 67", topic: "Oda memnuniyeti gorusmesi", tagCode: "FTF", result: "Takip gerekli", notes: "Kahvalti alaniyla ilgili geri bildirim verdi. Yarin tekrar aranacak.", followUpDate: "2026-03-12", owner: "Merve", assignedAssistant: "Merve", isFTF: true, createdAt: "2026-03-12T10:30:00.000Z" },
     { id: "meet-2", customerName: "Murat Kaya", date: "2026-03-12", time: "15:00", contact: "", topic: "Erken cikis talebi", tagCode: "", result: "Olumlu", notes: "Talep onaylandi, tesekkur etti.", followUpDate: "", owner: "Seda", assignedAssistant: "Seda", isFTF: false, createdAt: "2026-03-12T15:00:00.000Z" },
   ],
-  assistantReviews: [
-    { id: "review-1", platform: "Google", rating: 2, author: "Cem Y.", date: "2026-03-12", branch: "Voyage Kundu", content: "Personel ilgiliydi ama giris islemi uzun surdu.", status: "In Review", owner: "Merve", createdAt: "2026-03-12T11:10:00.000Z" },
-    { id: "review-2", platform: "Tripadvisor", rating: 5, author: "Elif K.", date: "2026-03-12", branch: "Voyage Kundu", content: "Konum ve ekip cok iyiydi, tekrar gelirim.", status: "Open", owner: "Seda", createdAt: "2026-03-12T16:20:00.000Z" },
-  ],
+  assistantReviews: [],
   reviewSources: [
     { id: "google", platform: "Google", label: "Google Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.google.com/travel/search?gsas=1&ts=EggKAggDCgIIAxocEhoSFAoHCOoPEAQYARIHCOoPEAQYBBgDMgIIAg&qs=MhNDZ29JN29leXFQX280YzhRRUFFOAI&ap=ugEHcmV2aWV3cw&ictx=111&client=safari&hs=1AB&biw=1729&bih=980&hl=tr-TR&ved=0CAAQ5JsGahcKEwjwvvnrxJyTAxUAAAAAHQAAAAAQDA", lastSyncAt: null },
     { id: "tripadvisor", platform: "Tripadvisor", label: "Tripadvisor Reviews", enabled: true, branch: "Voyage Kundu", url: "https://www.tripadvisor.com.tr/Hotel_Review-g17951017-d33456834-Reviews-Voyage_Kundu_Hotel-Aksu_Antalya_Turkish_Mediterranean_Coast.html", lastSyncAt: null },
@@ -713,27 +723,13 @@ async function scrapeSource(source, assistantPool) {
     sourceId: source.id,
     platform: source.platform,
     scannedAt,
-    status: "fallback",
-    foundCount: 1,
-    note: "Fallback parser used.",
+    status: "no_data",
+    foundCount: 0,
+    note: "Visible public review data could not be verified.",
   };
-  const fallbackReviews = [
-    normalizeScrapedReview(
-      source.platform,
-      source.branch,
-      {
-        author: `${source.platform} Guest`,
-        rating: source.id === "holidaycheck" ? 4 : 5,
-        content: `${assistantPool[0] ?? "Team"} ${source.platform} yorum akisindan otomatik olarak eslesti.`,
-        date: scannedAt.slice(0, 10),
-      },
-      assistantPool,
-      source.id,
-    ),
-  ];
 
   if (!source.url) {
-    return { importedReviews: fallbackReviews, log: { ...fallbackLog, status: "skipped", note: "Source URL missing." } };
+    return { importedReviews: [], log: { ...fallbackLog, status: "skipped", note: "Source URL missing." } };
   }
 
   try {
@@ -744,13 +740,13 @@ async function scrapeSource(source, assistantPool) {
       },
     });
     if (!response.ok) {
-      return { importedReviews: fallbackReviews, log: { ...fallbackLog, note: `HTTP ${response.status}` } };
+      return { importedReviews: [], log: { ...fallbackLog, note: `HTTP ${response.status}` } };
     }
 
     const html = await response.text();
     const rawReviews = [...extractJsonLdReviews(html), ...extractMetaFallbackReviews(html)].slice(0, 5);
     if (!rawReviews.length) {
-      return { importedReviews: fallbackReviews, log: { ...fallbackLog, note: "No review blocks found in HTML." } };
+      return { importedReviews: [], log: { ...fallbackLog, note: "No review blocks found in HTML." } };
     }
 
     const importedReviews = rawReviews
@@ -758,7 +754,7 @@ async function scrapeSource(source, assistantPool) {
       .filter((review) => review.content);
 
     if (!importedReviews.length) {
-      return { importedReviews: fallbackReviews, log: { ...fallbackLog, note: "Review blocks found but parsing returned no content." } };
+      return { importedReviews: [], log: { ...fallbackLog, note: "Review blocks found but parsing returned no content." } };
     }
 
     return {
@@ -775,7 +771,7 @@ async function scrapeSource(source, assistantPool) {
     };
   } catch (error) {
     return {
-      importedReviews: fallbackReviews,
+      importedReviews: [],
       log: { ...fallbackLog, note: error instanceof Error ? error.message : "Unknown scraping error" },
     };
   }
@@ -918,6 +914,40 @@ function sendJson(response, statusCode, payload) {
     "Cache-Control": "no-store",
   });
   response.end(JSON.stringify(payload));
+}
+
+async function sendStaticFile(response, pathname, method = "GET") {
+  if (!existsSync(distDir)) {
+    return false;
+  }
+
+  const decodedPath = decodeURIComponent(pathname);
+  const requestedPath = decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
+  const absoluteDistDir = resolve(distDir);
+  const absoluteFilePath = resolve(distDir, requestedPath);
+
+  if (absoluteFilePath !== absoluteDistDir && !absoluteFilePath.startsWith(`${absoluteDistDir}${sep}`)) {
+    return false;
+  }
+
+  if (!existsSync(absoluteFilePath)) {
+    return false;
+  }
+
+  const body = await readFile(absoluteFilePath);
+  const contentType = staticContentTypes[extname(absoluteFilePath)] || "application/octet-stream";
+  response.writeHead(200, {
+    "Content-Type": contentType,
+    "Content-Length": String(body.byteLength),
+  });
+
+  if (method !== "HEAD") {
+    response.end(body);
+    return true;
+  }
+
+  response.end();
+  return true;
 }
 
 function unauthorized(response) {
@@ -1275,6 +1305,19 @@ const server = createServer(async (request, response) => {
         user: sanitizeUser(saved.users.find((item) => item.username === authUser.username) ?? updatedUser),
       });
       return;
+    }
+
+    if (request.method === "GET" || request.method === "HEAD") {
+      if (await sendStaticFile(response, url.pathname, request.method)) {
+        return;
+      }
+
+      if (!url.pathname.startsWith("/api/")) {
+        const servedIndex = await sendStaticFile(response, "/", request.method);
+        if (servedIndex) {
+          return;
+        }
+      }
     }
 
     sendJson(response, 404, { error: "Not found" });

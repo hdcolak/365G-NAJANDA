@@ -65,7 +65,7 @@ const defaultRoleAccess = {
     showAudit: false,
   },
   assistant: {
-    tabs: ["dashboard", "complaints", "assistantTracker", "shiftPlanner"],
+    tabs: ["dashboard", "complaints", "orders", "assistantTracker", "shiftPlanner"],
     modules: ["guest", "assistant", "assistantTracker"],
     showAudit: false,
   },
@@ -566,32 +566,7 @@ const initialAssistantMeetings = [
   },
 ];
 
-const initialAssistantReviews = [
-  {
-    id: "review-1",
-    platform: "Google",
-    rating: 2,
-    author: "Cem Y.",
-    date: "2026-03-12",
-    branch: "Voyage Kundu",
-    content: "Personel ilgiliydi ama giriş işlemi uzun sürdü.",
-    status: "In Review",
-    owner: "Merve",
-    createdAt: "2026-03-12T11:10:00.000Z",
-  },
-  {
-    id: "review-2",
-    platform: "Tripadvisor",
-    rating: 5,
-    author: "Elif K.",
-    date: "2026-03-12",
-    branch: "Voyage Kundu",
-    content: "Konum ve ekip cok iyiydi, tekrar gelirim.",
-    status: "Open",
-    owner: "Seda",
-    createdAt: "2026-03-12T16:20:00.000Z",
-  },
-];
+const initialAssistantReviews = [];
 
 const alaCarteLabels = {
   tr: {
@@ -1205,6 +1180,12 @@ const translations = {
       replied: "Yanıtlandı",
       closed: "Kapatıldı",
     },
+    criticalReviewNote: "İç not",
+    criticalReviewReplyTo: "Cevap verilen kişi",
+    criticalReviewDeadline: "Termin",
+    criticalReviewResolution: "Çözüm özeti",
+    criticalReviewScheduledScan: "Planlı tarama",
+    criticalReviewRapidScan: "15 dk izleme",
     addMeetingTitle: "Yüz yüze görüşme ekle",
     addReviewTitle: "Yorum ekle",
     followUpWaiting: "Takip bekleyen",
@@ -1628,6 +1609,12 @@ const translations = {
       replied: "Replied",
       closed: "Closed",
     },
+    criticalReviewNote: "Internal note",
+    criticalReviewReplyTo: "Replied to",
+    criticalReviewDeadline: "Deadline",
+    criticalReviewResolution: "Resolution summary",
+    criticalReviewScheduledScan: "Scheduled scan",
+    criticalReviewRapidScan: "15 min watch",
     addMeetingTitle: "Add face-to-face meeting",
     addReviewTitle: "Add review",
     followUpWaiting: "Waiting follow-ups",
@@ -2049,6 +2036,12 @@ const translations = {
       replied: "Beantwortet",
       closed: "Geschlossen",
     },
+    criticalReviewNote: "Interne Notiz",
+    criticalReviewReplyTo: "Beantwortet an",
+    criticalReviewDeadline: "Frist",
+    criticalReviewResolution: "Loesungszusammenfassung",
+    criticalReviewScheduledScan: "Geplanter Scan",
+    criticalReviewRapidScan: "15-Minuten-Ueberwachung",
     addMeetingTitle: "Face-to-Face-Gespräch hinzufügen",
     addReviewTitle: "Bewertung hinzufügen",
     followUpWaiting: "Offene Nachverfolgung",
@@ -2473,6 +2466,12 @@ const translations = {
       replied: "Ответ дан",
       closed: "Закрыто",
     },
+    criticalReviewNote: "Внутренняя заметка",
+    criticalReviewReplyTo: "Ответ дан кому",
+    criticalReviewDeadline: "Срок",
+    criticalReviewResolution: "Итог решения",
+    criticalReviewScheduledScan: "Плановое сканирование",
+    criticalReviewRapidScan: "Контроль каждые 15 минут",
     addMeetingTitle: "Добавить очную встречу",
     addReviewTitle: "Добавить отзыв",
     followUpWaiting: "Ожидают сопровождения",
@@ -2653,7 +2652,15 @@ const initialAgendaItems = [
   { id: 5, title: "Weekly executive summary draft", date: "2026-03-15", owner: "Gizem", priority: "Medium", note: "Prepare service quality and complaint resolution summary.", completed: false },
 ];
 
-const orderSections = ["fruitWine", "cake", "roomDecoration", "specialRequest"];
+const orderExportSections = ["roomDecoration", "fruitWine", "specialRequest"];
+
+function groupOrdersForDisplay(orders) {
+  return {
+    roomDecoration: orders.filter((item) => item.type === "roomDecoration"),
+    fruitWine: orders.filter((item) => item.type === "fruitWine"),
+    specialRequest: orders.filter((item) => item.type === "specialRequest" || item.type === "cake"),
+  };
+}
 
 const initialOrders = [
   { id: "ord-1", type: "fruitWine", roomNumber: "4102", note: "Kirmizi sarap ve meyve sepeti 18:00 oncesi birakilsin." },
@@ -3331,6 +3338,7 @@ function App() {
   const [userAdminStatus, setUserAdminStatus] = useState("");
   const [userAdminError, setUserAdminError] = useState("");
   const notifiedIdsRef = useRef(new Set());
+  const hallOfFameAutoScanRef = useRef(false);
 
   const copy = translations[language];
   const shiftCopy = shiftPlannerLabels[language] ?? shiftPlannerLabels.en;
@@ -3493,6 +3501,12 @@ function App() {
   useEffect(() => {
     if (sessionToken) window.localStorage.setItem("session-token", sessionToken);
     else window.localStorage.removeItem("session-token");
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (!sessionToken) {
+      hallOfFameAutoScanRef.current = false;
+    }
   }, [sessionToken]);
 
   useEffect(() => {
@@ -3729,7 +3743,7 @@ function App() {
     || inferAssistantNameFromText([review.author, review.content, review.owner].join(" "), knownAssistantNames, review.owner || ""),
   [knownAssistantNames]);
 
-  const logAction = (actionKey, detail) => {
+  const logAction = useCallback((actionKey, detail) => {
     if (!currentUser) return;
     setActivityLogs((current) => [
       {
@@ -3743,20 +3757,14 @@ function App() {
       },
       ...current,
     ]);
-  };
+  }, [currentUser]);
 
   const tabs = availableTabIds.map((id) => ({
     id,
     label: tabLabel(id),
   }));
 
-  const ordersByType = useMemo(
-    () =>
-      Object.fromEntries(
-        orderSections.map((type) => [type, orders.filter((item) => item.type === type)]),
-      ),
-    [orders],
-  );
+  const groupedOrders = useMemo(() => groupOrdersForDisplay(orders), [orders]);
   const isSignInReady = Boolean(selectedUsername && accessCode.trim() && loginPassword.trim());
   const isPasswordChangeReady = Boolean(
     newPassword.trim() && confirmNewPassword.trim() && newPassword === confirmNewPassword,
@@ -4327,14 +4335,20 @@ function App() {
   const exportOrders = () => {
     const typeLabels = {
       fruitWine: copy.fruitWine,
-      cake: copy.cake,
       roomDecoration: copy.roomDecoration,
       specialRequest: copy.specialRequest,
     };
-    const rows = [
-      ["Type", "Room Number", "Note"],
-      ...orders.map((item) => [typeLabels[item.type] ?? item.type, item.roomNumber, item.note]),
-    ];
+    const rows = orderExportSections.flatMap((type, index) => {
+      const sectionRows = groupedOrders[type].length
+        ? groupedOrders[type].map((item) => [item.roomNumber, item.note || ""])
+        : [[copy.notSet, ""]];
+      return [
+        [typeLabels[type], ""],
+        [copy.roomNumberFixed, copy.notes],
+        ...sectionRows,
+        ...(index === orderExportSections.length - 1 ? [] : [["", ""]]),
+      ];
+    });
     downloadCsvFile(`orders-${shiftWeekStart}.csv`, rows);
     setOrdersStatus(copy.ordersExported);
     logAction("actionModuleOpened", "orders:export");
@@ -4343,16 +4357,15 @@ function App() {
   const printOrders = () => {
     const typeLabels = {
       fruitWine: copy.fruitWine,
-      cake: copy.cake,
       roomDecoration: copy.roomDecoration,
       specialRequest: copy.specialRequest,
     };
     const printWindow = window.open("", "_blank", "width=960,height=720");
     if (!printWindow) return;
 
-    const sectionsHtml = orderSections
+    const sectionsHtml = orderExportSections
       .map((type) => {
-        const rows = ordersByType[type]
+        const rows = groupedOrders[type]
           .map(
             (item) => `
               <tr>
@@ -4459,50 +4472,8 @@ function App() {
     logAction("actionModuleOpened", "alacarte:export");
   };
 
-  const createLocalReviewImports = () => {
+  const createLocalReviewImports = useCallback(() => {
     const enabledSources = reviewSources.filter((item) => item.enabled);
-    const assistantPool = knownAssistantNames.length
-      ? knownAssistantNames
-      : [currentUser?.displayName || copy.unassigned];
-    const templates = [
-      (assistantName) => ({
-        rating: 5,
-        author: "Lena P.",
-        content: `${assistantName} check-in surecinde cok yardimci oldu.`,
-        status: "Resolved",
-      }),
-      (assistantName) => ({
-        rating: 4,
-        author: "Martin S.",
-        content: `${assistantName} rezervasyon ve restoran yonlendirmesinde hizliydi.`,
-        status: "Open",
-      }),
-      (assistantName) => ({
-        rating: 2,
-        author: "Olga N.",
-        content: `${assistantName} ilgilendi ama donus suresi uzundu.`,
-        status: "In Review",
-      }),
-    ];
-
-    const importedReviews = enabledSources.map((source, index) => {
-      const assistantName = assistantPool[index % assistantPool.length];
-      const template = templates[index % templates.length](assistantName);
-      return {
-        id: `review-sync-${source.id}-${Date.now()}-${index}`,
-        sourceId: source.id,
-        sourceItemId: `${source.id}-${Date.now()}-${index}`,
-        imported: true,
-        matchedAssistant: assistantName,
-        platform: source.platform,
-        branch: source.branch,
-        date: "2026-03-13",
-        createdAt: new Date().toISOString(),
-        owner: assistantName,
-        ...template,
-      };
-    });
-
     const syncedAt = new Date().toISOString();
     const nextSources = reviewSources.map((source) =>
       source.enabled
@@ -4514,19 +4485,19 @@ function App() {
       sourceId: source.id,
       platform: source.platform,
       scannedAt: syncedAt,
-      status: "fallback",
-      foundCount: 1,
-      note: "Fallback parser used in local mode.",
+      status: "no_data",
+      foundCount: 0,
+      note: "Visible public review data could not be verified in local mode.",
     }));
-    return { importedReviews, reviewSources: nextSources, reviewScanLogs };
-  };
+    return { importedReviews: [], reviewSources: nextSources, reviewScanLogs };
+  }, [reviewSources]);
 
   const saveReviewSources = () => {
     setReviewSourceStatus(copy.reviewSourceSaved);
     logAction("actionPermissionUpdated", "reviews:sources");
   };
 
-  const syncReviewSources = async () => {
+  const syncReviewSources = useCallback(async () => {
     setIsReviewSyncing(true);
     setReviewSyncStatus(copy.reviewSyncing);
 
@@ -4568,7 +4539,22 @@ function App() {
     } finally {
       setIsReviewSyncing(false);
     }
-  };
+  }, [copy.reviewSyncDone, copy.reviewSyncing, createLocalReviewImports, knownAssistantNames, logAction, reviewSources, sessionToken, syncMode]);
+
+  useEffect(() => {
+    if (
+      visibleTab !== "assistantTracker"
+      || !sessionToken
+      || !bootstrapReady
+      || isReviewSyncing
+      || hallOfFameAutoScanRef.current
+    ) {
+      return;
+    }
+
+    hallOfFameAutoScanRef.current = true;
+    void syncReviewSources();
+  }, [bootstrapReady, isReviewSyncing, sessionToken, syncReviewSources, visibleTab]);
 
   const createDepartmentNotification = async (complaint) => {
     if (syncMode !== "api" || !sessionToken) return;
@@ -4937,6 +4923,10 @@ function App() {
               ...review,
               opsStatus: updates.opsStatus ?? review.opsStatus ?? "alerted",
               assignedTo: updates.assignedTo ?? review.assignedTo ?? "",
+              internalNote: updates.internalNote ?? review.internalNote ?? "",
+              repliedTo: updates.repliedTo ?? review.repliedTo ?? "",
+              deadline: updates.deadline ?? review.deadline ?? "",
+              resolutionSummary: updates.resolutionSummary ?? review.resolutionSummary ?? "",
               status:
                 updates.opsStatus === "closed"
                   ? "Resolved"
@@ -5652,23 +5642,21 @@ function App() {
               <p className="muted module-intro">{copy.ordersText}</p>
               {ordersStatus && <p className="muted top-gap">{ordersStatus}</p>}
               <div className="orders-overview top-gap">
-                {orderSections.map((type) => (
+                {orderExportSections.map((type) => (
                   <article key={`${type}-overview`} className="orders-overview-card">
                     <span className="eyebrow">
                       {type === "fruitWine"
                         ? copy.fruitWine
-                        : type === "cake"
-                          ? copy.cake
-                          : type === "roomDecoration"
+                        : type === "roomDecoration"
                             ? copy.roomDecoration
                           : copy.specialRequest}
                     </span>
-                    <strong>{ordersByType[type].length}</strong>
+                    <strong>{groupedOrders[type].length}</strong>
                   </article>
                 ))}
               </div>
               <div className="spec-grid top-gap orders-grid">
-                {orderSections.map((type) => (
+                {orderExportSections.map((type) => (
                   <article key={type} className="spec-card orders-card">
                     <div className="orders-card-header">
                       <div className="orders-card-title">
@@ -5676,18 +5664,17 @@ function App() {
                         <h2>
                           {type === "fruitWine"
                             ? copy.fruitWine
-                            : type === "cake"
-                              ? copy.cake
-                              : type === "roomDecoration"
+                            : type === "roomDecoration"
                                 ? copy.roomDecoration
                               : copy.specialRequest}
                         </h2>
                       </div>
                       <span className="tag tag-outline">
-                        {ordersByType[type].length}
+                        {groupedOrders[type].length}
                       </span>
                     </div>
-                    <div className="orders-form-shell">
+                    <div className="orders-form-shell orders-form-shell-highlight">
+                      <p className="eyebrow orders-form-eyebrow">{copy.addOrder}</p>
                       <div className="form-grid">
                         <label>
                           <span>{copy.roomNumberFixed}</span>
@@ -5725,8 +5712,8 @@ function App() {
                       <span>{copy.notes}</span>
                     </div>
                     <div className="stack compact orders-list">
-                      {ordersByType[type].length === 0 && <p className="muted">{copy.notSet}</p>}
-                      {ordersByType[type].map((item) => (
+                      {groupedOrders[type].length === 0 && <p className="muted">{copy.notSet}</p>}
+                      {groupedOrders[type].map((item) => (
                         <article key={item.id} className="item-card orders-item">
                           <strong>{item.roomNumber}</strong>
                           <span>{item.note || "-"}</span>
@@ -6597,19 +6584,23 @@ function App() {
               </div>
             </Panel>
 
-            <Panel>
+            <Panel className="span-2 critical-alerts-panel">
               <div className="panel-heading">
                 <h2>{copy.criticalReviewAlerts}</h2>
               </div>
-              <div className="stack">
+              <div className="critical-alerts-grid">
                 {criticalReviewAlerts.length === 0 && <p className="muted">{copy.noNotifications}</p>}
                 {criticalReviewAlerts.map((item) => (
-                  <article key={item.id} className="item-card">
+                  <article key={item.id} className="item-card critical-alert-card">
                     <div className="row space-between">
                       <strong>{item.title}</strong>
                       <span className="tag tag-red">{item.meta?.platform ?? "-"}</span>
                     </div>
                     <p className="muted top-gap">{item.message}</p>
+                    <div className="control-line top-gap">
+                      <span>{copy.criticalReviewState}</span>
+                      <strong>{item.meta?.scheduleMode === "lowRating" ? copy.criticalReviewRapidScan : copy.criticalReviewScheduledScan}</strong>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -6632,6 +6623,10 @@ function App() {
                         <p className="muted">{copy.reviewMatchedAssistant}: {attributedAssistantForReview(review) || copy.unassigned}</p>
                         <p className="muted">{copy.criticalReviewAssign}: {review.assignedTo || copy.unassigned}</p>
                         <p className="muted">{copy.criticalReviewState}: {copy.criticalReviewStates[review.opsStatus || "alerted"]}</p>
+                        <p className="muted">{copy.criticalReviewReplyTo}: {review.repliedTo || copy.unassigned}</p>
+                        <p className="muted">{copy.criticalReviewDeadline}: {review.deadline || copy.noDate}</p>
+                        {review.internalNote && <p className="muted">{copy.criticalReviewNote}: {review.internalNote}</p>}
+                        {review.resolutionSummary && <p className="muted">{copy.criticalReviewResolution}: {review.resolutionSummary}</p>}
                         <p>{localizeReviewContent(review.content)}</p>
                       </div>
                       <div className="stack compact">
@@ -6657,6 +6652,30 @@ function App() {
                             <option key={`${review.id}-${value}`} value={value}>{label}</option>
                           ))}
                         </select>
+                        <input
+                          aria-label={`${review.author} ${copy.criticalReviewReplyTo}`}
+                          value={review.repliedTo || ""}
+                          onChange={(event) => updateCriticalReview(review.id, { repliedTo: event.target.value })}
+                          placeholder={copy.authorLabel}
+                        />
+                        <input
+                          aria-label={`${review.author} ${copy.criticalReviewDeadline}`}
+                          type="date"
+                          value={review.deadline || ""}
+                          onChange={(event) => updateCriticalReview(review.id, { deadline: event.target.value })}
+                        />
+                        <textarea
+                          aria-label={`${review.author} ${copy.criticalReviewNote}`}
+                          rows="2"
+                          value={review.internalNote || ""}
+                          onChange={(event) => updateCriticalReview(review.id, { internalNote: event.target.value })}
+                        />
+                        <textarea
+                          aria-label={`${review.author} ${copy.criticalReviewResolution}`}
+                          rows="2"
+                          value={review.resolutionSummary || ""}
+                          onChange={(event) => updateCriticalReview(review.id, { resolutionSummary: event.target.value })}
+                        />
                       </div>
                     </div>
                   </article>
