@@ -1048,9 +1048,10 @@ describe("Voyage Kundu control panel", () => {
 
     expect(screen.getAllByText("Lobi Ekibi").length).toBeGreaterThan(0);
     expect(screen.getByText(/İzin dağılımı: Pazartesi: Seda/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Pazartesi/ })).toBeInTheDocument();
+    expect(screen.getByText("Haftalık vardiya matrisi")).toBeInTheDocument();
+    expect(screen.getAllByText("Pazartesi").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Müdür").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Haftalık sabit izin günü:/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("OFF").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Lobi Ekibi").length).toBeGreaterThan(0);
   });
 

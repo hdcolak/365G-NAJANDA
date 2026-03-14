@@ -1126,36 +1126,91 @@ body {
   min-height: 100%;
 }
 
-.shift-day-switcher {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.shift-day-button {
-  display: grid;
-  gap: 0.2rem;
-  text-align: left;
-  padding: 0.85rem 0.95rem;
-  border-radius: 1rem;
+.shift-matrix-wrap {
+  overflow-x: auto;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--ink);
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.88);
 }
 
-.shift-day-button span {
-  font-size: 0.82rem;
-  color: var(--muted);
+.shift-matrix-table {
+  width: 100%;
+  min-width: 58rem;
+  border-collapse: collapse;
+  font-size: 0.88rem;
 }
 
-.shift-day-button strong {
-  font-size: 0.95rem;
+.shift-matrix-table th,
+.shift-matrix-table td {
+  border: 1px solid rgba(16, 32, 51, 0.16);
+  text-align: center;
+  padding: 0.5rem 0.35rem;
 }
 
-.shift-day-button-active {
-  border-color: rgba(29, 78, 216, 0.28);
-  background: rgba(29, 78, 216, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.08);
+.shift-matrix-table th {
+  background: #eef1f6;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.shift-matrix-table th span,
+.shift-matrix-table th strong {
+  display: block;
+}
+
+.shift-matrix-table th span {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.shift-matrix-name-cell {
+  min-width: 14rem;
+  text-align: left !important;
+  font-weight: 600;
+  background: #fff;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.shift-matrix-group-row .shift-matrix-name-cell {
+  background: #dbe8c8;
+  font-weight: 700;
+}
+
+.shift-matrix-group-row .shift-matrix-cell {
+  background: #dbe8c8;
+}
+
+.shift-matrix-cell {
+  min-width: 5.8rem;
+  font-weight: 700;
+}
+
+.shift-matrix-cell-morning {
+  background: #f8fafc;
+}
+
+.shift-matrix-cell-evening {
+  background: #e5e7eb;
+}
+
+.shift-matrix-cell-off {
+  background: #fff200;
+}
+
+.shift-matrix-cell-fixedC {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.shift-matrix-cell-empty {
+  background: #f3f4f6;
+}
+
+.shift-matrix-day-active {
+  box-shadow: inset 0 0 0 2px #111827;
 }
 
 .shift-action-row {
@@ -1212,10 +1267,6 @@ body {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .shift-day-switcher {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .auth-heading,
   .session-strip {
     grid-template-columns: 1fr;
@@ -1267,10 +1318,6 @@ body {
   .shift-day-grid,
   .shift-team-grid {
     grid-template-columns: 1fr;
-  }
-
-  .shift-day-switcher {
-    grid-template-columns: repeat(2, minmax(8rem, 1fr));
   }
 
   .data-table {
