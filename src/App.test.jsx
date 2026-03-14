@@ -69,14 +69,12 @@ async function signInAs(username, password = "1234") {
   }
   const select = screen.getByRole("combobox", { name: /Giriş hesabı|Kullanıcı seç|Select user|Benutzer wählen|Выберите пользователя/ });
   await user.selectOptions(select, username);
-  await user.type(
-    screen.getByLabelText(/Ana giriş şifresi|Main access code|Hauptzugangscode|Главный код входа/),
-    "1234",
-  );
-  await user.type(
-    screen.getByLabelText(/Şifre|Password|Passwort|Пароль/),
-    password,
-  );
+  const accessCodeInput = screen.getByLabelText(/Ana giriş şifresi|Main access code|Hauptzugangscode|Главный код входа/);
+  const passwordInput = screen.getByLabelText(/Şifre|Password|Passwort|Пароль/);
+  await user.clear(accessCodeInput);
+  await user.clear(passwordInput);
+  await user.type(accessCodeInput, "1234");
+  await user.type(passwordInput, password);
   await user.click(
     screen.getByRole("button", {
       name: /Giriş yap|Sign in|Anmelden|Войти/,
@@ -1051,6 +1049,8 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getAllByText("Lobi Ekibi").length).toBeGreaterThan(0);
     expect(screen.getByText(/İzin dağılımı: Pazartesi: Seda/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Pazartesi/ })).toBeInTheDocument();
+    expect(screen.getAllByText("Müdür").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Haftalık sabit izin günü:/).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Lobi Ekibi").length).toBeGreaterThan(0);
   });
 
@@ -1078,6 +1078,8 @@ describe("Voyage Kundu control panel", () => {
     await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "Shift Planlayıcı" }));
 
+    await userEvent.clear(screen.getByLabelText("Müdür"));
+    await userEvent.type(screen.getByLabelText("Müdür"), "Aylin Müdür");
     await userEvent.type(screen.getByLabelText("Ekip adı"), "Gece Operasyon");
     await userEvent.type(screen.getByLabelText("Asistan 1"), "Ada");
     await userEvent.type(screen.getByLabelText("Asistan 2"), "Bora");
@@ -1086,6 +1088,7 @@ describe("Voyage Kundu control panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Ekipleri kaydet" }));
     expect(window.localStorage.getItem("shift-planner-teams")).toContain("Gece Operasyon");
+    expect(window.localStorage.getItem("shift-planner-leadership")).toContain("Aylin Müdür");
     expect(screen.getByText("Ekip planı kaydedildi.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Haftalık çıktı al" }));

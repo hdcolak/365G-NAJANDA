@@ -2699,6 +2699,7 @@ const shiftPlannerLabels = {
     memberOne: "Asistan 1",
     memberTwo: "Asistan 2",
     memberThree: "Asistan 3",
+    leadershipSetupTitle: "Yönetim tanımı",
     fixedOffDay: "Haftalık izin takvimi",
     offPlannerTitle: "Haftalık izin planı",
     offPlannerText: "Her gün için izinli kişi seçin veya izin yok bırakın. Aynı asistan haftada yalnızca 1 kez izinli olabilir.",
@@ -2761,6 +2762,7 @@ const shiftPlannerLabels = {
     memberOne: "Assistant 1",
     memberTwo: "Assistant 2",
     memberThree: "Assistant 3",
+    leadershipSetupTitle: "Leadership setup",
     fixedOffDay: "Weekly leave calendar",
     offPlannerTitle: "Weekly leave plan",
     offPlannerText: "Choose an off-duty person for each day or leave the day without time off. The same assistant can be off only once per week.",
@@ -2823,6 +2825,7 @@ const shiftPlannerLabels = {
     memberOne: "Assistent 1",
     memberTwo: "Assistent 2",
     memberThree: "Assistent 3",
+    leadershipSetupTitle: "Management-Team",
     fixedOffDay: "Wöchentlicher Freiplan",
     offPlannerTitle: "Wöchentlicher Freiplan",
     offPlannerText: "Wählen Sie pro Tag eine freie Person oder lassen Sie den Tag ohne Freistellung. Dieselbe Assistenz darf pro Woche nur einmal frei sein.",
@@ -2885,6 +2888,7 @@ const shiftPlannerLabels = {
     memberOne: "Ассистент 1",
     memberTwo: "Ассистент 2",
     memberThree: "Ассистент 3",
+    leadershipSetupTitle: "Настройка руководства",
     fixedOffDay: "Недельный календарь выходных",
     offPlannerTitle: "Недельный план выходных",
     offPlannerText: "Для каждого дня выберите выходного сотрудника или оставьте день без выходного. Один и тот же ассистент может быть выходным только 1 раз в неделю.",
@@ -2924,9 +2928,28 @@ const shiftPlannerLabels = {
 };
 const shiftWeekStart = "2026-03-16";
 const shiftTeamsStorageKey = "shift-planner-teams";
+const shiftLeadershipStorageKey = "shift-planner-leadership";
 const tasksStorageKey = "task-list-snapshot";
 const complaintsStorageKey = "complaint-list-snapshot";
 const alaCarteStorageKey = "alacarte-list-snapshot";
+const defaultShiftLeadership = {
+  manager: {
+    name: "Gizem",
+    shift: "09:00-17:00",
+    weeklyOffDayIndex: 6,
+  },
+  deputy: {
+    name: "Selim",
+    shift: "16:00-00:00",
+    weeklyOffDayIndex: 5,
+  },
+  chiefs: [
+    { id: "chief-1", name: "Şef 1", shift: "08:00-16:00", weeklyOffDayIndex: 0 },
+    { id: "chief-2", name: "Şef 2", shift: "08:00-16:00", weeklyOffDayIndex: 1 },
+    { id: "chief-3", name: "Şef 3", shift: "16:00-00:00", weeklyOffDayIndex: 2 },
+    { id: "chief-4", name: "Şef 4", shift: "16:00-00:00", weeklyOffDayIndex: 3 },
+  ],
+};
 const defaultShiftTeamForm = {
   name: "",
   offSchedule: ["", "", "", "", "", "", ""],
@@ -2971,7 +2994,25 @@ function hasDuplicateWeeklyOffAssignments(schedule) {
   return [...counts.values()].some((count) => count > 1);
 }
 
-function createShiftPlanForRange(inputTeams, startDateString, dayCount) {
+function createLeadershipPlanForDay(leadershipConfig, weekDayIndex) {
+  return {
+    manager: {
+      ...leadershipConfig.manager,
+      isOff: leadershipConfig.manager.weeklyOffDayIndex === weekDayIndex,
+    },
+    deputy: {
+      ...leadershipConfig.deputy,
+      isOff: leadershipConfig.deputy.weeklyOffDayIndex === weekDayIndex,
+    },
+    chiefs: leadershipConfig.chiefs.map((chief) => ({
+      ...chief,
+      isOff: chief.weeklyOffDayIndex === weekDayIndex,
+    })),
+    fixedC: "12:00-20:00",
+  };
+}
+
+function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, dayCount) {
   const baseDate = new Date(`${startDateString}T00:00:00`);
   const teams = inputTeams.map((team) => ({
     ...team,
@@ -3020,15 +3061,7 @@ function createShiftPlanForRange(inputTeams, startDateString, dayCount) {
         offCount,
       },
       leadership: {
-        manager: "09:00-17:00",
-        deputy: "16:00-00:00",
-        chiefs: [
-          "Sef 1 08:00-16:00",
-          "Sef 2 08:00-16:00",
-          "Sef 3 16:00-00:00",
-          "Sef 4 16:00-00:00",
-        ],
-        fixedC: "12:00-20:00",
+        ...createLeadershipPlanForDay(leadershipConfig, weekDayIndex),
         supportTeams: offTeams,
       },
     };
@@ -3059,15 +3092,57 @@ function getWeekdayKeyForDate(value) {
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dayIndex] ?? "";
 }
 
-function createWeeklyShiftPlan(inputTeams) {
-  return createShiftPlanForRange(inputTeams, shiftWeekStart, 7);
+function createWeeklyShiftPlan(inputTeams, leadershipConfig) {
+  return createShiftPlanForRange(inputTeams, leadershipConfig, shiftWeekStart, 7);
 }
 
-function createMonthlyShiftPlan(inputTeams) {
+function createMonthlyShiftPlan(inputTeams, leadershipConfig) {
   const monthStart = `${shiftWeekStart.slice(0, 7)}-01`;
   const [year, month] = shiftWeekStart.split("-").map(Number);
   const dayCount = new Date(year, month, 0).getDate();
-  return createShiftPlanForRange(inputTeams, monthStart, dayCount);
+  return createShiftPlanForRange(inputTeams, leadershipConfig, monthStart, dayCount);
+}
+
+function buildShiftExportRows(plan, shiftCopy) {
+  return plan.days.flatMap((day) => {
+    const leadershipRows = [
+      [
+        `${shiftCopy.manager} - ${day.leadership.manager.name}`,
+        day.leadership.manager.isOff ? shiftCopy.off : day.leadership.manager.shift,
+        `${shiftCopy.fixedOffNote}: ${shiftCopy.dayLabels[day.leadership.manager.weeklyOffDayIndex]}`,
+      ],
+      [
+        `${shiftCopy.deputy} - ${day.leadership.deputy.name}`,
+        day.leadership.deputy.isOff ? shiftCopy.off : day.leadership.deputy.shift,
+        `${shiftCopy.fixedOffNote}: ${shiftCopy.dayLabels[day.leadership.deputy.weeklyOffDayIndex]}`,
+      ],
+      ...day.leadership.chiefs.map((chief, chiefIndex) => [
+        `${shiftCopy.chiefs} ${chiefIndex + 1} - ${chief.name}`,
+        chief.isOff ? shiftCopy.off : chief.shift,
+        `${shiftCopy.fixedOffNote}: ${shiftCopy.dayLabels[chief.weeklyOffDayIndex]}`,
+      ]),
+      [
+        shiftCopy.fixedC,
+        day.leadership.fixedC,
+        day.leadership.supportTeams.length ? `${shiftCopy.support}: ${day.leadership.supportTeams.join(", ")}` : shiftCopy.openSupportNote,
+      ],
+    ];
+
+    const teamRows = day.teamPlans.map((team) => [
+      team.teamName,
+      `${shiftCopy.morning}: ${team.morningMembers.join(" / ") || "-"}`,
+      `${shiftCopy.evening}: ${team.eveningMember} | ${shiftCopy.off}: ${team.offMember ?? shiftCopy.noOffOption}`,
+    ]);
+
+    return [
+      [`${shiftCopy.dayLabels[day.dayIndex]} - ${day.date}`, "", ""],
+      [shiftCopy.leadershipTitle, "Shift", "Note"],
+      ...leadershipRows,
+      [shiftCopy.teamsTitle, "", ""],
+      ...teamRows,
+      ["", "", ""],
+    ];
+  });
 }
 
 function getStoredShiftTeams() {
@@ -3078,6 +3153,31 @@ function getStoredShiftTeams() {
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
+  }
+}
+
+function getStoredShiftLeadership() {
+  if (typeof window === "undefined") return defaultShiftLeadership;
+  try {
+    const raw = window.localStorage.getItem(shiftLeadershipStorageKey);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== "object") return defaultShiftLeadership;
+    return {
+      manager: {
+        ...defaultShiftLeadership.manager,
+        ...(parsed.manager ?? {}),
+      },
+      deputy: {
+        ...defaultShiftLeadership.deputy,
+        ...(parsed.deputy ?? {}),
+      },
+      chiefs: defaultShiftLeadership.chiefs.map((chief, index) => ({
+        ...chief,
+        ...(Array.isArray(parsed.chiefs) ? parsed.chiefs[index] : null),
+      })),
+    };
+  } catch {
+    return defaultShiftLeadership;
   }
 }
 
@@ -3216,6 +3316,7 @@ function App() {
   const [meetingSearch, setMeetingSearch] = useState("");
   const [reviewSearch, setReviewSearch] = useState("");
   const [shiftTeams, setShiftTeams] = useState(getStoredShiftTeams);
+  const [shiftLeadership, setShiftLeadership] = useState(getStoredShiftLeadership);
   const [shiftTeamForm, setShiftTeamForm] = useState(() => ({ ...defaultShiftTeamForm, members: [...defaultShiftTeamForm.members] }));
   const [editingShiftTeamId, setEditingShiftTeamId] = useState("");
   const [selectedShiftDayIndex, setSelectedShiftDayIndex] = useState(0);
@@ -4060,8 +4161,8 @@ function App() {
     };
   }, [assistantLeaderboard, assistantMeetings, assistantReviews, ftfMeetings]);
 
-  const shiftPlan = useMemo(() => createWeeklyShiftPlan(shiftTeams), [shiftTeams]);
-  const monthlyShiftPlan = useMemo(() => createMonthlyShiftPlan(shiftTeams), [shiftTeams]);
+  const shiftPlan = useMemo(() => createWeeklyShiftPlan(shiftTeams, shiftLeadership), [shiftLeadership, shiftTeams]);
+  const monthlyShiftPlan = useMemo(() => createMonthlyShiftPlan(shiftTeams, shiftLeadership), [shiftLeadership, shiftTeams]);
   const selectedShiftDay = shiftPlan.days[selectedShiftDayIndex] ?? shiftPlan.days[0] ?? null;
 
   const filteredAssistantMeetings = useMemo(
@@ -4197,6 +4298,7 @@ function App() {
 
   const saveShiftTeams = () => {
     window.localStorage.setItem(shiftTeamsStorageKey, JSON.stringify(shiftTeams));
+    window.localStorage.setItem(shiftLeadershipStorageKey, JSON.stringify(shiftLeadership));
     setShiftPlannerStatus(shiftCopy.savedStatus);
     logAction("actionPermissionUpdated", "shift:save");
   };
@@ -4220,21 +4322,9 @@ function App() {
     if (!plan.days.length) return;
 
     const rows = [
-      ["Date", "Team", "Morning", "Evening", "Off", "Manager", "Deputy", "Chiefs", "Fixed C", "Support"],
-      ...plan.days.flatMap((day) =>
-        day.teamPlans.map((team) => [
-          day.date,
-          team.teamName,
-          team.morningMembers.join(" / "),
-          team.eveningMember,
-          team.offMember ?? "-",
-          day.leadership.manager,
-          day.leadership.deputy,
-          day.leadership.chiefs.join(" | "),
-          day.leadership.fixedC,
-          day.leadership.supportTeams.join(" | ") || "-",
-        ]),
-      ),
+      [shiftCopy.title, period === "weekly" ? shiftCopy.exportWeek : shiftCopy.exportMonth, shiftWeekStart],
+      ["", "", ""],
+      ...buildShiftExportRows(plan, shiftCopy),
     ];
 
     downloadCsvFile(`shift-plan-${period}-${shiftWeekStart}.csv`, rows);
@@ -6058,6 +6148,79 @@ function App() {
               </div>
               <p className="muted module-intro">{shiftCopy.intro}</p>
               <div className="form-grid">
+                <div className="panel-heading top-gap">
+                  <h2>{shiftCopy.leadershipSetupTitle}</h2>
+                </div>
+                <div className="two-col">
+                  <label>
+                    <span>{shiftCopy.manager}</span>
+                    <input
+                      aria-label={shiftCopy.manager}
+                      value={shiftLeadership.manager.name}
+                      onChange={(event) => {
+                        setShiftLeadership((current) => ({
+                          ...current,
+                          manager: { ...current.manager, name: event.target.value },
+                        }));
+                        setShiftPlannerError("");
+                      }}
+                    />
+                  </label>
+                  <label>
+                    <span>{shiftCopy.deputy}</span>
+                    <input
+                      aria-label={shiftCopy.deputy}
+                      value={shiftLeadership.deputy.name}
+                      onChange={(event) => {
+                        setShiftLeadership((current) => ({
+                          ...current,
+                          deputy: { ...current.deputy, name: event.target.value },
+                        }));
+                        setShiftPlannerError("");
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="two-col">
+                  {shiftLeadership.chiefs.slice(0, 2).map((chief, chiefIndex) => (
+                    <label key={chief.id}>
+                      <span>{shiftCopy.chiefs} {chiefIndex + 1}</span>
+                      <input
+                        aria-label={`${shiftCopy.chiefs} ${chiefIndex + 1}`}
+                        value={chief.name}
+                        onChange={(event) => {
+                          setShiftLeadership((current) => ({
+                            ...current,
+                            chiefs: current.chiefs.map((item) => (
+                              item.id === chief.id ? { ...item, name: event.target.value } : item
+                            )),
+                          }));
+                          setShiftPlannerError("");
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="two-col">
+                  {shiftLeadership.chiefs.slice(2, 4).map((chief, chiefIndex) => (
+                    <label key={chief.id}>
+                      <span>{shiftCopy.chiefs} {chiefIndex + 3}</span>
+                      <input
+                        aria-label={`${shiftCopy.chiefs} ${chiefIndex + 3}`}
+                        value={chief.name}
+                        onChange={(event) => {
+                          setShiftLeadership((current) => ({
+                            ...current,
+                            chiefs: current.chiefs.map((item) => (
+                              item.id === chief.id ? { ...item, name: event.target.value } : item
+                            )),
+                          }));
+                          setShiftPlannerError("");
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
                 <label>
                   <span>{shiftCopy.teamName}</span>
                   <input
@@ -6269,6 +6432,47 @@ function App() {
                     <span>{shiftCopy.dayLabels[selectedShiftDay.dayIndex]}</span>
                     <strong>{formatDate(selectedShiftDay.date)}</strong>
                   </div>
+                </div>
+
+                <div className="shift-team-grid top-gap">
+                  <article className="item-card shift-team-card">
+                    <div className="row space-between top">
+                      <strong>{shiftCopy.manager}</strong>
+                      <span className={selectedShiftDay.leadership.manager.isOff ? "tag tag-yellow" : "tag tag-green"}>
+                        {selectedShiftDay.leadership.manager.isOff ? shiftCopy.off : selectedShiftDay.leadership.manager.shift}
+                      </span>
+                    </div>
+                    <div className="shift-line">
+                      <span>{selectedShiftDay.leadership.manager.name}</span>
+                      <strong>{shiftCopy.fixedOffNote}: {shiftCopy.dayLabels[selectedShiftDay.leadership.manager.weeklyOffDayIndex]}</strong>
+                    </div>
+                  </article>
+                  <article className="item-card shift-team-card">
+                    <div className="row space-between top">
+                      <strong>{shiftCopy.deputy}</strong>
+                      <span className={selectedShiftDay.leadership.deputy.isOff ? "tag tag-yellow" : "tag tag-green"}>
+                        {selectedShiftDay.leadership.deputy.isOff ? shiftCopy.off : selectedShiftDay.leadership.deputy.shift}
+                      </span>
+                    </div>
+                    <div className="shift-line">
+                      <span>{selectedShiftDay.leadership.deputy.name}</span>
+                      <strong>{shiftCopy.fixedOffNote}: {shiftCopy.dayLabels[selectedShiftDay.leadership.deputy.weeklyOffDayIndex]}</strong>
+                    </div>
+                  </article>
+                  {selectedShiftDay.leadership.chiefs.map((chief, chiefIndex) => (
+                    <article key={`${selectedShiftDay.date}-${chief.id}`} className="item-card shift-team-card">
+                      <div className="row space-between top">
+                        <strong>{shiftCopy.chiefs} {chiefIndex + 1}</strong>
+                        <span className={chief.isOff ? "tag tag-yellow" : "tag tag-green"}>
+                          {chief.isOff ? shiftCopy.off : chief.shift}
+                        </span>
+                      </div>
+                      <div className="shift-line">
+                        <span>{chief.name}</span>
+                        <strong>{shiftCopy.fixedOffNote}: {shiftCopy.dayLabels[chief.weeklyOffDayIndex]}</strong>
+                      </div>
+                    </article>
+                  ))}
                 </div>
 
                 <div className="shift-team-grid top-gap">
