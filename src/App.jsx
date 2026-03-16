@@ -2770,7 +2770,7 @@ const shiftPlannerLabels = {
     nameHeader: "Adı Soyadı",
     teamCount: "Tanımlı ekip",
     emptyState: "Plan üretmek için en az 1 ekip ekleyin.",
-    teamValidation: "Ekip adı, 3 asistan ve haftalık izin planı zorunludur.",
+    teamValidation: "Ekip adı ve haftalık izin planı zorunludur.",
     assistantValidation: "Asistan adı zorunludur.",
     teamMemberValidation: "Ekipte aynı asistan tekrar edemez.",
     duplicateOffValidation: "Aynı asistan haftada yalnızca 1 kez izinli olabilir.",
@@ -2843,7 +2843,7 @@ const shiftPlannerLabels = {
     nameHeader: "Full name",
     teamCount: "Teams defined",
     emptyState: "Add at least one team to generate the plan.",
-    teamValidation: "Team name, 3 assistants and a weekly leave plan are required.",
+    teamValidation: "Team name and a weekly leave plan are required.",
     assistantValidation: "Assistant name is required.",
     teamMemberValidation: "The same assistant cannot be selected twice in one team.",
     duplicateOffValidation: "The same assistant can be off only once per week.",
@@ -2916,7 +2916,7 @@ const shiftPlannerLabels = {
     nameHeader: "Name",
     teamCount: "Definierte Teams",
     emptyState: "Mindestens 1 Team hinzufügen, um den Plan zu erzeugen.",
-    teamValidation: "Teamname, 3 Assistenten und ein Wochen-Freiplan sind erforderlich.",
+    teamValidation: "Teamname und ein Wochen-Freiplan sind erforderlich.",
     assistantValidation: "Assistentenname ist erforderlich.",
     teamMemberValidation: "Dieselbe Assistenz darf im Team nicht doppelt vorkommen.",
     duplicateOffValidation: "Dieselbe Assistenz darf pro Woche nur einmal frei sein.",
@@ -2989,7 +2989,7 @@ const shiftPlannerLabels = {
     nameHeader: "Имя и фамилия",
     teamCount: "Команд задано",
     emptyState: "Добавьте хотя бы 1 команду, чтобы построить график.",
-    teamValidation: "Нужны название команды, 3 ассистента и недельный план выходных.",
+    teamValidation: "Нужны название команды и недельный план выходных.",
     assistantValidation: "Нужно имя ассистента.",
     teamMemberValidation: "Нельзя выбрать одного и того же ассистента дважды в одной команде.",
     duplicateOffValidation: "Один и тот же ассистент может быть выходным только 1 раз в неделю.",
@@ -3133,6 +3133,7 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
   const teams = inputTeams.map((team) => ({
     ...team,
     offSchedule: normalizeOffSchedule(team.offSchedule),
+    members: Array.isArray(team.members) ? team.members.filter(Boolean) : [],
   }));
 
   const days = Array.from({ length: dayCount }, (_, dayIndex) => {
@@ -3141,6 +3142,16 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
     const weekDayIndex = (date.getDay() + 6) % 7;
 
     const teamPlans = teams.map((team, teamIndex) => {
+      if (team.members.length === 0) {
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          morningMembers: [],
+          eveningMember: null,
+          offMember: null,
+          offSchedule: team.offSchedule,
+        };
+      }
       const offMemberIndex = parseOffMemberIndex(team.offSchedule[weekDayIndex], team.members.length);
       const availableIndices = team.members
         .map((_, memberIndex) => memberIndex)
@@ -3148,9 +3159,11 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
       const rotationBlockIndex = Math.floor(dayIndex / 14);
       const preferredEveningIndex = (teamIndex + rotationBlockIndex) % team.members.length;
       const preferredAvailableIndex = availableIndices.indexOf(preferredEveningIndex);
-      const eveningIndex = preferredAvailableIndex !== -1
-        ? availableIndices[preferredAvailableIndex]
-        : availableIndices[(teamIndex + rotationBlockIndex) % availableIndices.length];
+      const eveningIndex = availableIndices.length === 0
+        ? null
+        : preferredAvailableIndex !== -1
+          ? availableIndices[preferredAvailableIndex]
+          : availableIndices[(teamIndex + rotationBlockIndex) % availableIndices.length];
       const morningMembers = team.members.filter(
         (_, memberIndex) => memberIndex !== offMemberIndex && memberIndex !== eveningIndex,
       );
@@ -3160,7 +3173,7 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
         teamId: team.id,
         teamName: team.name,
         morningMembers,
-        eveningMember: team.members[eveningIndex],
+        eveningMember: eveningIndex === null ? null : team.members[eveningIndex],
         offMember,
         offSchedule: team.offSchedule,
       };
@@ -3168,7 +3181,7 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
 
     const offTeams = teamPlans.filter((plan) => plan.offMember).map((plan) => plan.teamName);
     const morningCount = teamPlans.reduce((total, plan) => total + plan.morningMembers.length, 0);
-    const eveningCount = teamPlans.length;
+    const eveningCount = teamPlans.filter((plan) => plan.eveningMember).length;
     const offCount = teamPlans.filter((plan) => plan.offMember).length;
 
     return {
@@ -3246,6 +3259,7 @@ function buildShiftMatrixRows(plan, overrides) {
         name: member,
         type: "member",
         teamId: team.id,
+        color: team.color || "#dbe8c8",
         cells: plan.days.map((day) => {
           const overrideCode = overrides?.[member]?.[day.date];
           if (overrideCode !== undefined) {
@@ -4102,8 +4116,7 @@ function App() {
     && newVenue.note.trim(),
   );
   const isShiftTeamReady = Boolean(
-    shiftTeamForm.name.trim()
-    && shiftTeamForm.members.every((member) => member.trim()),
+    shiftTeamForm.name.trim(),
   );
   const isShiftAssistantReady = Boolean(shiftAssistantForm.trim());
   const isMeetingReady = Boolean(
@@ -4469,7 +4482,6 @@ function App() {
     const trimmedMembers = shiftTeamForm.members.map((member) => member.trim());
     if (
       !shiftTeamForm.name.trim()
-      || trimmedMembers.some((member) => !member)
       || !Array.isArray(shiftTeamForm.offSchedule)
       || shiftTeamForm.offSchedule.length !== 7
     ) {
@@ -4482,7 +4494,8 @@ function App() {
       return;
     }
 
-    if (new Set(trimmedMembers).size !== trimmedMembers.length) {
+    const selectedMembers = trimmedMembers.filter(Boolean);
+    if (new Set(selectedMembers).size !== selectedMembers.length) {
       setShiftPlannerError(shiftCopy.teamMemberValidation);
       return;
     }
@@ -4492,7 +4505,7 @@ function App() {
       name: shiftTeamForm.name.trim(),
       color: shiftTeamForm.color || "#dbe8c8",
       offSchedule: normalizeOffSchedule(shiftTeamForm.offSchedule),
-      members: trimmedMembers,
+      members: selectedMembers,
     };
 
     setShiftTeams((current) => [...current, team]);
@@ -4553,6 +4566,44 @@ function App() {
     if (!updated) return;
     setShiftPlannerError("");
     logAction("actionPermissionUpdated", `shift:${teamId}:day:${dayIndex}`);
+  };
+
+  const updateShiftTeamColor = (teamId, color) => {
+    setShiftTeams((current) =>
+      current.map((team) => (team.id === teamId ? { ...team, color: color || "#dbe8c8" } : team)),
+    );
+    setShiftPlannerError("");
+    logAction("actionPermissionUpdated", `shift:${teamId}:color`);
+  };
+
+  const updateShiftTeamMember = (teamId, memberSlotIndex, memberName) => {
+    let duplicate = false;
+    setShiftTeams((current) =>
+      current.map((team) => {
+        if (team.id !== teamId) return team;
+        const nextMembers = [...Array.from({ length: 3 }, (_, index) => team.members[index] ?? "")];
+        nextMembers[memberSlotIndex] = memberName;
+        const selectedMembers = nextMembers.map((item) => item.trim()).filter(Boolean);
+        if (new Set(selectedMembers).size !== selectedMembers.length) {
+          duplicate = true;
+          return team;
+        }
+        return {
+          ...team,
+          members: selectedMembers,
+          offSchedule: normalizeOffSchedule(team.offSchedule).map((value) => {
+            const parsed = Number(value);
+            return Number.isInteger(parsed) && parsed < selectedMembers.length ? value : "";
+          }),
+        };
+      }),
+    );
+    if (duplicate) {
+      setShiftPlannerError(shiftCopy.teamMemberValidation);
+      return;
+    }
+    setShiftPlannerError("");
+    logAction("actionPermissionUpdated", `shift:${teamId}:member:${memberSlotIndex}`);
   };
 
   const saveShiftTeams = () => {
@@ -6563,15 +6614,19 @@ function App() {
                 </label>
                 <label>
                   <span>{shiftCopy.teamColor}</span>
-                  <input
-                    type="color"
-                    aria-label={shiftCopy.teamColor}
-                    value={shiftTeamForm.color}
-                    onChange={(event) => {
-                      setShiftTeamForm((current) => ({ ...current, color: event.target.value }));
-                      setShiftPlannerError("");
-                    }}
-                  />
+                  <div className="shift-color-picker">
+                    <input
+                      type="color"
+                      aria-label={shiftCopy.teamColor}
+                      value={shiftTeamForm.color}
+                      onChange={(event) => {
+                        setShiftTeamForm((current) => ({ ...current, color: event.target.value }));
+                        setShiftPlannerError("");
+                      }}
+                    />
+                    <span className="shift-team-color-dot shift-team-color-dot-large" style={{ backgroundColor: shiftTeamForm.color || "#dbe8c8" }} />
+                    <strong>{shiftTeamForm.color || "#dbe8c8"}</strong>
+                  </div>
                 </label>
                 <div className="two-col">
                   <label>
@@ -6713,25 +6768,77 @@ function App() {
                       </div>
                     </div>
                     {editingShiftTeamId === team.id && (
-                      <div className="shift-off-grid top-gap">
-                        {shiftCopy.dayLabels.map((dayLabel, dayIndex) => (
-                          <label key={`${team.id}-${dayLabel}`}>
-                            <span>{dayLabel}</span>
+                      <>
+                        <label className="top-gap">
+                          <span>{shiftCopy.teamColor}</span>
+                          <div className="shift-color-picker">
+                            <input
+                              type="color"
+                              aria-label={`${team.name} ${shiftCopy.teamColor}`}
+                              value={team.color || "#dbe8c8"}
+                              onChange={(event) => updateShiftTeamColor(team.id, event.target.value)}
+                            />
+                            <span className="shift-team-color-dot shift-team-color-dot-large" style={{ backgroundColor: team.color || "#dbe8c8" }} />
+                            <strong>{team.color || "#dbe8c8"}</strong>
+                          </div>
+                        </label>
+                        <div className="two-col top-gap">
+                          <label>
+                            <span>{shiftCopy.memberOne}</span>
                             <select
-                              aria-label={`${team.name} ${dayLabel} ${shiftCopy.offMemberLabel}`}
-                              value={team.offSchedule?.[dayIndex] ?? ""}
-                              onChange={(event) => updateShiftTeamOffMember(team.id, dayIndex, event.target.value)}
+                              aria-label={`${team.name} ${shiftCopy.memberOne}`}
+                              value={team.members[0] ?? ""}
+                              onChange={(event) => updateShiftTeamMember(team.id, 0, event.target.value)}
                             >
-                              <option value="">{shiftCopy.noOffOption}</option>
-                              {team.members.map((member, memberIndex) => (
-                                <option key={`${team.id}-${dayLabel}-${member}`} value={String(memberIndex)}>
-                                  {member}
-                                </option>
-                              ))}
+                              <option value="">-</option>
+                              {shiftAssistants.map((assistant) => <option key={`${team.id}-edit-member-1-${assistant}`} value={assistant}>{assistant}</option>)}
                             </select>
                           </label>
-                        ))}
-                      </div>
+                          <label>
+                            <span>{shiftCopy.memberTwo}</span>
+                            <select
+                              aria-label={`${team.name} ${shiftCopy.memberTwo}`}
+                              value={team.members[1] ?? ""}
+                              onChange={(event) => updateShiftTeamMember(team.id, 1, event.target.value)}
+                            >
+                              <option value="">-</option>
+                              {shiftAssistants.map((assistant) => <option key={`${team.id}-edit-member-2-${assistant}`} value={assistant}>{assistant}</option>)}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="two-col top-gap">
+                          <label>
+                            <span>{shiftCopy.memberThree}</span>
+                            <select
+                              aria-label={`${team.name} ${shiftCopy.memberThree}`}
+                              value={team.members[2] ?? ""}
+                              onChange={(event) => updateShiftTeamMember(team.id, 2, event.target.value)}
+                            >
+                              <option value="">-</option>
+                              {shiftAssistants.map((assistant) => <option key={`${team.id}-edit-member-3-${assistant}`} value={assistant}>{assistant}</option>)}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="shift-off-grid top-gap">
+                          {shiftCopy.dayLabels.map((dayLabel, dayIndex) => (
+                            <label key={`${team.id}-${dayLabel}`}>
+                              <span>{dayLabel}</span>
+                              <select
+                                aria-label={`${team.name} ${dayLabel} ${shiftCopy.offMemberLabel}`}
+                                value={team.offSchedule?.[dayIndex] ?? ""}
+                                onChange={(event) => updateShiftTeamOffMember(team.id, dayIndex, event.target.value)}
+                              >
+                                <option value="">{shiftCopy.noOffOption}</option>
+                                {team.members.filter(Boolean).map((member, memberIndex) => (
+                                  <option key={`${team.id}-${dayLabel}-${member}`} value={String(memberIndex)}>
+                                    {member}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </article>
                 ))}
@@ -6803,7 +6910,7 @@ function App() {
                                 ? "shift-matrix-member-row"
                                 : ""
                           }
-                          style={row.type === "group" ? { "--shift-team-color": row.color || "#dbe8c8" } : undefined}
+                          style={row.type === "group" || row.type === "member" ? { "--shift-team-color": row.color || "#dbe8c8" } : undefined}
                         >
                           <td className="shift-matrix-name-cell" title={row.type === "group" ? row.name : undefined}>
                             {row.type === "group" ? <span className="shift-matrix-group-bar" aria-hidden="true" /> : row.name}

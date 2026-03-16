@@ -1118,6 +1118,39 @@ body {
   flex: 0 0 auto;
 }
 
+.shift-team-color-dot-large {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.shift-color-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(16, 32, 51, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.shift-color-picker input[type="color"] {
+  width: 2.6rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.shift-color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.shift-color-picker input[type="color"]::-webkit-color-swatch {
+  border: 1px solid rgba(16, 32, 51, 0.12);
+  border-radius: 0.8rem;
+}
+
 .complaint-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1296,11 +1329,11 @@ body {
 }
 
 .shift-matrix-member-row .shift-matrix-name-cell {
-  background: #fef3c7;
+  background: color-mix(in srgb, var(--shift-team-color, #dbe8c8) 32%, white);
 }
 
 .shift-matrix-member-row .shift-matrix-cell:not(.shift-matrix-cell-off):not(.shift-matrix-cell-fixedC):not(.shift-matrix-cell-empty) {
-  background: #fefce8;
+  background: color-mix(in srgb, var(--shift-team-color, #dbe8c8) 18%, white);
 }
 
 .shift-action-row {
