@@ -1153,8 +1153,8 @@ const translations = {
     reviewSourcesTitle: "Yorum kaynakları",
     reviewSourcesText: "Google, Tripadvisor, Yandex ve HolidayCheck yorumlarını tek ekranda toplayın.",
     reviewScheduleTitle: "Tarama takvimi",
-    reviewScheduleDaily: "Standart tarama: 00:00, 08:00, 16:00",
-    reviewScheduleLow: "1-4 puan izleme: 15 dakikada bir",
+    reviewScheduleDaily: "Hall of Fame tarama: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "Kritik review tarama: 15 dakikada bir, sadece tam puan olmayan yorumlar",
     reviewAlertRecipients: "Bildirim alıcıları: Misafir ilişkileri müdürü, misafir ilişkileri müdür yardımcısı ve misafir ilişkileri şefi",
     reviewHealthTitle: "Yorum sistem durumu",
     reviewHealthMode: "Bağlantı modu",
@@ -1595,8 +1595,8 @@ const translations = {
     reviewSourcesTitle: "Review sources",
     reviewSourcesText: "Collect Google, Tripadvisor, Yandex and HolidayCheck reviews in one screen.",
     reviewScheduleTitle: "Scan schedule",
-    reviewScheduleDaily: "Standard scan: 00:00, 08:00, 16:00",
-    reviewScheduleLow: "1-4 rating watch: every 15 minutes",
+    reviewScheduleDaily: "Hall of Fame scan: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "Critical review scan: every 15 minutes, only non-perfect ratings",
     reviewAlertRecipients: "Alert recipients: Guest relations manager, guest relations deputy manager and guest relations chief",
     reviewHealthTitle: "Review health check",
     reviewHealthMode: "Connection mode",
@@ -2035,8 +2035,8 @@ const translations = {
     reviewSourcesTitle: "Bewertungsquellen",
     reviewSourcesText: "Google-, Tripadvisor-, Yandex- und HolidayCheck-Bewertungen in einer Ansicht sammeln.",
     reviewScheduleTitle: "Scan-Zeitplan",
-    reviewScheduleDaily: "Standard-Scan: 00:00, 08:00, 16:00",
-    reviewScheduleLow: "1-4 Sterne Überwachung: alle 15 Minuten",
+    reviewScheduleDaily: "Hall-of-Fame-Scan: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "Kritischer Review-Scan: alle 15 Minuten, nur nicht perfekte Bewertungen",
     reviewAlertRecipients: "Empfänger: Guest-Relations-Manager, stv. Guest-Relations-Manager und Guest-Relations-Chef",
     reviewHealthTitle: "Review Health Check",
     reviewHealthMode: "Verbindungsmodus",
@@ -2478,8 +2478,8 @@ const translations = {
     reviewSourcesTitle: "Источники отзывов",
     reviewSourcesText: "Собирайте отзывы из Google, Tripadvisor, Yandex и HolidayCheck на одном экране.",
     reviewScheduleTitle: "Расписание сканирования",
-    reviewScheduleDaily: "Стандартное сканирование: 00:00, 08:00, 16:00",
-    reviewScheduleLow: "Контроль отзывов 1-4 балла: каждые 15 минут",
+    reviewScheduleDaily: "Сканирование Hall of Fame: 00:00, 08:00, 16:00",
+    reviewScheduleLow: "Критические отзывы: каждые 15 минут, только неидеальные оценки",
     reviewAlertRecipients: "Получатели: менеджер guest relations, заместитель менеджера guest relations и шеф guest relations",
     reviewHealthTitle: "Проверка review-системы",
     reviewHealthMode: "Режим подключения",
@@ -3018,11 +3018,13 @@ const shiftPlannerLabels = {
     ],
   },
 };
-const shiftWeekStart = "2026-03-16";
+const defaultShiftWeekStart = "2026-03-16";
 const shiftTeamsStorageKey = "shift-planner-teams";
 const shiftAssistantsStorageKey = "shift-planner-assistants";
 const shiftLeadershipStorageKey = "shift-planner-leadership";
 const shiftOverridesStorageKey = "shift-planner-overrides";
+const shiftPlanStartStorageKey = "shift-planner-start";
+const shiftHistoryStorageKey = "shift-planner-history";
 const tasksStorageKey = "task-list-snapshot";
 const complaintsStorageKey = "complaint-list-snapshot";
 const alaCarteStorageKey = "alacarte-list-snapshot";
@@ -3043,6 +3045,10 @@ const defaultShiftLeadership = {
     { id: "chief-3", name: "Şef 3", shift: "16:00-00:00", weeklyOffDayIndex: 2 },
     { id: "chief-4", name: "Şef 4", shift: "16:00-00:00", weeklyOffDayIndex: 3 },
   ],
+  fixedC: {
+    name: "C Personeli",
+    shift: "12:00-20:00",
+  },
 };
 const defaultShiftTeamForm = {
   name: "",
@@ -3097,6 +3103,18 @@ function hasDuplicateWeeklyOffAssignments(schedule) {
   return [...counts.values()].some((count) => count > 1);
 }
 
+function addDaysToDateString(value, days) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function diffDaysBetweenDateStrings(left, right) {
+  const leftDate = new Date(`${left}T00:00:00`);
+  const rightDate = new Date(`${right}T00:00:00`);
+  return Math.round((rightDate - leftDate) / 86_400_000);
+}
+
 function createLeadershipPlanForDay(leadershipConfig, weekDayIndex) {
   const chiefs = leadershipConfig.chiefs.map((chief) => ({
     ...chief,
@@ -3124,12 +3142,15 @@ function createLeadershipPlanForDay(leadershipConfig, weekDayIndex) {
       isOff: leadershipConfig.deputy.weeklyOffDayIndex === weekDayIndex,
     },
     chiefs,
-    fixedC: "12:00-20:00",
+    fixedC: {
+      ...leadershipConfig.fixedC,
+    },
   };
 }
 
 function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, dayCount) {
   const baseDate = new Date(`${startDateString}T00:00:00`);
+  const rotationOffsetDays = Math.max(0, diffDaysBetweenDateStrings(defaultShiftWeekStart, startDateString));
   const teams = inputTeams.map((team) => ({
     ...team,
     offSchedule: normalizeOffSchedule(team.offSchedule),
@@ -3156,7 +3177,7 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
       const availableIndices = team.members
         .map((_, memberIndex) => memberIndex)
         .filter((memberIndex) => memberIndex !== offMemberIndex);
-      const rotationBlockIndex = Math.floor(dayIndex / 14);
+      const rotationBlockIndex = Math.floor((rotationOffsetDays + dayIndex) / 14);
       const preferredEveningIndex = (teamIndex + rotationBlockIndex) % team.members.length;
       const preferredAvailableIndex = availableIndices.indexOf(preferredEveningIndex);
       const eveningIndex = availableIndices.length === 0
@@ -3226,13 +3247,13 @@ function getWeekdayKeyForDate(value) {
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dayIndex] ?? "";
 }
 
-function createWeeklyShiftPlan(inputTeams, leadershipConfig) {
-  return createShiftPlanForRange(inputTeams, leadershipConfig, shiftWeekStart, 7);
+function createWeeklyShiftPlan(inputTeams, leadershipConfig, startDateString) {
+  return createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 7);
 }
 
-function createMonthlyShiftPlan(inputTeams, leadershipConfig) {
-  const monthStart = `${shiftWeekStart.slice(0, 7)}-01`;
-  const [year, month] = shiftWeekStart.split("-").map(Number);
+function createMonthlyShiftPlan(inputTeams, leadershipConfig, startDateString) {
+  const monthStart = `${startDateString.slice(0, 7)}-01`;
+  const [year, month] = startDateString.split("-").map(Number);
   const dayCount = new Date(year, month, 0).getDate();
   return createShiftPlanForRange(inputTeams, leadershipConfig, monthStart, dayCount);
 }
@@ -3314,10 +3335,10 @@ function buildShiftMatrixRows(plan, overrides) {
     }))),
     {
       id: "fixed-c-row",
-      name: "Sabit C",
-      role: "Sabit C",
+      name: plan.days[0]?.leadership.fixedC?.name ?? "",
       cells: plan.days.map((day) => {
-        const overrideCode = overrides?.["Sabit C"]?.[day.date];
+        const fixedCName = plan.days[0]?.leadership.fixedC?.name ?? "";
+        const overrideCode = overrides?.[fixedCName]?.[day.date];
         const code = overrideCode ?? "C";
         return { code, tone: shiftCodeToneMap[code] ?? "fixedC" };
       }),
@@ -3368,9 +3389,30 @@ function getStoredShiftLeadership() {
         ...chief,
         ...(Array.isArray(parsed.chiefs) ? parsed.chiefs[index] : null),
       })),
+      fixedC: {
+        ...defaultShiftLeadership.fixedC,
+        ...(parsed.fixedC ?? {}),
+      },
     };
   } catch {
     return defaultShiftLeadership;
+  }
+}
+
+function getStoredShiftPlanStart() {
+  if (typeof window === "undefined") return defaultShiftWeekStart;
+  const raw = window.localStorage.getItem(shiftPlanStartStorageKey);
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw || "") ? raw : defaultShiftWeekStart;
+}
+
+function getStoredShiftHistory() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(shiftHistoryStorageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }
 
@@ -3523,12 +3565,15 @@ function App() {
   const [shiftAssistants, setShiftAssistants] = useState(getStoredShiftAssistants);
   const [shiftLeadership, setShiftLeadership] = useState(getStoredShiftLeadership);
   const [shiftOverrides, setShiftOverrides] = useState(getStoredShiftOverrides);
+  const [shiftPlanStart, setShiftPlanStart] = useState(getStoredShiftPlanStart);
+  const [shiftHistory, setShiftHistory] = useState(getStoredShiftHistory);
   const [shiftTeamForm, setShiftTeamForm] = useState(() => ({ ...defaultShiftTeamForm, members: [...defaultShiftTeamForm.members] }));
   const [shiftAssistantForm, setShiftAssistantForm] = useState("");
   const [editingShiftTeamId, setEditingShiftTeamId] = useState("");
   const [selectedShiftDayIndex, setSelectedShiftDayIndex] = useState(0);
   const [shiftPlannerError, setShiftPlannerError] = useState("");
   const [shiftPlannerStatus, setShiftPlannerStatus] = useState("");
+  const shiftMatrixRef = useRef(null);
   const [taskListStatus, setTaskListStatus] = useState("");
   const [complaintListStatus, setComplaintListStatus] = useState("");
   const [alaCarteListStatus, setAlaCarteListStatus] = useState("");
@@ -4344,6 +4389,7 @@ function App() {
   const assistantLeaderboard = useMemo(() => {
     const map = new Map();
     assistantReviews.forEach((review) => {
+      if (Number(review.rating) !== 5) return;
       const name = attributedAssistantForReview(review).trim() || "Unknown";
       const entry = map.get(name) || { name, reviewCount: 0, ftfCount: 0 };
       entry.reviewCount += 1;
@@ -4403,10 +4449,14 @@ function App() {
     syncMode,
   ]);
 
-  const shiftPlan = useMemo(() => createWeeklyShiftPlan(shiftTeams, shiftLeadership), [shiftLeadership, shiftTeams]);
-  const monthlyShiftPlan = useMemo(() => createMonthlyShiftPlan(shiftTeams, shiftLeadership), [shiftLeadership, shiftTeams]);
+  const shiftPlan = useMemo(() => createWeeklyShiftPlan(shiftTeams, shiftLeadership, shiftPlanStart), [shiftLeadership, shiftPlanStart, shiftTeams]);
+  const monthlyShiftPlan = useMemo(() => createMonthlyShiftPlan(shiftTeams, shiftLeadership, shiftPlanStart), [shiftLeadership, shiftPlanStart, shiftTeams]);
   const shiftMatrixRows = useMemo(() => buildShiftMatrixRows(shiftPlan, shiftOverrides), [shiftOverrides, shiftPlan]);
   const selectedShiftDay = shiftPlan.days[selectedShiftDayIndex] ?? shiftPlan.days[0] ?? null;
+
+  const focusShiftMatrix = () => {
+    shiftMatrixRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const filteredAssistantMeetings = useMemo(
     () =>
@@ -4424,6 +4474,7 @@ function App() {
   const filteredAssistantReviews = useMemo(
     () =>
       [...assistantReviews]
+        .filter((item) => Number(item.rating) === 5)
         .filter((item) =>
           [item.platform, item.author, item.branch, item.owner, attributedAssistantForReview(item), item.content]
             .join(" ")
@@ -4611,14 +4662,32 @@ function App() {
     window.localStorage.setItem(shiftAssistantsStorageKey, JSON.stringify(shiftAssistants));
     window.localStorage.setItem(shiftLeadershipStorageKey, JSON.stringify(shiftLeadership));
     window.localStorage.setItem(shiftOverridesStorageKey, JSON.stringify(shiftOverrides));
+    window.localStorage.setItem(shiftPlanStartStorageKey, shiftPlanStart);
+    window.localStorage.setItem(shiftHistoryStorageKey, JSON.stringify(shiftHistory));
     setShiftPlannerStatus(shiftCopy.savedStatus);
     logAction("actionPermissionUpdated", "shift:save");
   };
 
   const applyAutoShiftPlan = () => {
     setShiftOverrides({});
+    let nextWeekStart = shiftPlanStart;
+    const today = new Date().toISOString().slice(0, 10);
+    const nextHistory = [...shiftHistory];
+    while (today > addDaysToDateString(nextWeekStart, 6)) {
+      if (!nextHistory.some((entry) => entry.weekStart === nextWeekStart)) {
+        nextHistory.push({
+          weekStart: nextWeekStart,
+          completedAt: today,
+        });
+      }
+      nextWeekStart = addDaysToDateString(nextWeekStart, 7);
+    }
+    setShiftHistory(nextHistory);
+    setShiftPlanStart(nextWeekStart);
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(shiftOverridesStorageKey);
+      window.localStorage.setItem(shiftPlanStartStorageKey, nextWeekStart);
+      window.localStorage.setItem(shiftHistoryStorageKey, JSON.stringify(nextHistory));
     }
     setShiftPlannerStatus(shiftCopy.autoShiftStatus);
     logAction("actionPermissionUpdated", "shift:auto");
@@ -4644,13 +4713,13 @@ function App() {
 
     const matrixRows = buildShiftMatrixRows(plan, shiftOverrides);
     const rows = [
-      [shiftCopy.title, period === "weekly" ? shiftCopy.exportWeek : shiftCopy.exportMonth, shiftWeekStart],
+      [shiftCopy.title, period === "weekly" ? shiftCopy.exportWeek : shiftCopy.exportMonth, shiftPlanStart],
       ["", "", ""],
       ["Adı Soyadı", ...plan.days.map((day) => `${day.date} ${shiftCopy.dayLabels[day.dayIndex]}`)],
       ...matrixRows.map((row) => [row.name, ...row.cells.map((cell) => cell.code)]),
     ];
 
-    downloadCsvFile(`shift-plan-${period}-${shiftWeekStart}.csv`, rows);
+    downloadCsvFile(`shift-plan-${period}-${shiftPlanStart}.csv`, rows);
     setShiftPlannerStatus(period === "weekly" ? shiftCopy.exportStatusWeek : shiftCopy.exportStatusMonth);
     logAction("actionModuleOpened", `shift:${period}`);
   };
@@ -4692,7 +4761,7 @@ function App() {
         localizeTaskNotes(task),
       ]),
     ];
-    downloadCsvFile(`tasks-${shiftWeekStart}.csv`, rows);
+    downloadCsvFile(`tasks-${shiftPlanStart}.csv`, rows);
     setTaskListStatus(copy.tasksExported);
     logAction("actionModuleOpened", "tasks:export");
   };
@@ -4717,7 +4786,7 @@ function App() {
         localizeSummary(item),
       ]),
     ];
-    downloadCsvFile(`complaints-${shiftWeekStart}.csv`, rows);
+    downloadCsvFile(`complaints-${shiftPlanStart}.csv`, rows);
     setComplaintListStatus(copy.complaintsExported);
     logAction("actionModuleOpened", "complaints:export");
   };
@@ -4778,7 +4847,7 @@ function App() {
         ...(index === orderExportSections.length - 1 ? [] : [["", ""]]),
       ];
     });
-    downloadCsvFile(`orders-${shiftWeekStart}.csv`, rows);
+    downloadCsvFile(`orders-${shiftPlanStart}.csv`, rows);
     setOrdersStatus(copy.ordersExported);
     logAction("actionModuleOpened", "orders:export");
   };
@@ -4896,7 +4965,7 @@ function App() {
         "",
       ]),
     ];
-    downloadCsvFile(`alacarte-${shiftWeekStart}.csv`, rows);
+    downloadCsvFile(`alacarte-${shiftPlanStart}.csv`, rows);
     setAlaCarteListStatus(copy.alaCarteExported);
     logAction("actionModuleOpened", "alacarte:export");
   };
@@ -5296,10 +5365,13 @@ function App() {
   const addAssistantReview = () => {
     if (!newReview.author.trim() || !newReview.content.trim()) return;
     const resolvedOwner = newReview.owner.trim() || currentUser?.displayName || copy.unassigned;
+    const normalizedRating = Math.max(1, Math.min(5, Number(newReview.rating) || 5));
+    const resolvedStatus = normalizedRating <= 2 ? "In Review" : normalizedRating <= 4 ? "Open" : "Resolved";
     const review = {
       id: `review-${Date.now()}`,
       ...newReview,
-      rating: Number(newReview.rating),
+      rating: normalizedRating,
+      status: resolvedStatus,
       owner: resolvedOwner,
       matchedAssistant: inferAssistantNameFromText(
         [newReview.author, newReview.content, resolvedOwner].join(" "),
@@ -5309,6 +5381,28 @@ function App() {
       createdAt: new Date().toISOString(),
     };
     setAssistantReviews((current) => [review, ...current]);
+    if (normalizedRating <= 4) {
+      const createdAt = new Date().toISOString();
+      const criticalNotifications = userDirectory
+        .filter((user) => criticalReviewOpsTitleKeys.has(user.titleKey ?? ""))
+        .map((recipient) => ({
+          id: `manual-review-${review.id}-${recipient.username}`,
+          recipientUsername: recipient.username,
+          department: recipient.scopeDepartment ?? recipient.department,
+          title: "Kritik platform yorumu",
+          message: `${review.platform} ${review.rating}/5 - ${review.author}: ${review.content}`,
+          createdAt,
+          createdBy: currentUser?.username || "local-review",
+          readAt: null,
+          meta: {
+            scheduleMode: "manual",
+            platform: review.platform,
+            rating: review.rating,
+            matchedAssistant: review.matchedAssistant,
+          },
+        }));
+      setNotifications((current) => [...criticalNotifications, ...current].slice(0, 100));
+    }
     setNewReview({
       platform: review.platform,
       rating: 5,
@@ -6602,6 +6696,20 @@ function App() {
                   ))}
                 </div>
                 <label>
+                  <span>{shiftCopy.fixedC}</span>
+                  <input
+                    aria-label={shiftCopy.fixedC}
+                    value={shiftLeadership.fixedC?.name ?? ""}
+                    onChange={(event) => {
+                      setShiftLeadership((current) => ({
+                        ...current,
+                        fixedC: { ...(current.fixedC ?? defaultShiftLeadership.fixedC), name: event.target.value },
+                      }));
+                      setShiftPlannerError("");
+                    }}
+                  />
+                </label>
+                <label>
                   <span>{shiftCopy.teamName}</span>
                   <input
                     aria-label={shiftCopy.teamName}
@@ -6861,29 +6969,29 @@ function App() {
                 </div>
 
                 <div className="shift-summary-box top-gap">
-                  <div className="control-line">
+                  <button type="button" className="control-line shift-summary-button" onClick={focusShiftMatrix}>
                     <span>{shiftCopy.teamCount}</span>
                     <strong>{shiftTeams.length}</strong>
-                  </div>
-                  <div className="control-line">
+                  </button>
+                  <button type="button" className="control-line shift-summary-button" onClick={focusShiftMatrix}>
                     <span>{shiftCopy.morningCount}</span>
                     <strong>{selectedShiftDay.stats.morningCount}</strong>
-                  </div>
-                  <div className="control-line">
+                  </button>
+                  <button type="button" className="control-line shift-summary-button" onClick={focusShiftMatrix}>
                     <span>{shiftCopy.eveningCount}</span>
                     <strong>{selectedShiftDay.stats.eveningCount}</strong>
-                  </div>
-                  <div className="control-line">
+                  </button>
+                  <button type="button" className="control-line shift-summary-button" onClick={focusShiftMatrix}>
                     <span>{shiftCopy.offCount}</span>
                     <strong>{selectedShiftDay.stats.offCount}</strong>
-                  </div>
-                  <div className="control-line shift-chief-line">
+                  </button>
+                  <button type="button" className="control-line shift-chief-line shift-summary-button" onClick={focusShiftMatrix}>
                     <span>{shiftCopy.dayLabels[selectedShiftDay.dayIndex]}</span>
                     <strong>{formatDate(selectedShiftDay.date)}</strong>
-                  </div>
+                  </button>
                 </div>
 
-                <div className="shift-matrix-wrap top-gap">
+                <div className="shift-matrix-wrap top-gap" ref={shiftMatrixRef}>
                   <table className="shift-matrix-table">
                     <thead>
                       <tr>

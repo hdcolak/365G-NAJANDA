@@ -33,6 +33,90 @@ describe("review monitoring backend", () => {
     expect(result.log.note).toBe("No review blocks found in HTML.");
   });
 
+  it("extracts visible yandex review cards when json-ld is missing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <html>
+          <body>
+            <div class="review-card">
+              <div>Георгий Свирко</div>
+              <div>5 yıldız 6 Ocak</div>
+              <div>Süper</div>
+            </div>
+          </body>
+        </html>
+      `,
+    }));
+
+    const result = await scrapeSource(
+      { id: "yandex", platform: "Yandex", url: "https://example.com/yandex" },
+      ["Deniz", "Merve"],
+    );
+
+    expect(result.importedReviews).toHaveLength(1);
+    expect(result.importedReviews[0].author).toBe("Георгий Свирко");
+    expect(result.importedReviews[0].rating).toBe(5);
+    expect(result.importedReviews[0].content).toContain("Süper");
+  });
+
+  it("extracts visible tripadvisor review cards when json-ld is missing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <html>
+          <body>
+            <div class="review-card">
+              <div>Eren G, Şub 2026 yorumunu yazdı</div>
+              <div>5/5</div>
+              <div>İlk yorum tabi ki benden :)</div>
+              <div>Bu oteli şimdiden heyecanla bekliyoruz.</div>
+            </div>
+          </body>
+        </html>
+      `,
+    }));
+
+    const result = await scrapeSource(
+      { id: "tripadvisor", platform: "Tripadvisor", url: "https://example.com/tripadvisor" },
+      ["Deniz", "Merve"],
+    );
+
+    expect(result.importedReviews).toHaveLength(1);
+    expect(result.importedReviews[0].author).toBe("Eren G");
+    expect(result.importedReviews[0].rating).toBe(5);
+    expect(result.importedReviews[0].content).toContain("İlk yorum tabi ki benden");
+  });
+
+  it("extracts visible holidaycheck review cards when json-ld is missing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <html>
+          <body>
+            <div class="review-card">
+              <div>Prof Dr Herrmann</div>
+              <div>Aus Deutschland</div>
+              <div>Alleinreisend November 2025</div>
+              <div>Modern-luxuriöses 5-Sterne-Resort an der Türkischen Riviera 6,0 / 6</div>
+              <div>Das zur Seaden Hotel-Gruppe gehörende Sea Planet Resort & Spa wurde im Frühjahr 2013 neu eröffnet.</div>
+            </div>
+          </body>
+        </html>
+      `,
+    }));
+
+    const result = await scrapeSource(
+      { id: "holidaycheck", platform: "HolidayCheck", url: "https://example.com/holidaycheck" },
+      ["Deniz", "Merve"],
+    );
+
+    expect(result.importedReviews).toHaveLength(1);
+    expect(result.importedReviews[0].author).toBe("Prof Dr Herrmann");
+    expect(result.importedReviews[0].rating).toBe(5);
+    expect(result.importedReviews[0].content).toContain("Modern-luxuriöses 5-Sterne-Resort");
+  });
+
   it("runs daily scans on Istanbul schedule slots instead of server-local clock", () => {
     const schedule = {
       enabled: true,

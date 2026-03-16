@@ -747,6 +747,87 @@ function extractJsonLdReviews(html) {
   return reviews;
 }
 
+function stripHtml(value) {
+  return String(value || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractVisibleFallbackReviews(html, platform) {
+  const text = stripHtml(html);
+  if (!text) return [];
+
+  if (platform === "Yandex") {
+    const starMatch = text.match(/([1-5])\s*(?:yildiz|yıldız|star|★)/i) ?? text.match(/([1-5])\s*(?:Ocak|Şubat|Subat|Mart|Nisan|Mayıs|Mayis|Haziran|Temmuz|Ağustos|Agustos|Eylül|Eylul|Ekim|Kasım|Kasim|Aralık|Aralik)/i);
+    const authorMatch = text.match(/([A-ZА-ЯЁ][\p{L}\-']+(?:\s+[A-ZА-ЯЁ][\p{L}\-']+){0,2})/u);
+    if (!starMatch || !authorMatch) return [];
+    const content = text
+      .replace(authorMatch[1], "")
+      .replace(/([1-5])\s*(?:yildiz|yıldız|star|★)/i, "")
+      .replace(/\b\d{1,2}\s+(Ocak|Şubat|Subat|Mart|Nisan|Mayıs|Mayis|Haziran|Temmuz|Ağustos|Agustos|Eylül|Eylul|Ekim|Kasım|Kasim|Aralık|Aralik)\b/i, "")
+      .trim();
+    if (!content) return [];
+    return [{
+      author: authorMatch[1].trim(),
+      rating: Number(starMatch[1]),
+      content,
+      date: new Date().toISOString().slice(0, 10),
+    }];
+  }
+
+  if (platform === "Google") {
+    const match = text.match(/([A-ZА-ЯЁ][\p{L}\-']+(?:\s+[A-ZА-ЯЁ][\p{L}\-']+){0,3}).{0,120}?([1-5])\/5.{0,240}?([A-ZА-ЯЁ][\p{L}\p{N}\s.,!?"'()-]{6,220})/u);
+    if (!match) return [];
+    return [{
+      author: match[1].trim(),
+      rating: Number(match[2]),
+      content: match[3].trim(),
+      date: new Date().toISOString().slice(0, 10),
+    }];
+  }
+
+  if (platform === "Tripadvisor") {
+    const authorMatch = text.match(/^([^\d,]{2,40})[, ]+\s*(?:Şub|Sub|Mar|Nis|May|Haz|Tem|Ağu|Agu|Eyl|Eki|Kas|Ara|\d{4})/iu)
+      ?? text.match(/^([A-ZА-ЯЁİŞĞÜÇÖ][\p{L}\-']+(?:\s+[A-ZА-ЯЁİŞĞÜÇÖ][\p{L}\-']+){0,2})/u);
+    const ratingMatch = text.match(/\b([1-5])\s*(?:\/\s*5|baloncuk|circle|dot)\b/i);
+    const titleMatch = text.match(/(?:\b[1-5]\b.*?)([A-ZА-ЯЁİŞĞÜÇÖ][\p{L}\p{N}\s.,!?"'():;/-]{5,120})/u);
+    if (!authorMatch || !titleMatch) return [];
+    const content = text.slice(text.indexOf(titleMatch[1]) + titleMatch[1].length).trim().slice(0, 320);
+    return [{
+      author: authorMatch[1].trim(),
+      rating: Number(ratingMatch?.[1] ?? 5),
+      title: titleMatch[1].trim(),
+      content: `${titleMatch[1].trim()} ${content}`.trim(),
+      date: new Date().toISOString().slice(0, 10),
+    }];
+  }
+
+  if (platform === "HolidayCheck") {
+    const ratingMatch = text.match(/([1-6](?:[.,]\d)?)\s*\/\s*6/i);
+    if (!ratingMatch) return [];
+    const author = text.split(/\bAus\b/i)[0]?.trim() ?? "";
+    const titleMatch = text.match(/\b(?:20\d{2})\s+(.+?)\s+([1-6](?:[.,]\d)?)\s*\/\s*6/u);
+    const title = titleMatch?.[1]?.trim() ?? "";
+    if (!author || !title) return [];
+    const numericRating = Math.max(1, Math.min(5, Math.round((Number(ratingMatch[1].replace(",", ".")) / 6) * 5)));
+    const content = text.slice(text.indexOf(ratingMatch[0]) + ratingMatch[0].length).trim().slice(0, 320);
+    return [{
+      author,
+      rating: numericRating,
+      title,
+      content: `${title} ${content}`.trim(),
+      date: new Date().toISOString().slice(0, 10),
+    }];
+  }
+
+  return [];
+}
+
 async function scrapeSource(source, assistantPool) {
   const scannedAt = new Date().toISOString();
   const fallbackLog = {
@@ -775,7 +856,7 @@ async function scrapeSource(source, assistantPool) {
     }
 
     const html = await response.text();
-    const rawReviews = extractJsonLdReviews(html).slice(0, 5);
+    const rawReviews = [...extractJsonLdReviews(html), ...extractVisibleFallbackReviews(html, source.platform)].slice(0, 5);
     if (!rawReviews.length) {
       return { importedReviews: [], log: { ...fallbackLog, note: "No review blocks found in HTML." } };
     }

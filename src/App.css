@@ -1221,6 +1221,18 @@ body {
   min-height: 100%;
 }
 
+.shift-summary-button {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.shift-summary-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
 .shift-matrix-wrap {
   overflow-x: visible;
   border: 1px solid var(--line);

@@ -956,6 +956,24 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getByText("Lina S.")).toBeInTheDocument();
   });
 
+  it("marks manual low-rating reviews as critical without live api sync", async () => {
+    render(<App />);
+
+    await signInAs("omer.misafirsefi");
+    await userEvent.click(screen.getByRole("button", { name: "FTF ve Hall of Fame" }));
+
+    await userEvent.clear(screen.getByLabelText("Puan"));
+    await userEvent.type(screen.getByLabelText("Puan"), "2");
+    await userEvent.type(screen.getByLabelText("Platform"), "Google");
+    await userEvent.type(screen.getByLabelText("Yorum sahibi"), "Murat K.");
+    await userEvent.type(screen.getByLabelText("Yorum metni"), "Deniz yardımcı oldu ama gecikme yaşandı.");
+    await userEvent.click(screen.getByRole("button", { name: "Yorumu kaydet" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Kritik Yorum Operasyonu" }));
+    expect(screen.getByText("Murat K.")).toBeInTheDocument();
+    expect(screen.getAllByText(/2 \/ 5|2\/5/).length).toBeGreaterThan(0);
+  });
+
   it("starts hall of fame scan automatically when the tracker tab opens", async () => {
     render(<App />);
 
