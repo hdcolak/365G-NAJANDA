@@ -974,6 +974,7 @@ const translations = {
     alaCarteExported: "A'la Carte listeleri indirildi.",
     complaintTracking: "Şikayet Takibi",
     searchComplaint: "Şikayet ara",
+    resetFilters: "Filtreleri sıfırla",
     allStatuses: "Tüm durumlar",
     allSeverities: "Tüm seviyeler",
     allDepartments: "Tüm departmanlar",
@@ -992,6 +993,8 @@ const translations = {
     summaryPlaceholder: "Şikayetin kısa özetini ve beklenen aksiyonu yazın.",
     complaintCategories: "Şikayet kategorileri",
     complaintStatusDistribution: "Şikayet durum dağılımı",
+    noComplaintsFound: "Seçili filtrelerle şikayet bulunamadı.",
+    updateComplaintStatus: "Durumu güncelle",
     totalComplaints: "Toplam şikayet",
     openRatio: "Açık oranı",
     resolutionRatio: "Çözüm oranı",
@@ -1153,6 +1156,16 @@ const translations = {
     reviewScheduleDaily: "Standart tarama: 00:00, 08:00, 16:00",
     reviewScheduleLow: "1-4 puan izleme: 15 dakikada bir",
     reviewAlertRecipients: "Bildirim alıcıları: Misafir ilişkileri müdürü, misafir ilişkileri müdür yardımcısı ve misafir ilişkileri şefi",
+    reviewHealthTitle: "Yorum sistem durumu",
+    reviewHealthMode: "Bağlantı modu",
+    reviewHealthLastScan: "Son tarama",
+    reviewHealthLastSuccess: "Son başarılı kaynak",
+    reviewHealthLastError: "Son hata",
+    reviewHealthImported: "Toplam içe alınan yorum",
+    reviewHealthApi: "Canlı API",
+    reviewHealthLocal: "Yerel mod",
+    reviewHealthNoSuccess: "Henüz başarılı tarama yok",
+    reviewHealthNoError: "Aktif hata yok",
     reviewSourceUrl: "Kaynak URL",
     reviewSourceSave: "Kaynakları kaydet",
     reviewSourceSaved: "Yorum kaynakları kaydedildi.",
@@ -1410,6 +1423,7 @@ const translations = {
     alaCarteExported: "Ala carte lists downloaded.",
     complaintTracking: "Complaint Tracking",
     searchComplaint: "Search complaint",
+    resetFilters: "Reset filters",
     allStatuses: "All statuses",
     allSeverities: "All severities",
     allDepartments: "All departments",
@@ -1428,6 +1442,8 @@ const translations = {
     summaryPlaceholder: "Write a short complaint summary and the expected action.",
     complaintCategories: "Complaint categories",
     complaintStatusDistribution: "Complaint status distribution",
+    noComplaintsFound: "No complaints match the selected filters.",
+    updateComplaintStatus: "Update status",
     totalComplaints: "Total complaints",
     openRatio: "Open ratio",
     resolutionRatio: "Resolution ratio",
@@ -1582,6 +1598,16 @@ const translations = {
     reviewScheduleDaily: "Standard scan: 00:00, 08:00, 16:00",
     reviewScheduleLow: "1-4 rating watch: every 15 minutes",
     reviewAlertRecipients: "Alert recipients: Guest relations manager, guest relations deputy manager and guest relations chief",
+    reviewHealthTitle: "Review health check",
+    reviewHealthMode: "Connection mode",
+    reviewHealthLastScan: "Last scan",
+    reviewHealthLastSuccess: "Last successful source",
+    reviewHealthLastError: "Last error",
+    reviewHealthImported: "Total imported reviews",
+    reviewHealthApi: "Live API",
+    reviewHealthLocal: "Local mode",
+    reviewHealthNoSuccess: "No successful scan yet",
+    reviewHealthNoError: "No active error",
     reviewSourceUrl: "Source URL",
     reviewSourceSave: "Save sources",
     reviewSourceSaved: "Review sources saved.",
@@ -1837,6 +1863,7 @@ const translations = {
     alaCarteExported: "Ala-Carte-Listen wurden heruntergeladen.",
     complaintTracking: "Beschwerdeverfolgung",
     searchComplaint: "Beschwerde suchen",
+    resetFilters: "Filter zurücksetzen",
     allStatuses: "Alle Status",
     allSeverities: "Alle Stufen",
     allDepartments: "Alle Abteilungen",
@@ -1855,6 +1882,8 @@ const translations = {
     summaryPlaceholder: "Geben Sie eine kurze Beschwerde-Zusammenfassung und die erwartete Aktion ein.",
     complaintCategories: "Beschwerdekategorien",
     complaintStatusDistribution: "Verteilung der Beschwerdestati",
+    noComplaintsFound: "Keine Beschwerden passen zu den gewählten Filtern.",
+    updateComplaintStatus: "Status aktualisieren",
     totalComplaints: "Beschwerden gesamt",
     openRatio: "Offen-Quote",
     resolutionRatio: "Lösungsquote",
@@ -2009,6 +2038,16 @@ const translations = {
     reviewScheduleDaily: "Standard-Scan: 00:00, 08:00, 16:00",
     reviewScheduleLow: "1-4 Sterne Überwachung: alle 15 Minuten",
     reviewAlertRecipients: "Empfänger: Guest-Relations-Manager, stv. Guest-Relations-Manager und Guest-Relations-Chef",
+    reviewHealthTitle: "Review Health Check",
+    reviewHealthMode: "Verbindungsmodus",
+    reviewHealthLastScan: "Letzter Scan",
+    reviewHealthLastSuccess: "Letzte erfolgreiche Quelle",
+    reviewHealthLastError: "Letzter Fehler",
+    reviewHealthImported: "Importierte Bewertungen gesamt",
+    reviewHealthApi: "Live-API",
+    reviewHealthLocal: "Lokaler Modus",
+    reviewHealthNoSuccess: "Noch kein erfolgreicher Scan",
+    reviewHealthNoError: "Kein aktiver Fehler",
     reviewSourceUrl: "Quell-URL",
     reviewSourceSave: "Quellen speichern",
     reviewSourceSaved: "Bewertungsquellen gespeichert.",
@@ -2267,6 +2306,7 @@ const translations = {
     alaCarteExported: "Списки Ala Carte выгружены.",
     complaintTracking: "Отслеживание жалоб",
     searchComplaint: "Поиск жалобы",
+    resetFilters: "Сбросить фильтры",
     allStatuses: "Все статусы",
     allSeverities: "Все уровни",
     allDepartments: "Все отделы",
@@ -2285,6 +2325,8 @@ const translations = {
     summaryPlaceholder: "Кратко опишите жалобу и ожидаемое действие.",
     complaintCategories: "Категории жалоб",
     complaintStatusDistribution: "Распределение статусов жалоб",
+    noComplaintsFound: "По выбранным фильтрам жалоб не найдено.",
+    updateComplaintStatus: "Обновить статус",
     totalComplaints: "Всего жалоб",
     openRatio: "Доля открытых",
     resolutionRatio: "Доля решенных",
@@ -2439,6 +2481,16 @@ const translations = {
     reviewScheduleDaily: "Стандартное сканирование: 00:00, 08:00, 16:00",
     reviewScheduleLow: "Контроль отзывов 1-4 балла: каждые 15 минут",
     reviewAlertRecipients: "Получатели: менеджер guest relations, заместитель менеджера guest relations и шеф guest relations",
+    reviewHealthTitle: "Проверка review-системы",
+    reviewHealthMode: "Режим подключения",
+    reviewHealthLastScan: "Последнее сканирование",
+    reviewHealthLastSuccess: "Последний успешный источник",
+    reviewHealthLastError: "Последняя ошибка",
+    reviewHealthImported: "Всего импортировано отзывов",
+    reviewHealthApi: "Live API",
+    reviewHealthLocal: "Локальный режим",
+    reviewHealthNoSuccess: "Успешных сканирований пока не было",
+    reviewHealthNoError: "Активных ошибок нет",
     reviewSourceUrl: "URL источника",
     reviewSourceSave: "Сохранить источники",
     reviewSourceSaved: "Источники отзывов сохранены.",
@@ -2685,6 +2737,9 @@ const shiftPlannerLabels = {
     supportTitle: "Sabit C ve destek",
     teamSetupTitle: "Ekip tanımı",
     teamListTitle: "Kaydedilen ekipler",
+    assistantListTitle: "Asistan listesi",
+    addAssistant: "Asistan ekle",
+    autoShift: "Oto shift yap",
     addTeam: "Ekibi ekle",
     editTeam: "Ekibi düzenle",
     doneEditing: "Düzenlemeyi bitir",
@@ -2693,12 +2748,15 @@ const shiftPlannerLabels = {
     exportWeek: "Haftalık çıktı al",
     exportMonth: "Aylık çıktı al",
     savedStatus: "Ekip planı kaydedildi.",
+    autoShiftStatus: "Otomatik shift planı uygulandı.",
     exportStatusWeek: "Haftalık çıktı indirildi.",
     exportStatusMonth: "Aylık çıktı indirildi.",
     teamName: "Ekip adı",
+    teamColor: "Ekip rengi",
     memberOne: "Asistan 1",
     memberTwo: "Asistan 2",
     memberThree: "Asistan 3",
+    assistantName: "Asistan adı",
     leadershipSetupTitle: "Yönetim tanımı",
     fixedOffDay: "Haftalık izin takvimi",
     offPlannerTitle: "Haftalık izin planı",
@@ -2713,6 +2771,8 @@ const shiftPlannerLabels = {
     teamCount: "Tanımlı ekip",
     emptyState: "Plan üretmek için en az 1 ekip ekleyin.",
     teamValidation: "Ekip adı, 3 asistan ve haftalık izin planı zorunludur.",
+    assistantValidation: "Asistan adı zorunludur.",
+    teamMemberValidation: "Ekipte aynı asistan tekrar edemez.",
     duplicateOffValidation: "Aynı asistan haftada yalnızca 1 kez izinli olabilir.",
     morning: "Sabah",
     evening: "Akşam",
@@ -2750,6 +2810,9 @@ const shiftPlannerLabels = {
     supportTitle: "Fixed C and support",
     teamSetupTitle: "Team setup",
     teamListTitle: "Saved teams",
+    assistantListTitle: "Assistant list",
+    addAssistant: "Add assistant",
+    autoShift: "Run auto shift",
     addTeam: "Add team",
     editTeam: "Edit team",
     doneEditing: "Done editing",
@@ -2758,12 +2821,15 @@ const shiftPlannerLabels = {
     exportWeek: "Export weekly",
     exportMonth: "Export monthly",
     savedStatus: "Shift teams saved.",
+    autoShiftStatus: "Automatic shift plan applied.",
     exportStatusWeek: "Weekly export downloaded.",
     exportStatusMonth: "Monthly export downloaded.",
     teamName: "Team name",
+    teamColor: "Team color",
     memberOne: "Assistant 1",
     memberTwo: "Assistant 2",
     memberThree: "Assistant 3",
+    assistantName: "Assistant name",
     leadershipSetupTitle: "Leadership setup",
     fixedOffDay: "Weekly leave calendar",
     offPlannerTitle: "Weekly leave plan",
@@ -2778,6 +2844,8 @@ const shiftPlannerLabels = {
     teamCount: "Teams defined",
     emptyState: "Add at least one team to generate the plan.",
     teamValidation: "Team name, 3 assistants and a weekly leave plan are required.",
+    assistantValidation: "Assistant name is required.",
+    teamMemberValidation: "The same assistant cannot be selected twice in one team.",
     duplicateOffValidation: "The same assistant can be off only once per week.",
     morning: "Morning",
     evening: "Evening",
@@ -2815,6 +2883,9 @@ const shiftPlannerLabels = {
     supportTitle: "Feste C-Kraft und Reserve",
     teamSetupTitle: "Teamdefinition",
     teamListTitle: "Gespeicherte Teams",
+    assistantListTitle: "Assistentenliste",
+    addAssistant: "Assistent hinzufügen",
+    autoShift: "Auto-Schicht erstellen",
     addTeam: "Team hinzufügen",
     editTeam: "Team bearbeiten",
     doneEditing: "Bearbeitung beenden",
@@ -2823,12 +2894,15 @@ const shiftPlannerLabels = {
     exportWeek: "Wöchentlich exportieren",
     exportMonth: "Monatlich exportieren",
     savedStatus: "Schichtteams wurden gespeichert.",
+    autoShiftStatus: "Automatischer Schichtplan wurde angewendet.",
     exportStatusWeek: "Wöchentlicher Export wurde heruntergeladen.",
     exportStatusMonth: "Monatlicher Export wurde heruntergeladen.",
     teamName: "Teamname",
+    teamColor: "Teamfarbe",
     memberOne: "Assistent 1",
     memberTwo: "Assistent 2",
     memberThree: "Assistent 3",
+    assistantName: "Assistentenname",
     leadershipSetupTitle: "Management-Team",
     fixedOffDay: "Wöchentlicher Freiplan",
     offPlannerTitle: "Wöchentlicher Freiplan",
@@ -2843,6 +2917,8 @@ const shiftPlannerLabels = {
     teamCount: "Definierte Teams",
     emptyState: "Mindestens 1 Team hinzufügen, um den Plan zu erzeugen.",
     teamValidation: "Teamname, 3 Assistenten und ein Wochen-Freiplan sind erforderlich.",
+    assistantValidation: "Assistentenname ist erforderlich.",
+    teamMemberValidation: "Dieselbe Assistenz darf im Team nicht doppelt vorkommen.",
     duplicateOffValidation: "Dieselbe Assistenz darf pro Woche nur einmal frei sein.",
     morning: "Morgen",
     evening: "Abend",
@@ -2880,6 +2956,9 @@ const shiftPlannerLabels = {
     supportTitle: "Фиксированный C и резерв",
     teamSetupTitle: "Настройка команд",
     teamListTitle: "Сохраненные команды",
+    assistantListTitle: "Список ассистентов",
+    addAssistant: "Добавить ассистента",
+    autoShift: "Авто-смена",
     addTeam: "Добавить команду",
     editTeam: "Редактировать команду",
     doneEditing: "Завершить редактирование",
@@ -2888,12 +2967,15 @@ const shiftPlannerLabels = {
     exportWeek: "Выгрузить неделю",
     exportMonth: "Выгрузить месяц",
     savedStatus: "Команды смен сохранены.",
+    autoShiftStatus: "Автоматический график применен.",
     exportStatusWeek: "Недельный файл выгружен.",
     exportStatusMonth: "Месячный файл выгружен.",
     teamName: "Название команды",
+    teamColor: "Цвет команды",
     memberOne: "Ассистент 1",
     memberTwo: "Ассистент 2",
     memberThree: "Ассистент 3",
+    assistantName: "Имя ассистента",
     leadershipSetupTitle: "Настройка руководства",
     fixedOffDay: "Недельный календарь выходных",
     offPlannerTitle: "Недельный план выходных",
@@ -2908,6 +2990,8 @@ const shiftPlannerLabels = {
     teamCount: "Команд задано",
     emptyState: "Добавьте хотя бы 1 команду, чтобы построить график.",
     teamValidation: "Нужны название команды, 3 ассистента и недельный план выходных.",
+    assistantValidation: "Нужно имя ассистента.",
+    teamMemberValidation: "Нельзя выбрать одного и того же ассистента дважды в одной команде.",
     duplicateOffValidation: "Один и тот же ассистент может быть выходным только 1 раз в неделю.",
     morning: "Утро",
     evening: "Вечер",
@@ -2936,7 +3020,9 @@ const shiftPlannerLabels = {
 };
 const shiftWeekStart = "2026-03-16";
 const shiftTeamsStorageKey = "shift-planner-teams";
+const shiftAssistantsStorageKey = "shift-planner-assistants";
 const shiftLeadershipStorageKey = "shift-planner-leadership";
+const shiftOverridesStorageKey = "shift-planner-overrides";
 const tasksStorageKey = "task-list-snapshot";
 const complaintsStorageKey = "complaint-list-snapshot";
 const alaCarteStorageKey = "alacarte-list-snapshot";
@@ -2960,8 +3046,17 @@ const defaultShiftLeadership = {
 };
 const defaultShiftTeamForm = {
   name: "",
+  color: "#dbe8c8",
   offSchedule: ["", "", "", "", "", "", ""],
   members: ["", "", ""],
+};
+const shiftCodeToneMap = {
+  A: "morning",
+  B: "evening",
+  C: "fixedC",
+  OFF: "off",
+  F: "off",
+  "": "empty",
 };
 
 function localizeSeedValue(language, group, value) {
@@ -3003,6 +3098,22 @@ function hasDuplicateWeeklyOffAssignments(schedule) {
 }
 
 function createLeadershipPlanForDay(leadershipConfig, weekDayIndex) {
+  const chiefs = leadershipConfig.chiefs.map((chief) => ({
+    ...chief,
+    isOff: chief.weeklyOffDayIndex === weekDayIndex,
+  }));
+  const morningChiefOffIndex = chiefs.findIndex((chief) => chief.shift.startsWith("08:00") && chief.isOff);
+
+  if (morningChiefOffIndex !== -1) {
+    const backupChiefIndex = chiefs.findIndex((chief) => chief.shift.startsWith("16:00") && !chief.isOff);
+    if (backupChiefIndex !== -1) {
+      chiefs[backupChiefIndex] = {
+        ...chiefs[backupChiefIndex],
+        reassignedToMorning: true,
+      };
+    }
+  }
+
   return {
     manager: {
       ...leadershipConfig.manager,
@@ -3012,10 +3123,7 @@ function createLeadershipPlanForDay(leadershipConfig, weekDayIndex) {
       ...leadershipConfig.deputy,
       isOff: leadershipConfig.deputy.weeklyOffDayIndex === weekDayIndex,
     },
-    chiefs: leadershipConfig.chiefs.map((chief) => ({
-      ...chief,
-      isOff: chief.weeklyOffDayIndex === weekDayIndex,
-    })),
+    chiefs,
     fixedC: "12:00-20:00",
   };
 }
@@ -3037,7 +3145,12 @@ function createShiftPlanForRange(inputTeams, leadershipConfig, startDateString, 
       const availableIndices = team.members
         .map((_, memberIndex) => memberIndex)
         .filter((memberIndex) => memberIndex !== offMemberIndex);
-      const eveningIndex = availableIndices[(teamIndex + dayIndex) % availableIndices.length];
+      const rotationBlockIndex = Math.floor(dayIndex / 14);
+      const preferredEveningIndex = (teamIndex + rotationBlockIndex) % team.members.length;
+      const preferredAvailableIndex = availableIndices.indexOf(preferredEveningIndex);
+      const eveningIndex = preferredAvailableIndex !== -1
+        ? availableIndices[preferredAvailableIndex]
+        : availableIndices[(teamIndex + rotationBlockIndex) % availableIndices.length];
       const morningMembers = team.members.filter(
         (_, memberIndex) => memberIndex !== offMemberIndex && memberIndex !== eveningIndex,
       );
@@ -3111,7 +3224,7 @@ function createMonthlyShiftPlan(inputTeams, leadershipConfig) {
   return createShiftPlanForRange(inputTeams, leadershipConfig, monthStart, dayCount);
 }
 
-function buildShiftMatrixRows(plan) {
+function buildShiftMatrixRows(plan, overrides) {
   if (!plan.days.length) return [];
 
   const rows = [];
@@ -3123,6 +3236,7 @@ function buildShiftMatrixRows(plan) {
       id: `team-header-${team.id}`,
       name: team.name,
       type: "group",
+      color: team.color || "#dbe8c8",
       cells: plan.days.map(() => ({ code: "", tone: "group" })),
     });
 
@@ -3133,6 +3247,10 @@ function buildShiftMatrixRows(plan) {
         type: "member",
         teamId: team.id,
         cells: plan.days.map((day) => {
+          const overrideCode = overrides?.[member]?.[day.date];
+          if (overrideCode !== undefined) {
+            return { code: overrideCode, tone: shiftCodeToneMap[overrideCode] ?? "empty" };
+          }
           const planEntry = day.teamPlans.find((item) => item.teamId === team.id);
           if (!planEntry) return { code: "", tone: "empty" };
           if (planEntry.offMember === member) return { code: "OFF", tone: "off" };
@@ -3149,13 +3267,21 @@ function buildShiftMatrixRows(plan) {
       id: "manager-row",
       name: plan.days[0]?.leadership.manager.name ?? "",
       role: "Müdür",
-      cells: plan.days.map((day) => ({ code: day.leadership.manager.isOff ? "F" : "A", tone: day.leadership.manager.isOff ? "off" : "morning" })),
+      cells: plan.days.map((day) => {
+        const overrideCode = overrides?.[plan.days[0]?.leadership.manager.name]?.[day.date];
+        const code = overrideCode ?? (day.leadership.manager.isOff ? "F" : "A");
+        return { code, tone: shiftCodeToneMap[code] ?? "empty" };
+      }),
     },
     {
       id: "deputy-row",
       name: plan.days[0]?.leadership.deputy.name ?? "",
       role: "Müdür Yardımcısı",
-      cells: plan.days.map((day) => ({ code: day.leadership.deputy.isOff ? "F" : "B", tone: day.leadership.deputy.isOff ? "off" : "evening" })),
+      cells: plan.days.map((day) => {
+        const overrideCode = overrides?.[plan.days[0]?.leadership.deputy.name]?.[day.date];
+        const code = overrideCode ?? (day.leadership.deputy.isOff ? "F" : "B");
+        return { code, tone: shiftCodeToneMap[code] ?? "empty" };
+      }),
     },
     ...((plan.days[0]?.leadership.chiefs ?? []).map((chief, chiefIndex) => ({
       id: `chief-row-${chief.id}`,
@@ -3163,7 +3289,12 @@ function buildShiftMatrixRows(plan) {
       role: `Şef ${chiefIndex + 1}`,
       cells: plan.days.map((day) => {
         const currentChief = day.leadership.chiefs.find((item) => item.id === chief.id) ?? chief;
+        const overrideCode = overrides?.[chief.name]?.[day.date];
+        if (overrideCode !== undefined) {
+          return { code: overrideCode, tone: shiftCodeToneMap[overrideCode] ?? "empty" };
+        }
         if (currentChief.isOff) return { code: "F", tone: "off" };
+        if (currentChief.reassignedToMorning) return { code: "A", tone: "morning" };
         return { code: currentChief.shift.startsWith("08:00") ? "A" : "B", tone: currentChief.shift.startsWith("08:00") ? "morning" : "evening" };
       }),
     }))),
@@ -3171,7 +3302,11 @@ function buildShiftMatrixRows(plan) {
       id: "fixed-c-row",
       name: "Sabit C",
       role: "Sabit C",
-      cells: plan.days.map(() => ({ code: "C", tone: "fixedC" })),
+      cells: plan.days.map((day) => {
+        const overrideCode = overrides?.["Sabit C"]?.[day.date];
+        const code = overrideCode ?? "C";
+        return { code, tone: shiftCodeToneMap[code] ?? "fixedC" };
+      }),
     },
   ];
 
@@ -3184,6 +3319,17 @@ function getStoredShiftTeams() {
     const raw = window.localStorage.getItem(shiftTeamsStorageKey);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getStoredShiftAssistants() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(shiftAssistantsStorageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map((item) => String(item || "").trim()).filter(Boolean) : [];
   } catch {
     return [];
   }
@@ -3211,6 +3357,17 @@ function getStoredShiftLeadership() {
     };
   } catch {
     return defaultShiftLeadership;
+  }
+}
+
+function getStoredShiftOverrides() {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(shiftOverridesStorageKey);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
   }
 }
 
@@ -3349,8 +3506,11 @@ function App() {
   const [meetingSearch, setMeetingSearch] = useState("");
   const [reviewSearch, setReviewSearch] = useState("");
   const [shiftTeams, setShiftTeams] = useState(getStoredShiftTeams);
+  const [shiftAssistants, setShiftAssistants] = useState(getStoredShiftAssistants);
   const [shiftLeadership, setShiftLeadership] = useState(getStoredShiftLeadership);
+  const [shiftOverrides, setShiftOverrides] = useState(getStoredShiftOverrides);
   const [shiftTeamForm, setShiftTeamForm] = useState(() => ({ ...defaultShiftTeamForm, members: [...defaultShiftTeamForm.members] }));
+  const [shiftAssistantForm, setShiftAssistantForm] = useState("");
   const [editingShiftTeamId, setEditingShiftTeamId] = useState("");
   const [selectedShiftDayIndex, setSelectedShiftDayIndex] = useState(0);
   const [shiftPlannerError, setShiftPlannerError] = useState("");
@@ -3843,6 +4003,7 @@ function App() {
     return mapping[key] ?? key;
   };
   const formatDate = (value) => (value ? new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(new Date(value)) : "");
+  const formatDateTime = (value) => (value ? new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "");
   const roleLabel = (role) => copy.roles[role] ?? role;
   const titleLabel = (titleKey) => titleCopy[titleKey] ?? titleKey;
   const userLabel = (user) => user.titleKey ? titleLabel(user.titleKey) : roleLabel(user.role);
@@ -3862,7 +4023,7 @@ function App() {
         new Set(
           [
             ...userDirectory.filter((user) => user.role === "assistant").map((user) => user.displayName),
-            ...shiftTeams.flatMap((team) => team.members),
+            ...shiftAssistants,
             ...assistantMeetings.map((item) => item.assignedAssistant || item.owner || ""),
             ...assistantReviews.map((item) => item.matchedAssistant || item.owner || ""),
           ]
@@ -3870,7 +4031,7 @@ function App() {
             .filter(Boolean),
         ),
       ),
-    [assistantMeetings, assistantReviews, shiftTeams, userDirectory],
+    [assistantMeetings, assistantReviews, shiftAssistants, userDirectory],
   );
   const attributedAssistantForReview = useCallback((review) =>
     review.matchedAssistant
@@ -3944,6 +4105,7 @@ function App() {
     shiftTeamForm.name.trim()
     && shiftTeamForm.members.every((member) => member.trim()),
   );
+  const isShiftAssistantReady = Boolean(shiftAssistantForm.trim());
   const isMeetingReady = Boolean(
     newMeeting.customerName.trim()
     && newMeeting.topic.trim()
@@ -4084,6 +4246,15 @@ function App() {
     logAction("actionTab", copy.complaintsTab);
   };
 
+  const resetComplaintFilters = () => {
+    setComplaintSearch("");
+    setComplaintStatusFilter("all");
+    setComplaintDepartmentFilter("all");
+    setComplaintCategoryFilter("all");
+    setComplaintChannelFilter("all");
+    setComplaintSeverityFilter("all");
+  };
+
   const sortedAgendaItems = useMemo(
     () => [...agendaItems].sort((left, right) => new Date(left.date) - new Date(right.date)),
     [agendaItems],
@@ -4194,9 +4365,34 @@ function App() {
     };
   }, [assistantLeaderboard, assistantMeetings, assistantReviews, ftfMeetings]);
 
+  const reviewHealthSummary = useMemo(() => {
+    const latestLog = reviewScanLogs[0] ?? null;
+    const lastSuccessLog = reviewScanLogs.find((log) => log.status === "success" && Number(log.foundCount ?? 0) > 0) ?? null;
+    const lastErrorLog = reviewScanLogs.find((log) => log.status !== "success") ?? null;
+
+    return {
+      modeLabel: syncMode === "api" && sessionToken ? copy.reviewHealthApi : copy.reviewHealthLocal,
+      lastScanAt: latestLog?.scannedAt ?? reviewSchedule.lastLowRatingScanAt ?? reviewSchedule.lastDailyScanAt ?? null,
+      lastSuccessLabel: lastSuccessLog ? `${lastSuccessLog.platform} • ${lastSuccessLog.foundCount ?? 0}` : copy.reviewHealthNoSuccess,
+      lastErrorLabel: lastErrorLog ? `${lastErrorLog.platform} • ${lastErrorLog.note || lastErrorLog.status}` : copy.reviewHealthNoError,
+      importedCount: assistantReviews.filter((review) => review.imported).length,
+    };
+  }, [
+    assistantReviews,
+    copy.reviewHealthApi,
+    copy.reviewHealthLocal,
+    copy.reviewHealthNoError,
+    copy.reviewHealthNoSuccess,
+    reviewScanLogs,
+    reviewSchedule.lastDailyScanAt,
+    reviewSchedule.lastLowRatingScanAt,
+    sessionToken,
+    syncMode,
+  ]);
+
   const shiftPlan = useMemo(() => createWeeklyShiftPlan(shiftTeams, shiftLeadership), [shiftLeadership, shiftTeams]);
   const monthlyShiftPlan = useMemo(() => createMonthlyShiftPlan(shiftTeams, shiftLeadership), [shiftLeadership, shiftTeams]);
-  const shiftMatrixRows = useMemo(() => buildShiftMatrixRows(shiftPlan), [shiftPlan]);
+  const shiftMatrixRows = useMemo(() => buildShiftMatrixRows(shiftPlan, shiftOverrides), [shiftOverrides, shiftPlan]);
   const selectedShiftDay = shiftPlan.days[selectedShiftDayIndex] ?? shiftPlan.days[0] ?? null;
 
   const filteredAssistantMeetings = useMemo(
@@ -4286,9 +4482,15 @@ function App() {
       return;
     }
 
+    if (new Set(trimmedMembers).size !== trimmedMembers.length) {
+      setShiftPlannerError(shiftCopy.teamMemberValidation);
+      return;
+    }
+
     const team = {
       id: `shift-team-${Date.now()}`,
       name: shiftTeamForm.name.trim(),
+      color: shiftTeamForm.color || "#dbe8c8",
       offSchedule: normalizeOffSchedule(shiftTeamForm.offSchedule),
       members: trimmedMembers,
     };
@@ -4297,6 +4499,29 @@ function App() {
     setShiftTeamForm({ ...defaultShiftTeamForm, members: [...defaultShiftTeamForm.members] });
     setShiftPlannerError("");
     logAction("actionTaskAdded", `shift:${team.name}`);
+  };
+
+  const addShiftAssistant = () => {
+    const name = shiftAssistantForm.trim();
+    if (!name) {
+      setShiftPlannerError(shiftCopy.assistantValidation);
+      return;
+    }
+    setShiftAssistants((current) => (current.includes(name) ? current : [...current, name]));
+    setShiftAssistantForm("");
+    setShiftPlannerError("");
+    logAction("actionTaskAdded", `shift-assistant:${name}`);
+  };
+
+  const removeShiftAssistant = (name) => {
+    setShiftAssistants((current) => current.filter((item) => item !== name));
+    setShiftTeams((current) => current.filter((team) => !team.members.includes(name)));
+    setShiftOverrides((current) => {
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+    logAction("actionTaskToggled", `shift-assistant:${name}`);
   };
 
   const removeShiftTeam = (id) => {
@@ -4332,9 +4557,20 @@ function App() {
 
   const saveShiftTeams = () => {
     window.localStorage.setItem(shiftTeamsStorageKey, JSON.stringify(shiftTeams));
+    window.localStorage.setItem(shiftAssistantsStorageKey, JSON.stringify(shiftAssistants));
     window.localStorage.setItem(shiftLeadershipStorageKey, JSON.stringify(shiftLeadership));
+    window.localStorage.setItem(shiftOverridesStorageKey, JSON.stringify(shiftOverrides));
     setShiftPlannerStatus(shiftCopy.savedStatus);
     logAction("actionPermissionUpdated", "shift:save");
+  };
+
+  const applyAutoShiftPlan = () => {
+    setShiftOverrides({});
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(shiftOverridesStorageKey);
+    }
+    setShiftPlannerStatus(shiftCopy.autoShiftStatus);
+    logAction("actionPermissionUpdated", "shift:auto");
   };
 
   const downloadCsvFile = (filename, rows) => {
@@ -4355,17 +4591,33 @@ function App() {
   const exportShiftPlan = (plan, period) => {
     if (!plan.days.length) return;
 
-    const matrixRows = buildShiftMatrixRows(plan);
+    const matrixRows = buildShiftMatrixRows(plan, shiftOverrides);
     const rows = [
       [shiftCopy.title, period === "weekly" ? shiftCopy.exportWeek : shiftCopy.exportMonth, shiftWeekStart],
       ["", "", ""],
       ["Adı Soyadı", ...plan.days.map((day) => `${day.date} ${shiftCopy.dayLabels[day.dayIndex]}`)],
-      ...matrixRows.map((row) => [row.role ? `${row.name} (${row.role})` : row.name, ...row.cells.map((cell) => cell.code)]),
+      ...matrixRows.map((row) => [row.name, ...row.cells.map((cell) => cell.code)]),
     ];
 
     downloadCsvFile(`shift-plan-${period}-${shiftWeekStart}.csv`, rows);
     setShiftPlannerStatus(period === "weekly" ? shiftCopy.exportStatusWeek : shiftCopy.exportStatusMonth);
     logAction("actionModuleOpened", `shift:${period}`);
+  };
+
+  const updateShiftOverride = (name, date, code) => {
+    setShiftOverrides((current) => {
+      const next = { ...current };
+      const personEntries = { ...(next[name] ?? {}) };
+      if (!code) {
+        delete personEntries[date];
+      } else {
+        personEntries[date] = code;
+      }
+      if (Object.keys(personEntries).length) next[name] = personEntries;
+      else delete next[name];
+      return next;
+    });
+    logAction("actionPermissionUpdated", `shift-override:${name}:${date}:${code || "default"}`);
   };
 
   const saveTaskList = () => {
@@ -5083,6 +5335,16 @@ function App() {
     if (task) logAction("actionTaskToggled", localizeTaskTitle(task));
   };
 
+  const updateComplaintStatus = (id) => {
+    const item = complaints.find((complaint) => complaint.id === id);
+    if (!item) return;
+    const nextStatus = item.status === "Open" ? "In Review" : item.status === "In Review" ? "Resolved" : "Open";
+    setComplaints((current) =>
+      current.map((complaint) => (complaint.id === id ? { ...complaint, status: nextStatus } : complaint)),
+    );
+    logAction("actionComplaintAdded", `complaint:${id}:${nextStatus}`);
+  };
+
   const handleSignIn = async () => {
     setAuthError("");
     try {
@@ -5388,37 +5650,18 @@ function App() {
             </p>
           </div>
           <Panel className="control-panel">
-            <div className="control-panel-grid">
-              <div className="control-metric">
-                <span className="eyebrow">{copy.overallProgress}</span>
+            <div className="control-list compact-control-list">
+              <div className="control-line">
+                <span>{copy.overallProgress}</span>
                 <strong>{overallProgress}%</strong>
               </div>
-              <div className="control-metric">
-                <span className="eyebrow">{copy.openComplaints}</span>
+              <div className="control-line">
+                <span>{copy.openComplaints}</span>
                 <strong>{complaintStats.open}</strong>
               </div>
-              <div className="control-metric">
-                <span className="eyebrow">{copy.totalTasks}</span>
-                <strong>{taskStats.total}</strong>
-              </div>
-              <div className="control-metric">
-                <span className="eyebrow">{copy.criticalComplaints}</span>
+              <div className="control-line">
+                <span>{copy.criticalComplaints}</span>
                 <strong>{complaintStats.critical}</strong>
-              </div>
-            </div>
-            <div className="control-divider" />
-            <div className="control-list">
-              <div className="control-line">
-                <span>{copy.voyageModules}</span>
-                <strong>{activeRole?.modules?.length ?? 0}</strong>
-              </div>
-              <div className="control-line">
-                <span>{copy.sections}</span>
-                <strong>{tabs.length}</strong>
-              </div>
-              <div className="control-line">
-                <span>{copy.roles[currentUser.role]}</span>
-                <strong>{activeRole.showAudit ? copy.fullAccess : copy.limitedAccess}</strong>
               </div>
             </div>
           </Panel>
@@ -5505,19 +5748,6 @@ function App() {
                     </div>
                   </article>
                 ))}
-              </div>
-            </Panel>
-
-            <Panel>
-              <div className="panel-heading">
-                <h2>
-                  <CalendarDays size={18} /> {copy.planningSummary}
-                </h2>
-              </div>
-              <div className="stack">
-                <div className="stat-block"><p className="eyebrow">{copy.dailyTasks}</p><p className="hero-value">{taskStats.daily}</p></div>
-                <div className="stat-block"><p className="eyebrow">{copy.completedTasks}</p><p className="hero-value">{taskStats.done}</p></div>
-                <div className="stat-block"><p className="eyebrow">{copy.openComplaints}</p><p className="hero-value">{complaintStats.open}</p></div>
               </div>
             </Panel>
 
@@ -5656,61 +5886,91 @@ function App() {
                   <button type="button" className="button secondary slim-button" onClick={exportComplaintList}>
                     {copy.exportList}
                   </button>
-                  <label className="searchbox">
-                    <Search size={16} />
-                    <input value={complaintSearch} onChange={(event) => setComplaintSearch(event.target.value)} placeholder={copy.searchComplaint} />
-                  </label>
-                  <select value={complaintStatusFilter} onChange={(event) => setComplaintStatusFilter(event.target.value)}>
-                    <option value="all">{copy.allStatuses}</option>
-                    <option value="Open">{localizeStatus("Open")}</option>
-                    <option value="In Review">{localizeStatus("In Review")}</option>
-                    <option value="Resolved">{localizeStatus("Resolved")}</option>
-                  </select>
-                  <select aria-label={copy.complaintDepartmentFilter} value={complaintDepartmentFilter} onChange={(event) => {
-                    const nextDepartment = event.target.value;
-                    setComplaintDepartmentFilter(nextDepartment);
-                    if (nextDepartment === "all") {
-                      setComplaintCategoryFilter("all");
-                      return;
-                    }
-                    const nextCategories = complaintCategoriesForDepartment(nextDepartment);
-                    if (!nextCategories.includes(complaintCategoryFilter)) {
-                      setComplaintCategoryFilter("all");
-                    }
-                  }}>
-                    <option value="all">{copy.allDepartments}</option>
-                    {complaintDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}
-                  </select>
-                  <select aria-label={copy.category} value={complaintCategoryFilter} onChange={(event) => setComplaintCategoryFilter(event.target.value)}>
-                    <option value="all">{copy.allComplaintCategories}</option>
-                    {visibleComplaintCategoryOptions.map((key) => <option key={key} value={key}>{localizeCategory(key)}</option>)}
-                  </select>
-                  <select aria-label={copy.complaintChannelFilter} value={complaintChannelFilter} onChange={(event) => setComplaintChannelFilter(event.target.value)}>
-                    <option value="all">{copy.allChannels}</option>
-                    {Object.keys(copy.channels).map((key) => <option key={key} value={key}>{localizeChannel(key)}</option>)}
-                  </select>
-                  <select aria-label={copy.complaintSeverityFilter} value={complaintSeverityFilter} onChange={(event) => setComplaintSeverityFilter(event.target.value)}>
-                    <option value="all">{copy.allSeverities}</option>
-                    <option value="Low">{localizePriority("Low")}</option>
-                    <option value="Medium">{localizePriority("Medium")}</option>
-                    <option value="High">{localizePriority("High")}</option>
-                    <option value="Critical">{localizePriority("Critical")}</option>
-                  </select>
+                  <button type="button" className="button secondary slim-button" onClick={resetComplaintFilters}>
+                    {copy.resetFilters}
+                  </button>
                 </div>
               </div>
+              <div className="complaint-summary-grid top-gap">
+                <div className="stat-block">
+                  <p className="eyebrow">{copy.totalComplaints}</p>
+                  <p className="hero-value">{complaintStats.total}</p>
+                </div>
+                <div className="stat-block">
+                  <p className="eyebrow">{copy.openComplaints}</p>
+                  <p className="hero-value">{complaintStats.open}</p>
+                </div>
+                <div className="stat-block">
+                  <p className="eyebrow">{copy.resolvedComplaints}</p>
+                  <p className="hero-value">{complaintStats.resolved}</p>
+                </div>
+                <div className="stat-block">
+                  <p className="eyebrow">{copy.criticalComplaints}</p>
+                  <p className="hero-value">{complaintStats.critical}</p>
+                </div>
+              </div>
+              <div className="toolbar top-gap complaint-toolbar">
+                <label className="searchbox">
+                  <Search size={16} />
+                  <input value={complaintSearch} onChange={(event) => setComplaintSearch(event.target.value)} placeholder={copy.searchComplaint} />
+                </label>
+                <select aria-label={copy.status} value={complaintStatusFilter} onChange={(event) => setComplaintStatusFilter(event.target.value)}>
+                  <option value="all">{copy.allStatuses}</option>
+                  <option value="Open">{localizeStatus("Open")}</option>
+                  <option value="In Review">{localizeStatus("In Review")}</option>
+                  <option value="Resolved">{localizeStatus("Resolved")}</option>
+                </select>
+                <select aria-label={copy.complaintDepartmentFilter} value={complaintDepartmentFilter} onChange={(event) => setComplaintDepartmentFilter(event.target.value)}>
+                  <option value="all">{copy.allDepartments}</option>
+                  {complaintDepartmentOptions.map((key) => <option key={key} value={key}>{localizeDepartment(key)}</option>)}
+                </select>
+                <select aria-label={copy.complaintSeverityFilter} value={complaintSeverityFilter} onChange={(event) => setComplaintSeverityFilter(event.target.value)}>
+                  <option value="all">{copy.allSeverities}</option>
+                  <option value="Low">{localizePriority("Low")}</option>
+                  <option value="Medium">{localizePriority("Medium")}</option>
+                  <option value="High">{localizePriority("High")}</option>
+                  <option value="Critical">{localizePriority("Critical")}</option>
+                </select>
+              </div>
+              <div className="toolbar complaint-toolbar-compact">
+                  <label className="searchbox">
+                    <span className="eyebrow">{copy.category}</span>
+                    <select aria-label={copy.category} value={complaintCategoryFilter} onChange={(event) => setComplaintCategoryFilter(event.target.value)}>
+                      <option value="all">{copy.allComplaintCategories}</option>
+                      {visibleComplaintCategoryOptions.map((key) => <option key={key} value={key}>{localizeCategory(key)}</option>)}
+                    </select>
+                  </label>
+                  <label className="searchbox">
+                    <span className="eyebrow">{copy.complaintChannelFilter}</span>
+                    <select aria-label={copy.complaintChannelFilter} value={complaintChannelFilter} onChange={(event) => setComplaintChannelFilter(event.target.value)}>
+                      <option value="all">{copy.allChannels}</option>
+                      {Object.keys(copy.channels).map((key) => <option key={key} value={key}>{localizeChannel(key)}</option>)}
+                    </select>
+                  </label>
+                </div>
               {complaintListStatus && <p className="muted top-gap">{complaintListStatus}</p>}
               <div className="stack">
+                {filteredComplaints.length === 0 && (
+                  <article className="item-card complaint-empty-card">
+                    <p className="muted">{copy.noComplaintsFound}</p>
+                  </article>
+                )}
                 {filteredComplaints.map((item) => (
-                  <article key={item.id} className="item-card">
-                    <div className="stack compact">
-                      <div className="badge-row">
-                        <strong>{item.guest}</strong>
-                        <span className={statusTone[item.status]}>{localizeStatus(item.status)}</span>
-                        <span className={priorityTone[item.severity]}>{localizePriority(item.severity)}</span>
-                        <span className="tag tag-outline">{localizeCategory(item.category)}</span>
+                  <article key={item.id} className="item-card complaint-item-card">
+                    <div className="row space-between top">
+                      <div className="stack compact">
+                        <div className="badge-row">
+                          <strong>{item.guest}</strong>
+                          <span className={statusTone[item.status]}>{localizeStatus(item.status)}</span>
+                          <span className={priorityTone[item.severity]}>{localizePriority(item.severity)}</span>
+                          <span className="tag tag-outline">{localizeCategory(item.category)}</span>
+                        </div>
+                        <p className="muted">{localizeDepartment(item.department)} | {localizeChannel(item.channel)} | {formatDate(item.date)}</p>
+                        <p>{localizeSummary(item)}</p>
                       </div>
-                      <p className="muted">{localizeDepartment(item.department)} | {localizeChannel(item.channel)} | {formatDate(item.date)}</p>
-                      <p>{localizeSummary(item)}</p>
+                      <button type="button" className="button secondary slim-button" onClick={() => updateComplaintStatus(item.id)}>
+                        {copy.updateComplaintStatus}
+                      </button>
                     </div>
                   </article>
                 ))}
@@ -6185,6 +6445,39 @@ function App() {
               <p className="muted module-intro">{shiftCopy.intro}</p>
               <div className="form-grid">
                 <div className="panel-heading top-gap">
+                  <h2>{shiftCopy.assistantListTitle}</h2>
+                </div>
+                <div className="two-col">
+                  <label>
+                    <span>{shiftCopy.assistantName}</span>
+                    <input
+                      aria-label={shiftCopy.assistantName}
+                      value={shiftAssistantForm}
+                      onChange={(event) => {
+                        setShiftAssistantForm(event.target.value);
+                        setShiftPlannerError("");
+                      }}
+                    />
+                  </label>
+                  <button type="button" className={`button ${isShiftAssistantReady ? "button-ready" : ""}`.trim()} onClick={addShiftAssistant}>
+                    {shiftCopy.addAssistant}
+                  </button>
+                </div>
+                {!!shiftAssistants.length && (
+                  <div className="shift-saved-list">
+                    {shiftAssistants.map((assistant) => (
+                      <article key={assistant} className="item-card shift-saved-card">
+                        <div className="row space-between top">
+                          <strong>{assistant}</strong>
+                          <button type="button" className="button secondary slim-button" onClick={() => removeShiftAssistant(assistant)}>
+                            {shiftCopy.removeTeam}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+                <div className="panel-heading top-gap">
                   <h2>{shiftCopy.leadershipSetupTitle}</h2>
                 </div>
                 <div className="two-col">
@@ -6268,10 +6561,22 @@ function App() {
                     }}
                   />
                 </label>
+                <label>
+                  <span>{shiftCopy.teamColor}</span>
+                  <input
+                    type="color"
+                    aria-label={shiftCopy.teamColor}
+                    value={shiftTeamForm.color}
+                    onChange={(event) => {
+                      setShiftTeamForm((current) => ({ ...current, color: event.target.value }));
+                      setShiftPlannerError("");
+                    }}
+                  />
+                </label>
                 <div className="two-col">
                   <label>
                     <span>{shiftCopy.memberOne}</span>
-                    <input
+                    <select
                       aria-label={shiftCopy.memberOne}
                       value={shiftTeamForm.members[0]}
                       onChange={(event) => {
@@ -6280,11 +6585,14 @@ function App() {
                         setShiftTeamForm((current) => ({ ...current, members: nextMembers }));
                         setShiftPlannerError("");
                       }}
-                    />
+                    >
+                      <option value="">-</option>
+                      {shiftAssistants.map((assistant) => <option key={`member-1-${assistant}`} value={assistant}>{assistant}</option>)}
+                    </select>
                   </label>
                   <label>
                     <span>{shiftCopy.memberTwo}</span>
-                    <input
+                    <select
                       aria-label={shiftCopy.memberTwo}
                       value={shiftTeamForm.members[1]}
                       onChange={(event) => {
@@ -6293,13 +6601,16 @@ function App() {
                         setShiftTeamForm((current) => ({ ...current, members: nextMembers }));
                         setShiftPlannerError("");
                       }}
-                    />
+                    >
+                      <option value="">-</option>
+                      {shiftAssistants.map((assistant) => <option key={`member-2-${assistant}`} value={assistant}>{assistant}</option>)}
+                    </select>
                   </label>
                 </div>
                 <div className="two-col">
                   <label>
                     <span>{shiftCopy.memberThree}</span>
-                    <input
+                    <select
                       aria-label={shiftCopy.memberThree}
                       value={shiftTeamForm.members[2]}
                       onChange={(event) => {
@@ -6308,7 +6619,10 @@ function App() {
                         setShiftTeamForm((current) => ({ ...current, members: nextMembers }));
                         setShiftPlannerError("");
                       }}
-                    />
+                    >
+                      <option value="">-</option>
+                      {shiftAssistants.map((assistant) => <option key={`member-3-${assistant}`} value={assistant}>{assistant}</option>)}
+                    </select>
                   </label>
                 </div>
                 <div className="panel-heading top-gap">
@@ -6349,6 +6663,9 @@ function App() {
                 <h2>{shiftCopy.teamListTitle}</h2>
               </div>
               <div className="shift-action-row">
+                <button type="button" className="button secondary" onClick={applyAutoShiftPlan}>
+                  {shiftCopy.autoShift}
+                </button>
                 <button type="button" className="button secondary" onClick={saveShiftTeams}>
                   {shiftCopy.saveTeams}
                 </button>
@@ -6376,7 +6693,10 @@ function App() {
                   <article key={team.id} className="item-card shift-saved-card">
                     <div className="row space-between top">
                       <div className="stack compact">
-                        <strong>{team.name}</strong>
+                        <strong className="shift-team-title">
+                          <span className="shift-team-color-dot" style={{ backgroundColor: team.color || "#dbe8c8" }} />
+                          {team.name}
+                        </strong>
                         <p className="muted">{shiftCopy.offScheduleSummary}: {formatShiftOffSummary(team, shiftCopy)}</p>
                       </div>
                       <div className="shift-card-actions">
@@ -6474,16 +6794,41 @@ function App() {
                     </thead>
                     <tbody>
                       {shiftMatrixRows.map((row) => (
-                        <tr key={row.id} className={row.type === "group" ? "shift-matrix-group-row" : ""}>
+                        <tr
+                          key={row.id}
+                          className={row.type === "group" ? "shift-matrix-group-row" : ""}
+                          style={row.type === "group" ? { "--shift-team-color": row.color || "#dbe8c8" } : undefined}
+                        >
                           <td className="shift-matrix-name-cell">{row.name}</td>
                           {row.cells.map((cell, index) => (
-                            <td
-                              key={`${row.id}-${shiftPlan.days[index]?.date ?? index}`}
-                              className={`shift-matrix-cell shift-matrix-cell-${cell.tone} ${selectedShiftDayIndex === index ? "shift-matrix-day-active" : ""}`.trim()}
-                              onClick={() => setSelectedShiftDayIndex(index)}
-                            >
-                              {cell.code}
-                            </td>
+                            row.type === "group" ? (
+                              <td
+                                key={`${row.id}-${shiftPlan.days[index]?.date ?? index}`}
+                                className={`shift-matrix-cell shift-matrix-cell-${cell.tone} ${selectedShiftDayIndex === index ? "shift-matrix-day-active" : ""}`.trim()}
+                              >
+                                {cell.code}
+                              </td>
+                            ) : (
+                              <td
+                                key={`${row.id}-${shiftPlan.days[index]?.date ?? index}`}
+                                className={`shift-matrix-cell shift-matrix-cell-${cell.tone} ${selectedShiftDayIndex === index ? "shift-matrix-day-active" : ""}`.trim()}
+                                onClick={() => setSelectedShiftDayIndex(index)}
+                              >
+                                <select
+                                  className="shift-matrix-select"
+                                  aria-label={`${row.name} ${shiftPlan.days[index]?.date ?? index}`}
+                                  value={cell.code}
+                                  onChange={(event) => updateShiftOverride(row.name, shiftPlan.days[index].date, event.target.value)}
+                                >
+                                  <option value="">-</option>
+                                  <option value="A">A</option>
+                                  <option value="B">B</option>
+                                  <option value="C">C</option>
+                                  <option value="OFF">OFF</option>
+                                  <option value="F">F</option>
+                                </select>
+                              </td>
+                            )
                           ))}
                         </tr>
                       ))}
@@ -6514,6 +6859,33 @@ function App() {
               <p className="muted module-intro">{copy.reviewSourcesText}</p>
               {reviewSourceStatus && <p className="muted top-gap">{reviewSourceStatus}</p>}
               {reviewSyncStatus && <p className="muted top-gap">{reviewSyncStatus}</p>}
+              <div className="review-health-grid top-gap">
+                <article className="spec-card review-health-card">
+                  <span className="eyebrow">{copy.reviewHealthTitle}</span>
+                  <div className="review-health-list top-gap">
+                    <div className="control-line">
+                      <span>{copy.reviewHealthMode}</span>
+                      <strong>{reviewHealthSummary.modeLabel}</strong>
+                    </div>
+                    <div className="control-line">
+                      <span>{copy.reviewHealthLastScan}</span>
+                      <strong>{reviewHealthSummary.lastScanAt ? formatDateTime(reviewHealthSummary.lastScanAt) : copy.notSet}</strong>
+                    </div>
+                    <div className="control-line">
+                      <span>{copy.reviewHealthLastSuccess}</span>
+                      <strong>{reviewHealthSummary.lastSuccessLabel}</strong>
+                    </div>
+                    <div className="control-line">
+                      <span>{copy.reviewHealthLastError}</span>
+                      <strong>{reviewHealthSummary.lastErrorLabel}</strong>
+                    </div>
+                    <div className="control-line">
+                      <span>{copy.reviewHealthImported}</span>
+                      <strong>{reviewHealthSummary.importedCount}</strong>
+                    </div>
+                  </div>
+                </article>
+              </div>
               <article className="spec-card top-gap">
                 <strong>{copy.reviewScheduleTitle}</strong>
                 <p className="muted">{copy.reviewScheduleDaily}</p>
@@ -6583,60 +6955,28 @@ function App() {
             </Panel>
 
             <Panel className="span-2">
-              <div className="panel-heading">
+              <div className="panel-heading split">
                 <h2>
                   <ClipboardList size={18} /> {copy.ftfStatsTitle}
                 </h2>
+                <span className="tag tag-outline">{copy.leaderAssistant}: {assistantTrackerStats.topAssistant}</span>
               </div>
-              <div className="metrics-grid compact">
-                <Panel>
+              <div className="complaint-summary-grid">
+                <div className="stat-block">
                   <p className="eyebrow">{copy.todayMeetingCount}</p>
                   <p className="hero-value">{assistantTrackerStats.todayMeetings}</p>
-                </Panel>
-                <Panel>
+                </div>
+                <div className="stat-block">
                   <p className="eyebrow">{copy.followUpWaiting}</p>
                   <p className="hero-value">{assistantTrackerStats.waitingFollowUp}</p>
-                </Panel>
-                <Panel>
+                </div>
+                <div className="stat-block">
                   <p className="eyebrow">{copy.reviewOpenCount}</p>
                   <p className="hero-value">{assistantTrackerStats.openReviews}</p>
-                </Panel>
-                <Panel>
+                </div>
+                <div className="stat-block">
                   <p className="eyebrow">{copy.lowReviewCount}</p>
                   <p className="hero-value">{assistantTrackerStats.lowReviews}</p>
-                </Panel>
-              </div>
-              <div className="manager-grid">
-                <div className="stack">
-                  <article className="item-card">
-                    <p className="eyebrow">{copy.ftfCountLabel}</p>
-                    <p className="hero-value">{assistantTrackerStats.ftfCount}</p>
-                  </article>
-                  <article className="item-card">
-                    <p className="eyebrow">{copy.leaderAssistant}</p>
-                    <p className="hero-value">{assistantTrackerStats.topAssistant}</p>
-                  </article>
-                </div>
-                <div className="stack">
-                  <div className="panel-heading">
-                    <h2>{copy.ftfLeaderboardTitle}</h2>
-                  </div>
-                  {assistantLeaderboard.slice(0, 5).map((entry, index) => (
-                    <article key={entry.name} className="item-card">
-                      <div className="row space-between">
-                        <strong>#{index + 1} {entry.name}</strong>
-                        <span className="tag tag-green">{entry.reviewCount + entry.ftfCount}</span>
-                      </div>
-                      <div className="control-line">
-                        <span>{copy.reviewOpenCount}</span>
-                        <strong>{entry.reviewCount}</strong>
-                      </div>
-                      <div className="control-line">
-                        <span>{copy.ftfCountLabel}</span>
-                        <strong>{entry.ftfCount}</strong>
-                      </div>
-                    </article>
-                  ))}
                 </div>
               </div>
             </Panel>

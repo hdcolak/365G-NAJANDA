@@ -556,6 +556,20 @@ body {
   border: 1px solid var(--line);
 }
 
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.review-health-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.04), rgba(59, 130, 246, 0.08));
+}
+
+.review-health-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
 .spec-header {
   display: flex;
   align-items: center;
@@ -1089,6 +1103,53 @@ body {
   min-height: 100%;
 }
 
+.shift-team-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.shift-team-color-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 32, 51, 0.18);
+  flex: 0 0 auto;
+}
+
+.complaint-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.complaint-toolbar {
+  align-items: stretch;
+}
+
+.complaint-toolbar-compact {
+  margin-top: 0.75rem;
+}
+
+.complaint-toolbar-compact .searchbox {
+  min-width: 12rem;
+}
+
+.complaint-empty-card {
+  display: grid;
+  place-items: center;
+  min-height: 7rem;
+}
+
+.complaint-item-card .row {
+  align-items: flex-start;
+}
+
+.compact-control-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
 .shift-off-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1175,17 +1236,29 @@ body {
 }
 
 .shift-matrix-group-row .shift-matrix-name-cell {
-  background: #dbe8c8;
+  background: var(--shift-team-color, #dbe8c8);
   font-weight: 700;
 }
 
 .shift-matrix-group-row .shift-matrix-cell {
-  background: #dbe8c8;
+  background: var(--shift-team-color, #dbe8c8);
 }
 
 .shift-matrix-cell {
   min-width: 5.8rem;
   font-weight: 700;
+  padding: 0;
+}
+
+.shift-matrix-select {
+  width: 100%;
+  min-width: 5.8rem;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-weight: 700;
+  padding: 0.5rem 0.35rem;
+  color: inherit;
 }
 
 .shift-matrix-cell-morning {
@@ -1256,6 +1329,7 @@ body {
 
   .control-panel-grid,
   .tabbar,
+  .complaint-summary-grid,
   .shift-summary-grid,
   .shift-day-grid,
   .shift-team-grid,
@@ -1307,6 +1381,7 @@ body {
   .hero-summary,
   .two-col,
   .module-grid,
+  .complaint-summary-grid,
   .permission-options,
   .alacarte-grid,
   .status-board,

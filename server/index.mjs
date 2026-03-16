@@ -12,9 +12,11 @@ const dataFile = join(dataDir, "state.json");
 const distDir = join(process.cwd(), "dist");
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl }) : null;
+const isTestEnv = process.env.NODE_ENV === "test";
 const defaultPassword = process.env.DEFAULT_LOGIN_PASSWORD || "1234";
 const mainAccessCode = process.env.MAIN_ACCESS_CODE || "1234";
 const adminResetKey = process.env.ADMIN_RESET_KEY || "1234-admin-reset";
+const reviewScheduleTimeZone = "Europe/Istanbul";
 const staticContentTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -269,6 +271,7 @@ const initialState = {
     dailyTimes: ["00:00", "08:00", "16:00"],
     lowRatingIntervalMinutes: 15,
     lowRatingThreshold: 4,
+    timeZone: reviewScheduleTimeZone,
     lastDailyScanAt: null,
     lastLowRatingScanAt: null,
   },
@@ -638,20 +641,54 @@ function buildLowRatingNotifications(state, reviews, scannedAt, scheduleMode) {
   };
 }
 
+function getScheduleParts(date, timeZone = reviewScheduleTimeZone) {
+  const safeDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date(0);
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timeZone || reviewScheduleTimeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = Object.fromEntries(
+    formatter.formatToParts(safeDate).map((part) => [part.type, part.value]),
+  );
+  return parts;
+}
+
+function getScheduledClock(date, timeZone = reviewScheduleTimeZone) {
+  const parts = getScheduleParts(date, timeZone);
+  return `${parts.hour}:${parts.minute}`;
+}
+
+function getScheduledMinute(date, timeZone = reviewScheduleTimeZone) {
+  return getScheduleParts(date, timeZone).minute;
+}
+
+function getScheduledDateKey(date, timeZone = reviewScheduleTimeZone) {
+  const parts = getScheduleParts(date, timeZone);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function getScheduledDateTimeKey(date, timeZone = reviewScheduleTimeZone) {
+  return `${getScheduledDateKey(date, timeZone)} ${getScheduledClock(date, timeZone)}`;
+}
+
 function shouldRunDailyReviewScan(schedule, now = new Date()) {
   if (!schedule?.enabled) return false;
-  const slot = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const slot = getScheduledClock(now, schedule?.timeZone);
   if (!(schedule.dailyTimes ?? []).includes(slot)) return false;
-  const slotStamp = `${now.toISOString().slice(0, 10)}T${slot}:00.000Z`;
-  return (schedule.lastDailyScanAt ?? "") < slotStamp;
+  return slot !== getScheduledClock(new Date(schedule.lastDailyScanAt), schedule?.timeZone)
+    || getScheduledDateKey(now, schedule?.timeZone) !== getScheduledDateKey(new Date(schedule.lastDailyScanAt), schedule?.timeZone);
 }
 
 function shouldRunLowRatingReviewScan(schedule, now = new Date()) {
   if (!schedule?.enabled) return false;
-  const minute = now.getMinutes();
+  const minute = Number(getScheduledMinute(now, schedule?.timeZone));
   if (minute % (schedule.lowRatingIntervalMinutes ?? 15) !== 0) return false;
-  const slotStamp = `${now.toISOString().slice(0, 10)}T${String(now.getHours()).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`;
-  return (schedule.lastLowRatingScanAt ?? "") < slotStamp;
+  return getScheduledDateTimeKey(now, schedule?.timeZone) !== getScheduledDateTimeKey(new Date(schedule.lastLowRatingScanAt), schedule?.timeZone);
 }
 
 function normalizeScrapedReview(platform, branch, rawReview, assistantPool, sourceId) {
@@ -710,12 +747,6 @@ function extractJsonLdReviews(html) {
   return reviews;
 }
 
-function extractMetaFallbackReviews(html) {
-  const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? "";
-  if (!description) return [];
-  return [{ author: "Public listing", content: description, rating: 4, date: new Date().toISOString().slice(0, 10) }];
-}
-
 async function scrapeSource(source, assistantPool) {
   const scannedAt = new Date().toISOString();
   const fallbackLog = {
@@ -744,7 +775,7 @@ async function scrapeSource(source, assistantPool) {
     }
 
     const html = await response.text();
-    const rawReviews = [...extractJsonLdReviews(html), ...extractMetaFallbackReviews(html)].slice(0, 5);
+    const rawReviews = extractJsonLdReviews(html).slice(0, 5);
     if (!rawReviews.length) {
       return { importedReviews: [], log: { ...fallbackLog, note: "No review blocks found in HTML." } };
     }
@@ -1352,10 +1383,23 @@ async function tickReviewMonitoring(now = new Date()) {
   }
 }
 
-setInterval(() => {
-  void tickReviewMonitoring(new Date());
-}, 60_000);
+if (!isTestEnv) {
+  setInterval(() => {
+    void tickReviewMonitoring(new Date());
+  }, 60_000);
 
-server.listen(port, host, () => {
-  console.log(`voyage-kundu-api listening on ${host}:${port}`);
-});
+  server.listen(port, host, () => {
+    console.log(`voyage-kundu-api listening on ${host}:${port}`);
+  });
+}
+
+export {
+  extractJsonLdReviews,
+  getScheduledClock,
+  getScheduledDateKey,
+  getScheduledDateTimeKey,
+  normalizeScrapedReview,
+  scrapeSource,
+  shouldRunDailyReviewScan,
+  shouldRunLowRatingReviewScan,
+};

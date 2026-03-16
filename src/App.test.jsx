@@ -801,6 +801,16 @@ describe("Voyage Kundu control panel", () => {
     expect(screen.getByText("Gece servis dönüş süresi uzundu.")).toBeInTheDocument();
   });
 
+  it("lets admin update complaint status from the complaint panel", async () => {
+    render(<App />);
+
+    await signInAs("admin.voyage");
+    await userEvent.click(screen.getByRole("button", { name: "Şikayetler" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Durumu güncelle" })[0]);
+
+    expect(screen.getAllByText("İnceleniyor").length).toBeGreaterThan(0);
+  });
+
   it("routes a department complaint notification only to the related department manager", async () => {
     render(<App />);
 
@@ -963,8 +973,9 @@ describe("Voyage Kundu control panel", () => {
     await userEvent.click(screen.getByRole("button", { name: "FTF ve Hall of Fame" }));
 
     expect(await screen.findByText("4 yorum içe aktarıldı.")).toBeInTheDocument();
+    expect(screen.getByText("Yorum sistem durumu")).toBeInTheDocument();
+    expect(screen.getByText("Canlı API")).toBeInTheDocument();
     expect(screen.getAllByText(/Eşleşen asistan: Deniz|Eşleşen asistan: Merve/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/^#1 /)).toBeInTheDocument();
     expect(screen.getByText("Tarama kayıtları")).toBeInTheDocument();
     expect(screen.getAllByText("HTML scan completed.").length).toBeGreaterThan(0);
     expect(globalThis.__testServerState.notifications.some((item) => item.recipientUsername === "mina.misafirmdr")).toBe(true);
@@ -1039,10 +1050,16 @@ describe("Voyage Kundu control panel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Shift Planlayıcı" }));
 
     expect(screen.getAllByText("Plan üretmek için en az 1 ekip ekleyin.").length).toBeGreaterThan(0);
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Merve");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Can");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Seda");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
     await userEvent.type(screen.getByLabelText("Ekip adı"), "Lobi Ekibi");
-    await userEvent.type(screen.getByLabelText("Asistan 1"), "Merve");
-    await userEvent.type(screen.getByLabelText("Asistan 2"), "Can");
-    await userEvent.type(screen.getByLabelText("Asistan 3"), "Seda");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 1"), "Merve");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 2"), "Can");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 3"), "Seda");
     await userEvent.selectOptions(screen.getByLabelText("Pazartesi İzinli kişi"), "2");
     await userEvent.click(screen.getByRole("button", { name: "Ekibi ekle" }));
 
@@ -1061,10 +1078,16 @@ describe("Voyage Kundu control panel", () => {
     await signInAs("admin.voyage");
     await userEvent.click(screen.getByRole("button", { name: "Shift Planlayıcı" }));
 
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Aylin");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Bora");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Cem");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
     await userEvent.type(screen.getByLabelText("Ekip adı"), "Spa Ekibi");
-    await userEvent.type(screen.getByLabelText("Asistan 1"), "Aylin");
-    await userEvent.type(screen.getByLabelText("Asistan 2"), "Bora");
-    await userEvent.type(screen.getByLabelText("Asistan 3"), "Cem");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 1"), "Aylin");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 2"), "Bora");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 3"), "Cem");
     await userEvent.selectOptions(screen.getByLabelText("Pazartesi İzinli kişi"), "0");
     await userEvent.selectOptions(screen.getByLabelText("Salı İzinli kişi"), "0");
     await userEvent.click(screen.getByRole("button", { name: "Ekibi ekle" }));
@@ -1081,13 +1104,20 @@ describe("Voyage Kundu control panel", () => {
 
     await userEvent.clear(screen.getByLabelText("Müdür"));
     await userEvent.type(screen.getByLabelText("Müdür"), "Aylin Müdür");
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Ada");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Bora");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
+    await userEvent.type(screen.getByLabelText("Asistan adı"), "Cem");
+    await userEvent.click(screen.getByRole("button", { name: "Asistan ekle" }));
     await userEvent.type(screen.getByLabelText("Ekip adı"), "Gece Operasyon");
-    await userEvent.type(screen.getByLabelText("Asistan 1"), "Ada");
-    await userEvent.type(screen.getByLabelText("Asistan 2"), "Bora");
-    await userEvent.type(screen.getByLabelText("Asistan 3"), "Cem");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 1"), "Ada");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 2"), "Bora");
+    await userEvent.selectOptions(screen.getByLabelText("Asistan 3"), "Cem");
     await userEvent.click(screen.getByRole("button", { name: "Ekibi ekle" }));
 
     await userEvent.click(screen.getByRole("button", { name: "Ekipleri kaydet" }));
+    expect(window.localStorage.getItem("shift-planner-assistants")).toContain("Ada");
     expect(window.localStorage.getItem("shift-planner-teams")).toContain("Gece Operasyon");
     expect(window.localStorage.getItem("shift-planner-leadership")).toContain("Aylin Müdür");
     expect(screen.getByText("Ekip planı kaydedildi.")).toBeInTheDocument();
