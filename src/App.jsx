@@ -6749,7 +6749,7 @@ function App() {
                 <div className="panel-heading split">
                   <h2>{shiftCopy.matrixTitle}</h2>
                   <span className="tag tag-outline">
-                    {shiftCopy.offTeams}: {selectedShiftDay.offTeams.length ? selectedShiftDay.offTeams.join(", ") : "-"}
+                    {shiftCopy.offTeams}: {selectedShiftDay.offTeams.length}
                   </span>
                 </div>
 
@@ -6796,22 +6796,30 @@ function App() {
                       {shiftMatrixRows.map((row) => (
                         <tr
                           key={row.id}
-                          className={row.type === "group" ? "shift-matrix-group-row" : ""}
+                          className={
+                            row.type === "group"
+                              ? "shift-matrix-group-row"
+                              : row.type === "member"
+                                ? "shift-matrix-member-row"
+                                : ""
+                          }
                           style={row.type === "group" ? { "--shift-team-color": row.color || "#dbe8c8" } : undefined}
                         >
-                          <td className="shift-matrix-name-cell">{row.name}</td>
+                          <td className="shift-matrix-name-cell" title={row.type === "group" ? row.name : undefined}>
+                            {row.type === "group" ? <span className="shift-matrix-group-bar" aria-hidden="true" /> : row.name}
+                          </td>
                           {row.cells.map((cell, index) => (
                             row.type === "group" ? (
                               <td
                                 key={`${row.id}-${shiftPlan.days[index]?.date ?? index}`}
-                                className={`shift-matrix-cell shift-matrix-cell-${cell.tone} ${selectedShiftDayIndex === index ? "shift-matrix-day-active" : ""}`.trim()}
+                                className={`shift-matrix-cell shift-matrix-cell-${cell.tone}`.trim()}
                               >
                                 {cell.code}
                               </td>
                             ) : (
                               <td
                                 key={`${row.id}-${shiftPlan.days[index]?.date ?? index}`}
-                                className={`shift-matrix-cell shift-matrix-cell-${cell.tone} ${selectedShiftDayIndex === index ? "shift-matrix-day-active" : ""}`.trim()}
+                                className={`shift-matrix-cell shift-matrix-cell-${cell.tone}`.trim()}
                                 onClick={() => setSelectedShiftDayIndex(index)}
                               >
                                 <select
