@@ -556,6 +556,7 @@ body {
   border: 1px solid var(--line);
 }
 
+.review-health-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
