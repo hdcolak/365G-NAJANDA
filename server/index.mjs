@@ -697,7 +697,7 @@ function normalizeScrapedReview(platform, branch, rawReview, assistantPool, sour
   const ratingCandidate = rawReview.rating ?? rawReview.reviewRating?.ratingValue ?? rawReview.reviewRating ?? 5;
   const rating = Math.max(1, Math.min(5, Number(ratingCandidate) || 5));
   const date = String(rawReview.date ?? rawReview.datePublished ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
-  const matchedAssistant = inferAssistantName([author, content].join(" "), assistantPool, assistantPool[0] ?? "Unassigned");
+  const matchedAssistant = inferAssistantName([author, content].join(" "), assistantPool, "");
 
   return {
     id: randomUUID(),
@@ -710,7 +710,7 @@ function normalizeScrapedReview(platform, branch, rawReview, assistantPool, sour
     date,
     content,
     status: rating <= 2 ? "In Review" : rating >= 4 ? "Resolved" : "Open",
-    owner: matchedAssistant,
+    owner: matchedAssistant || null,
     matchedAssistant,
     imported: true,
     createdAt: new Date().toISOString(),

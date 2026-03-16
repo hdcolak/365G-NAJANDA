@@ -950,7 +950,7 @@ describe("Voyage Kundu control panel", () => {
 
     await userEvent.type(screen.getByLabelText("Platform"), "HolidayCheck");
     await userEvent.type(screen.getByLabelText("Yorum sahibi"), "Lina S.");
-    await userEvent.type(screen.getByLabelText("Yorum metni"), "Spa ve restoran deneyimi başarılıydı.");
+    await userEvent.type(screen.getByLabelText("Yorum metni"), "Deniz spa ve restoran deneyiminde cok yardimciydi.");
     await userEvent.click(screen.getByRole("button", { name: "Yorumu kaydet" }));
 
     expect(screen.getByText("Lina S.")).toBeInTheDocument();

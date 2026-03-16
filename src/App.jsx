@@ -4094,7 +4094,7 @@ function App() {
   );
   const attributedAssistantForReview = useCallback((review) =>
     review.matchedAssistant
-    || inferAssistantNameFromText([review.author, review.content, review.owner].join(" "), knownAssistantNames, review.owner || ""),
+    || inferAssistantNameFromText([review.author, review.content].join(" "), knownAssistantNames, ""),
   [knownAssistantNames]);
 
   const logAction = useCallback((actionKey, detail) => {
@@ -4390,7 +4390,8 @@ function App() {
     const map = new Map();
     assistantReviews.forEach((review) => {
       if (Number(review.rating) !== 5) return;
-      const name = attributedAssistantForReview(review).trim() || "Unknown";
+      const name = attributedAssistantForReview(review).trim();
+      if (!name) return;
       const entry = map.get(name) || { name, reviewCount: 0, ftfCount: 0 };
       entry.reviewCount += 1;
       map.set(name, entry);
@@ -4475,6 +4476,7 @@ function App() {
     () =>
       [...assistantReviews]
         .filter((item) => Number(item.rating) === 5)
+        .filter((item) => Boolean(attributedAssistantForReview(item).trim()))
         .filter((item) =>
           [item.platform, item.author, item.branch, item.owner, attributedAssistantForReview(item), item.content]
             .join(" ")
@@ -5374,9 +5376,9 @@ function App() {
       status: resolvedStatus,
       owner: resolvedOwner,
       matchedAssistant: inferAssistantNameFromText(
-        [newReview.author, newReview.content, resolvedOwner].join(" "),
+        [newReview.author, newReview.content].join(" "),
         knownAssistantNames,
-        resolvedOwner,
+        "",
       ),
       createdAt: new Date().toISOString(),
     };
